@@ -1,0 +1,16 @@
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.IdentityModel.Tokens;
+global using System.Text;
+global using System.Security.Claims;
+global using System.IdentityModel.Tokens.Jwt;
+global using AutoMapper;
+global using FluentValidation;
+global using BE_OPENSKY.Data;
+global using BE_OPENSKY.Models;
+global using BE_OPENSKY.DTOs;
+global using BE_OPENSKY.Services;
+global using BE_OPENSKY.Repositories;
+global using BE_OPENSKY.Helpers;
+global using BE_OPENSKY.Extensions;
+global using BE_OPENSKY.Endpoints;

@@ -29,36 +29,7 @@ public static class UserEndpoints
         .Produces<UserResponseDTO>()
         .Produces(404);
 
-        // Register user
-        userGroup.MapPost("/register", async (UserRegisterDTO userDto, IUserService userService) =>
-        {
-            try
-            {
-                var user = await userService.CreateAsync(userDto);
-                return Results.Created($"/api/users/{user.UserID}", user);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-        })
-        .WithName("RegisterUser")
-        .WithSummary("Register new user")
-        .Produces<UserResponseDTO>(201)
-        .Produces(400);
-
-        // Login user
-        userGroup.MapPost("/login", async (UserLoginDTO loginDto, IUserService userService) =>
-        {
-            var token = await userService.LoginAsync(loginDto);
-            return token != null 
-                ? Results.Ok(new { token, message = "Login successful" }) 
-                : Results.Unauthorized();
-        })
-        .WithName("LoginUser")
-        .WithSummary("Login user")
-        .Produces(200)
-        .Produces(401);
+        // Note: Authentication endpoints moved to /api/auth group
 
         // Update user
         userGroup.MapPut("/{id:int}", async (int id, UserUpdateDTO userDto, IUserService userService) =>
@@ -84,18 +55,6 @@ public static class UserEndpoints
         .Produces(404)
         .RequireAuthorization("ManagementOnly");
 
-        // Change password
-        userGroup.MapPost("/{id:int}/change-password", async (int id, ChangePasswordDTO changePasswordDto, IUserService userService) =>
-        {
-            var result = await userService.ChangePasswordAsync(id, changePasswordDto);
-            return result 
-                ? Results.Ok(new { message = "Password changed successfully" }) 
-                : Results.BadRequest(new { message = "Current password is incorrect" });
-        })
-        .WithName("ChangePassword")
-        .WithSummary("Change user password")
-        .Produces(200)
-        .Produces(400)
-        .RequireAuthorization("AuthenticatedOnly");
+        // Note: Change password endpoint moved to /api/auth group
     }
 }

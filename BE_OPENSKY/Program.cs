@@ -36,9 +36,10 @@ public class Program
         app.UseAuthorization();
 
         // Map API Endpoints
-        app.MapUserEndpoints();
-        app.MapTourEndpoints();
-        app.MapGoogleAuthEndpoints();
+        app.MapAuthEndpoints();        // Authentication endpoints
+        app.MapUserEndpoints();        // User management endpoints
+        app.MapTourEndpoints();        // Tour management endpoints
+        app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
 
         app.Run();
     }

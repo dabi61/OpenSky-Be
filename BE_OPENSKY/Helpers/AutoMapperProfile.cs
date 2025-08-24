@@ -8,7 +8,8 @@ public class AutoMapperProfile : Profile
         CreateMap<User, UserResponseDTO>();
         CreateMap<UserRegisterDTO, User>()
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-            .ForMember(dest => dest.Role, opt => opt.MapFrom(src => "User"));
+            .ForMember(dest => dest.Role, opt => opt.MapFrom(src => 
+                string.IsNullOrEmpty(src.Role) ? RoleConstants.Customer : src.Role));
         CreateMap<UserUpdateDTO, User>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 

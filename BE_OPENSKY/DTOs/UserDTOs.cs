@@ -11,6 +11,7 @@ namespace BE_OPENSKY.DTOs
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string? Role { get; set; } // Optional: if not provided, defaults to Customer
         public string? NumberPhone { get; set; }
         public string? CitizenId { get; set; }
         public DateTime? DoB { get; set; }

@@ -40,5 +40,7 @@ namespace BE_OPENSKY.Models
         public virtual ICollection<Tour> Tours { get; set; } = new List<Tour>();
         public virtual ICollection<Hotel> Hotels { get; set; } = new List<Hotel>();
         public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
+        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
+
     }
 }

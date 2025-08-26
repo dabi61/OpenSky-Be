@@ -11,20 +11,20 @@ namespace BE_OPENSKY.Models
         public int UserID { get; set; }
         
         [Required]
-        public string TableType { get; set; } = string.Empty; // Tour, Hotel, User
+        public string TableType { get; set; } = string.Empty; // Loại đánh giá: Tour, Hotel, User
         
         [Required]
-        public int TableID { get; set; }
+        public int TableID { get; set; } // ID của đối tượng được đánh giá
         
         [Required]
         [Range(1, 5)]
-        public int Rate { get; set; }
+        public int Rate { get; set; } // Điểm đánh giá từ 1-5 sao
         
-        public string? Description { get; set; }
+        public string? Description { get; set; } // Nội dung đánh giá
         
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Ngày tạo đánh giá
         
-        // Navigation properties
-        public virtual User User { get; set; } = null!;
+        // Thuộc tính điều hướng
+        public virtual User User { get; set; } = null!; // Người đánh giá
     }
 }

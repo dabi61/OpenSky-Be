@@ -223,36 +223,39 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.URL).IsRequired().HasMaxLength(500);
             });
 
-            // Voucher
+            // Voucher - Cấu hình bảng mã giảm giá
             modelBuilder.Entity<Voucher>(entity =>
             {
-                entity.HasKey(e => e.VoucherID);
-                entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
-                entity.HasIndex(e => e.Code).IsUnique(); // unique code
-                entity.Property(e => e.Percent).IsRequired();
-                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TableID).IsRequired();
-                entity.Property(e => e.StartDate).IsRequired();
-                entity.Property(e => e.EndDate).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Quantity).IsRequired();
+                entity.HasKey(e => e.VoucherID); // Khóa chính
+                entity.Property(e => e.Code).IsRequired().HasMaxLength(50); // Mã voucher (bắt buộc)
+                entity.HasIndex(e => e.Code).IsUnique(); // Mã voucher phải duy nhất
+                entity.Property(e => e.Percent).IsRequired(); // Phần trăm giảm giá (bắt buộc)
+                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50); // Loại voucher (bắt buộc)
+                entity.Property(e => e.TableID).IsRequired(); // ID liên kết (bắt buộc)
+                entity.Property(e => e.StartDate).IsRequired(); // Ngày bắt đầu (bắt buộc)
+                entity.Property(e => e.EndDate).IsRequired(); // Ngày hết hạn (bắt buộc)
+                entity.Property(e => e.Description).HasMaxLength(1000); // Mô tả voucher
+                entity.Property(e => e.MaxUsage).IsRequired(); // Số lần sử dụng tối đa (bắt buộc)
             });
 
-            // UserVoucher
+            // UserVoucher - Cấu hình bảng voucher đã lưu của khách hàng
             modelBuilder.Entity<UserVoucher>(entity =>
             {
-                entity.HasKey(e => e.UserVoucherID);
-                entity.Property(e => e.IsUsed).IsRequired();
+                entity.HasKey(e => e.UserVoucherID); // Khóa chính
+                entity.Property(e => e.IsUsed).IsRequired(); // Trạng thái sử dụng (bắt buộc)
+                entity.Property(e => e.SavedAt).IsRequired(); // Ngày lưu voucher (bắt buộc)
 
+                // Quan hệ với bảng User
                 entity.HasOne(e => e.User)
                     .WithMany(e => e.UserVouchers)
                     .HasForeignKey(e => e.UserID)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Cascade); // Xóa user thì xóa luôn voucher đã lưu
 
+                // Quan hệ với bảng Voucher
                 entity.HasOne(e => e.Voucher)
                     .WithMany(e => e.UserVouchers)
                     .HasForeignKey(e => e.VoucherID)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Cascade); // Xóa voucher thì xóa luôn bản ghi đã lưu
             });
         }
     }

@@ -1,14 +1,16 @@
 ﻿namespace BE_OPENSKY.Models
 {
+    // Model UserVoucher - Voucher đã lưu của khách hàng
     public class UserVoucher
     {
-        public Guid UserVoucherID { get; set; }
-        public int UserID { get; set; }
-        public Guid VoucherID { get; set; }
-        public bool IsUsed { get; set; }
+        public Guid UserVoucherID { get; set; } // ID bản ghi voucher của user
+        public int UserID { get; set; }         // ID khách hàng
+        public Guid VoucherID { get; set; }     // ID voucher
+        public bool IsUsed { get; set; }        // Đã sử dụng chưa
+        public DateTime SavedAt { get; set; }   // Ngày lưu voucher
 
-        // Navigation properties
-        public User User { get; set; }
-        public Voucher Voucher { get; set; }
+        // Thuộc tính điều hướng
+        public User User { get; set; }          // Thông tin khách hàng
+        public Voucher Voucher { get; set; }    // Thông tin voucher
     }
 }

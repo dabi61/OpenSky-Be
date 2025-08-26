@@ -40,6 +40,7 @@ public class Program
         app.MapUserEndpoints();        // User management endpoints
         app.MapTourEndpoints();        // Tour management endpoints
         app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
+        app.MapVoucherEndpoints();     // Voucher management endpoints
 
         app.Run();
     }

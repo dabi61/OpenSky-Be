@@ -7,10 +7,12 @@ public static class ServiceExtensions
         // Add Repositories
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ITourRepository, TourRepository>();
+        services.AddScoped<IVoucherRepository, VoucherRepository>();
         
         // Add Services
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<IVoucherService, VoucherService>();
         
         // Add HttpClient for Google OAuth
         services.AddHttpClient();

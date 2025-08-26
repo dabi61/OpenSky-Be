@@ -20,27 +20,27 @@ namespace BE_OPENSKY.Models
         public string? ProviderId { get; set; }
         
         [Required]
-        public string Role { get; set; } = RoleConstants.Customer; // Supervisor, TourGuide, Admin, Customer, Hotel
+        public string Role { get; set; } = RoleConstants.Customer; // Vai trò: Supervisor, TourGuide, Admin, Customer, Hotel
         
-        public string? NumberPhone { get; set; }
+        public string? NumberPhone { get; set; } // Số điện thoại
         
-        public string? CitizenId { get; set; }
+        public string? CitizenId { get; set; } // Số CMND/CCCD
         
-        public DateTime? DoB { get; set; }
+        public DateTime? DoB { get; set; } // Ngày sinh
         
-        public string? AvatarURL { get; set; }
+        public string? AvatarURL { get; set; } // Link ảnh đại diện
         
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Ngày tạo tài khoản
         
-        // Navigation properties
-        public virtual ICollection<Message> SentMessages { get; set; } = new List<Message>();
-        public virtual ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
-        public virtual ICollection<FeedBack> FeedBacks { get; set; } = new List<FeedBack>();
-        public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
-        public virtual ICollection<Tour> Tours { get; set; } = new List<Tour>();
-        public virtual ICollection<Hotel> Hotels { get; set; } = new List<Hotel>();
-        public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
-        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
+        // Thuộc tính điều hướng - Các mối quan hệ với bảng khác
+        public virtual ICollection<Message> SentMessages { get; set; } = new List<Message>(); // Tin nhắn đã gửi
+        public virtual ICollection<Message> ReceivedMessages { get; set; } = new List<Message>(); // Tin nhắn đã nhận
+        public virtual ICollection<FeedBack> FeedBacks { get; set; } = new List<FeedBack>(); // Đánh giá đã viết
+        public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>(); // Hóa đơn
+        public virtual ICollection<Tour> Tours { get; set; } = new List<Tour>(); // Tour đã tạo (nếu là TourGuide)
+        public virtual ICollection<Hotel> Hotels { get; set; } = new List<Hotel>(); // Hotel đã tạo (nếu là Hotel)
+        public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>(); // Lịch trình đã đặt
+        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>(); // Voucher đã lưu
 
     }
 }

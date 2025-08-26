@@ -8,53 +8,57 @@ public static class UserEndpoints
             .WithTags("Users")
             .WithOpenApi();
 
-        // Get all users
+        // Lấy danh sách tất cả người dùng
         userGroup.MapGet("/", async (IUserService userService) =>
         {
             var users = await userService.GetAllAsync();
             return Results.Ok(users);
         })
         .WithName("GetAllUsers")
-        .WithSummary("Get all users")
+        .WithSummary("Lấy danh sách người dùng")
+        .WithDescription("Lấy thông tin tất cả người dùng trong hệ thống")
         .Produces<IEnumerable<UserResponseDTO>>();
 
-        // Get user by ID
+        // Lấy người dùng theo ID
         userGroup.MapGet("/{id:int}", async (int id, IUserService userService) =>
         {
             var user = await userService.GetByIdAsync(id);
             return user != null ? Results.Ok(user) : Results.NotFound();
         })
         .WithName("GetUserById")
-        .WithSummary("Get user by ID")
+        .WithSummary("Lấy người dùng theo ID")
+        .WithDescription("Lấy thông tin chi tiết người dùng theo ID")
         .Produces<UserResponseDTO>()
         .Produces(404);
 
-        // Note: Authentication endpoints moved to /api/auth group
+        // Lưu ý: Các endpoint xác thực đã chuyển sang nhóm /api/auth
 
-        // Update user
+        // Cập nhật thông tin người dùng
         userGroup.MapPut("/{id:int}", async (int id, UserUpdateDTO userDto, IUserService userService) =>
         {
             var user = await userService.UpdateAsync(id, userDto);
             return user != null ? Results.Ok(user) : Results.NotFound();
         })
         .WithName("UpdateUser")
-        .WithSummary("Update user")
+        .WithSummary("Cập nhật người dùng")
+        .WithDescription("Chỉnh sửa thông tin người dùng")
         .Produces<UserResponseDTO>()
         .Produces(404)
         .RequireAuthorization();
 
-        // Delete user
+        // Xóa người dùng
         userGroup.MapDelete("/{id:int}", async (int id, IUserService userService) =>
         {
             var result = await userService.DeleteAsync(id);
             return result ? Results.NoContent() : Results.NotFound();
         })
         .WithName("DeleteUser")
-        .WithSummary("Delete user")
+        .WithSummary("Xóa người dùng")
+        .WithDescription("Xóa người dùng khỏi hệ thống (chỉ Management)")
         .Produces(204)
         .Produces(404)
         .RequireAuthorization("ManagementOnly");
 
-        // Note: Change password endpoint moved to /api/auth group
+        // Lưu ý: Endpoint đổi mật khẩu đã chuyển sang nhóm /api/auth
     }
 }

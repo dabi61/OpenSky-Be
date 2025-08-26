@@ -18,8 +18,8 @@ namespace BE_OPENSKY.Models
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
-        // Navigation properties
-        public virtual User SenderUser { get; set; } = null!;
-        public virtual User ReceiverUser { get; set; } = null!;
+        // Thuộc tính điều hướng
+        public virtual User SenderUser { get; set; } = null!; // Người gửi
+        public virtual User ReceiverUser { get; set; } = null!; // Người nhận
     }
 }

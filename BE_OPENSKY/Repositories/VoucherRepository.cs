@@ -1,6 +1,4 @@
-using BE_OPENSKY.Data;
-using BE_OPENSKY.Models;
-using Microsoft.EntityFrameworkCore;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Repositories;
 

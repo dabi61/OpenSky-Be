@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Models
 {

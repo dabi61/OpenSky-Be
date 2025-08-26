@@ -9,7 +9,7 @@ public class Program
         // Add services to the container
         builder.Services.AddDatabaseServices(builder.Configuration);
         builder.Services.AddJwtAuthentication(builder.Configuration);
-        builder.Services.AddApplicationServices();
+        builder.Services.AddApplicationServices(builder.Configuration);
         
         // Add AutoMapper
         builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
@@ -36,11 +36,12 @@ public class Program
         app.UseAuthorization();
 
         // Map API Endpoints
-        app.MapAuthEndpoints();        // Authentication endpoints
-        app.MapUserEndpoints();        // User management endpoints
-        app.MapTourEndpoints();        // Tour management endpoints
-        app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
-        app.MapVoucherEndpoints();     // Voucher management endpoints
+app.MapAuthEndpoints();        // Authentication endpoints
+app.MapUserEndpoints();        // User management endpoints
+app.MapTourEndpoints();        // Tour management endpoints
+app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
+app.MapVoucherEndpoints();     // Voucher management endpoints
+app.MapImageEndpoints();       // Image management endpoints
 
         app.Run();
     }

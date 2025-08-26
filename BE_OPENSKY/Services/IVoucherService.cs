@@ -1,4 +1,4 @@
-using BE_OPENSKY.DTOs;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Services;
 

@@ -22,11 +22,12 @@ public static class SwaggerExtensions
             // Add JWT Bearer authentication to Swagger
             c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
-                Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+                Description = "Nhập JWT token vào ô bên dưới (không cần thêm 'Bearer')",
                 Name = "Authorization",
                 In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-                Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-                Scheme = "Bearer"
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
             });
 
             c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement

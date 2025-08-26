@@ -1,5 +1,4 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Services;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Endpoints;
 

@@ -1,7 +1,4 @@
-using AutoMapper;
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Models;
-using BE_OPENSKY.Repositories;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Services;
 

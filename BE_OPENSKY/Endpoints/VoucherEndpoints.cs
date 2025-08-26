@@ -1,7 +1,4 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Helpers;
-using BE_OPENSKY.Services;
-using System.Security.Claims;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Endpoints;
 
@@ -299,7 +296,7 @@ public static class VoucherEndpoints
             var userVouchers = await voucherService.GetUserSavedVouchersAsync(userId);
             return Results.Ok(userVouchers);
         })
-        .WithName("GetUserVouchers")
+        .WithName("GetVouchersByUser")
         .WithSummary("Xem voucher của user")
         .WithDescription("Admin hoặc chính user đó xem voucher đã lưu")
         .Produces<IEnumerable<UserVoucherResponseDTO>>()

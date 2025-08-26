@@ -1,5 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using BE_OPENSKY.Models;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Data
 {
@@ -213,14 +212,19 @@ namespace BE_OPENSKY.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Image
+            // Image - Cấu hình bảng quản lý ảnh
             modelBuilder.Entity<Image>(entity =>
             {
-            entity.HasKey(e => e.ImgID);
-            entity.Property(e => e.TableType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TypeID).IsRequired();
-                entity.Property(e => e.URL).IsRequired().HasMaxLength(500);
+                entity.HasKey(e => e.ImgID); // Khóa chính
+                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50); // Loại đối tượng (bắt buộc)
+                entity.Property(e => e.TypeID).IsRequired(); // ID đối tượng (bắt buộc)
+                entity.Property(e => e.URL).IsRequired().HasMaxLength(500); // Link ảnh (bắt buộc)
+                entity.Property(e => e.Description).HasMaxLength(1000); // Mô tả ảnh
+                entity.Property(e => e.CreatedAt).IsRequired(); // Ngày tạo (bắt buộc)
+                
+                // Index để truy vấn nhanh theo đối tượng
+                entity.HasIndex(e => new { e.TableType, e.TypeID })
+                    .HasDatabaseName("IX_Images_TableType_TypeID");
             });
 
             // Voucher - Cấu hình bảng mã giảm giá

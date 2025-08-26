@@ -8,38 +8,41 @@ public static class TourEndpoints
             .WithTags("Tours")
             .WithOpenApi();
 
-        // Get all tours
+        // Lấy tất cả tour
         tourGroup.MapGet("/", async (ITourRepository tourRepository) =>
         {
             var tours = await tourRepository.GetAllAsync();
             return Results.Ok(tours);
         })
         .WithName("GetAllTours")
-        .WithSummary("Get all tours")
+        .WithSummary("Lấy tất cả tour")
+        .WithDescription("Lấy danh sách tất cả tour trong hệ thống")
         .Produces<IEnumerable<Tour>>();
 
-        // Get tour by ID
+        // Lấy tour theo ID
         tourGroup.MapGet("/{id:int}", async (int id, ITourRepository tourRepository) =>
         {
             var tour = await tourRepository.GetByIdAsync(id);
             return tour != null ? Results.Ok(tour) : Results.NotFound();
         })
         .WithName("GetTourById")
-        .WithSummary("Get tour by ID")
+        .WithSummary("Lấy tour theo ID")
+        .WithDescription("Lấy thông tin chi tiết tour theo ID")
         .Produces<Tour>()
         .Produces(404);
 
-        // Get tours by user ID
+        // Lấy tour theo user ID
         tourGroup.MapGet("/user/{userId:int}", async (int userId, ITourRepository tourRepository) =>
         {
             var tours = await tourRepository.GetByUserIdAsync(userId);
             return Results.Ok(tours);
         })
         .WithName("GetToursByUserId")
-        .WithSummary("Get tours by user ID")
+        .WithSummary("Lấy tour theo user ID")
+        .WithDescription("Lấy danh sách tour của một user cụ thể")
         .Produces<IEnumerable<Tour>>();
 
-        // Create tour
+        // Tạo tour mới
         tourGroup.MapPost("/", async (TourCreateDTO tourDto, ITourRepository tourRepository, HttpContext httpContext) =>
         {
             // Get user ID from JWT token
@@ -65,12 +68,13 @@ public static class TourEndpoints
             return Results.Created($"/api/tours/{createdTour.TourID}", createdTour);
         })
         .WithName("CreateTour")
-        .WithSummary("Create new tour")
+        .WithSummary("Tạo tour mới")
+        .WithDescription("Tạo tour mới (yêu cầu đăng nhập)")
         .Produces<Tour>(201)
         .Produces(401)
         .RequireAuthorization();
 
-        // Update tour
+        // Cập nhật tour
         tourGroup.MapPut("/{id:int}", async (int id, TourUpdateDTO tourDto, ITourRepository tourRepository, HttpContext httpContext) =>
         {
             var existingTour = await tourRepository.GetByIdAsync(id);
@@ -103,13 +107,14 @@ public static class TourEndpoints
             return Results.Ok(updatedTour);
         })
         .WithName("UpdateTour")
-        .WithSummary("Update tour")
+        .WithSummary("Cập nhật tour")
+        .WithDescription("Cập nhật thông tin tour (chỉ chủ sở hữu hoặc Management)")
         .Produces<Tour>()
         .Produces(404)
         .Produces(403)
         .RequireAuthorization();
 
-        // Delete tour
+        // Xóa tour
         tourGroup.MapDelete("/{id:int}", async (int id, ITourRepository tourRepository, HttpContext httpContext) =>
         {
             var existingTour = await tourRepository.GetByIdAsync(id);
@@ -127,7 +132,8 @@ public static class TourEndpoints
             return result ? Results.NoContent() : Results.NotFound();
         })
         .WithName("DeleteTour")
-        .WithSummary("Delete tour")
+        .WithSummary("Xóa tour")
+        .WithDescription("Xóa tour (chỉ chủ sở hữu hoặc Admin)")
         .Produces(204)
         .Produces(404)
         .Produces(403)

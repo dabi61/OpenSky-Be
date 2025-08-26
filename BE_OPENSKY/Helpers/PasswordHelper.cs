@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+// using directives đã đưa vào GlobalUsings
 
 namespace BE_OPENSKY.Helpers;
 

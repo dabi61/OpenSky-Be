@@ -219,7 +219,6 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.TableType).IsRequired().HasConversion<string>(); // Loại đối tượng (bắt buộc)
                 entity.Property(e => e.TypeID).IsRequired(); // ID đối tượng (bắt buộc)
                 entity.Property(e => e.URL).IsRequired().HasMaxLength(500); // Link ảnh (bắt buộc)
-                entity.Property(e => e.Description).HasMaxLength(1000); // Mô tả ảnh
                 entity.Property(e => e.CreatedAt).IsRequired(); // Ngày tạo (bắt buộc)
                 
                 // Index để truy vấn nhanh theo đối tượng

@@ -6,7 +6,6 @@ public record ImageUploadDTO
     public TableType TableType { get; init; } // Tour, Hotel, User
     public Guid TypeID { get; init; } // ID của đối tượng (TourID, HotelID, RoomID, UserID)
     public IFormFile File { get; init; } = null!; // File ảnh upload
-    public string? Description { get; init; } // Mô tả ảnh (optional)
 }
 
 // DTO phản hồi ảnh
@@ -16,15 +15,11 @@ public record ImageResponseDTO
     public TableType TableType { get; init; } // Loại đối tượng
     public Guid TypeID { get; init; } // ID đối tượng
     public string URL { get; init; } = string.Empty; // Link ảnh trên Cloudinary
-    public string? Description { get; init; } // Mô tả ảnh
     public DateTime CreatedAt { get; init; } // Ngày tải lên
 }
 
-// DTO cập nhật ảnh
-public record ImageUpdateDTO
-{
-    public string? Description { get; init; } // Chỉ cho phép sửa mô tả
-}
+// DTO cập nhật ảnh - removed since Description no longer exists
+// public record ImageUpdateDTO
 
 // DTO danh sách ảnh theo đối tượng
 public record GetImagesDTO

@@ -17,7 +17,6 @@ public static class ImageEndpoints
             [FromForm] string tableTypeStr,
             [FromForm] Guid typeId,
             [FromForm] IFormFile file,
-            [FromForm] string? description,
             IImageService imageService,
             HttpContext context) =>
         {
@@ -45,8 +44,7 @@ public static class ImageEndpoints
                 {
                     TableType = tableType,
                     TypeID = typeId,
-                    File = file,
-                    Description = description
+                    File = file
                 };
 
                 var result = await imageService.UploadImageAsync(uploadDto);
@@ -108,28 +106,7 @@ public static class ImageEndpoints
 
         // ===== ENDPOINTS QUẢN LÝ ẢNH =====
 
-        // Cập nhật mô tả ảnh
-        imageGroup.MapPut("/{id:int}", async (
-            int id, 
-            ImageUpdateDTO updateDto, 
-            IImageService imageService,
-            HttpContext context) =>
-        {
-            // Kiểm tra quyền sửa
-            var hasPermission = await CheckImagePermissionAsync(id, context, imageService);
-            if (!hasPermission)
-                return Results.Forbid();
-
-            var image = await imageService.UpdateImageDescriptionAsync(id, updateDto);
-            return image != null ? Results.Ok(image) : Results.NotFound();
-        })
-        .WithName("UpdateImage")
-        .WithSummary("Cập nhật ảnh")
-        .WithDescription("Chỉnh sửa mô tả ảnh")
-        .Produces<ImageResponseDTO>()
-        .Produces(403)
-        .Produces(404)
-        .RequireAuthorization("AuthenticatedOnly");
+        // Update endpoint removed - Description property no longer exists
 
         // Xóa ảnh
         imageGroup.MapDelete("/{id:int}", async (

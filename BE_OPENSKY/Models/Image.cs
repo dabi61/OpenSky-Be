@@ -17,8 +17,6 @@ namespace BE_OPENSKY.Models
         [Required]
         public string URL { get; set; } = string.Empty; // Link ảnh trên Cloudinary
         
-        public string? Description { get; set; } // Mô tả ảnh
-        
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Ngày tải lên
     }
 }

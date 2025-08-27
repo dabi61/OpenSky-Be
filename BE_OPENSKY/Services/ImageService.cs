@@ -64,7 +64,6 @@ public class ImageService : IImageService
                 TableType = imageDto.TableType,
                 TypeID = imageDto.TypeID,
                 URL = uploadResult.SecureUrl.ToString(),
-                Description = imageDto.Description,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -77,7 +76,6 @@ public class ImageService : IImageService
                 URL = image.URL,
                 TableType = image.TableType,
                 TypeID = image.TypeID,
-                Description = image.Description,
                 CreatedAt = image.CreatedAt
             };
         }
@@ -101,7 +99,6 @@ public class ImageService : IImageService
             URL = i.URL,
             TableType = i.TableType,
             TypeID = i.TypeID,
-            Description = i.Description,
             CreatedAt = i.CreatedAt
         });
     }
@@ -118,30 +115,12 @@ public class ImageService : IImageService
             URL = image.URL,
             TableType = image.TableType,
             TypeID = image.TypeID,
-            Description = image.Description,
             CreatedAt = image.CreatedAt
         };
     }
 
-    public async Task<ImageResponseDTO?> UpdateImageDescriptionAsync(int imgId, ImageUpdateDTO updateDto)
-    {
-        var image = await _context.Images.FindAsync(imgId);
-        if (image == null)
-            return null;
-
-        image.Description = updateDto.Description;
-        await _context.SaveChangesAsync();
-
-        return new ImageResponseDTO
-        {
-            ImgID = image.ImgID,
-            URL = image.URL,
-            TableType = image.TableType,
-            TypeID = image.TypeID,
-            Description = image.Description,
-            CreatedAt = image.CreatedAt
-        };
-    }
+    // Method removed since Description property no longer exists
+    // public async Task<ImageResponseDTO?> UpdateImageDescriptionAsync(int imgId, ImageUpdateDTO updateDto)
 
     public async Task<bool> DeleteImageAsync(int imgId)
     {
@@ -233,7 +212,6 @@ public class ImageService : IImageService
                 URL = userImage.URL,
                 TableType = userImage.TableType,
                 TypeID = userImage.TypeID,
-                Description = userImage.Description,
                 CreatedAt = userImage.CreatedAt
             };
         }
@@ -248,7 +226,6 @@ public class ImageService : IImageService
                 URL = user.AvatarURL,
                 TableType = TableType.User,
                 TypeID = userId,
-                Description = "Avatar từ User.AvatarURL",
                 CreatedAt = DateTime.UtcNow
             };
         }
@@ -276,7 +253,6 @@ public class ImageService : IImageService
             URL = image.URL,
             TableType = image.TableType,
             TypeID = image.TypeID,
-            Description = image.Description,
             CreatedAt = image.CreatedAt
         };
     }

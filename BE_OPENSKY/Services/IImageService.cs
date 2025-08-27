@@ -6,7 +6,7 @@ public interface IImageService
     Task<ImageResponseDTO> UploadImageAsync(ImageUploadDTO imageDto); // Tải lên ảnh
     Task<IEnumerable<ImageResponseDTO>> GetImagesByTableAsync(TableType tableType, Guid typeId); // Lấy ảnh theo đối tượng
     Task<ImageResponseDTO?> GetImageByIdAsync(int imgId); // Lấy ảnh theo ID
-    Task<ImageResponseDTO?> UpdateImageDescriptionAsync(int imgId, ImageUpdateDTO updateDto); // Cập nhật mô tả ảnh
+    // UpdateImageDescriptionAsync removed - Description property no longer exists
     Task<bool> DeleteImageAsync(int imgId); // Xóa ảnh
     Task<bool> DeleteAllImagesAsync(TableType tableType, Guid typeId); // Xóa tất cả ảnh của đối tượng
     Task<ImageResponseDTO?> GetUserAvatarAsync(Guid userId); // Lấy avatar của user

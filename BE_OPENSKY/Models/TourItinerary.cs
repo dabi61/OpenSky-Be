@@ -5,10 +5,10 @@ namespace BE_OPENSKY.Models
     public class TourItinerary
     {
         [Key]
-        public int ItineraryID { get; set; }
+        public Guid ItineraryID { get; set; }
         
         [Required]
-        public int TourID { get; set; }
+        public Guid TourID { get; set; }
         
         [Required]
         public int DayNumber { get; set; }

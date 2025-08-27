@@ -5,10 +5,10 @@ namespace BE_OPENSKY.Models
     public class Refund
     {
         [Key]
-        public int RefundID { get; set; }
+        public Guid RefundID { get; set; }
         
         [Required]
-        public int BillID { get; set; }
+        public Guid BillID { get; set; }
         
         [Required]
         public string Description { get; set; } = string.Empty;

@@ -39,10 +39,10 @@ public static class VoucherEndpoints
         .RequireAuthorization("AdminOnly");
 
         // Lấy voucher theo loại (Admin)
-        voucherGroup.MapGet("/admin/type/{tableType}", async (string tableType, IVoucherService voucherService) =>
+        voucherGroup.MapGet("/admin/type/{tableType}", async (string tableTypeStr, IVoucherService voucherService) =>
         {
-            if (tableType != "Tour" && tableType != "Hotel")
-                return Results.BadRequest(new { message = "Loại voucher phải là 'Tour' hoặc 'Hotel'" });
+            if (!Enum.TryParse<TableType>(tableTypeStr, true, out var tableType))
+                return Results.BadRequest(new { message = "Loại voucher phải là Tour hoặc Hotel" });
 
             var vouchers = await voucherService.GetByTableTypeAsync(tableType);
             return Results.Ok(vouchers);
@@ -217,7 +217,7 @@ public static class VoucherEndpoints
         {
             // Lấy thông tin user từ JWT
             var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                 return Results.Unauthorized();
 
             try
@@ -244,7 +244,7 @@ public static class VoucherEndpoints
         voucherGroup.MapGet("/my-vouchers", async (IVoucherService voucherService, HttpContext context) =>
         {
             var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                 return Results.Unauthorized();
 
             var userVouchers = await voucherService.GetUserSavedVouchersAsync(userId);
@@ -261,7 +261,7 @@ public static class VoucherEndpoints
         voucherGroup.MapDelete("/my-vouchers/{userVoucherId:guid}", async (Guid userVoucherId, IVoucherService voucherService, HttpContext context) =>
         {
             var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                 return Results.Unauthorized();
 
             // TODO: Kiểm tra userVoucherId có thuộc về userId không (để bảo mật)
@@ -278,7 +278,7 @@ public static class VoucherEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
         // Xem voucher của user cụ thể (Admin hoặc chính user đó)
-        voucherGroup.MapGet("/user/{userId:int}", async (int userId, IVoucherService voucherService, HttpContext context) =>
+        voucherGroup.MapGet("/user/{userId:guid}", async (Guid userId, IVoucherService voucherService, HttpContext context) =>
         {
             // Kiểm tra quyền truy cập
             var currentUserIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
@@ -287,7 +287,7 @@ public static class VoucherEndpoints
             if (currentUserIdClaim == null)
                 return Results.Unauthorized();
 
-            var currentUserId = int.Parse(currentUserIdClaim.Value);
+            var currentUserId = Guid.Parse(currentUserIdClaim.Value);
             var isAdmin = currentUserRoleClaim?.Value == RoleConstants.Admin;
 
             if (!isAdmin && currentUserId != userId)

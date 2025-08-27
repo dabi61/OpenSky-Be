@@ -4,7 +4,7 @@
     public class UserVoucher
     {
         public Guid UserVoucherID { get; set; } // ID bản ghi voucher của user
-        public int UserID { get; set; }         // ID khách hàng
+        public Guid UserID { get; set; }         // ID khách hàng
         public Guid VoucherID { get; set; }     // ID voucher
         public bool IsUsed { get; set; }        // Đã sử dụng chưa
         public DateTime SavedAt { get; set; }   // Ngày lưu voucher

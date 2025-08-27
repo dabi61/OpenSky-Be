@@ -20,7 +20,7 @@ public static class UserEndpoints
         .Produces<IEnumerable<UserResponseDTO>>();
 
         // Lấy người dùng theo ID
-        userGroup.MapGet("/{id:int}", async (int id, IUserService userService) =>
+        userGroup.MapGet("/{id:guid}", async (Guid id, IUserService userService) =>
         {
             var user = await userService.GetByIdAsync(id);
             return user != null ? Results.Ok(user) : Results.NotFound();
@@ -34,7 +34,7 @@ public static class UserEndpoints
         // Lưu ý: Các endpoint xác thực đã chuyển sang nhóm /api/auth
 
         // Cập nhật thông tin người dùng
-        userGroup.MapPut("/{id:int}", async (int id, UserUpdateDTO userDto, IUserService userService) =>
+        userGroup.MapPut("/{id:guid}", async (Guid id, UserUpdateDTO userDto, IUserService userService) =>
         {
             var user = await userService.UpdateAsync(id, userDto);
             return user != null ? Results.Ok(user) : Results.NotFound();
@@ -47,7 +47,7 @@ public static class UserEndpoints
         .RequireAuthorization();
 
         // Xóa người dùng
-        userGroup.MapDelete("/{id:int}", async (int id, IUserService userService) =>
+        userGroup.MapDelete("/{id:guid}", async (Guid id, IUserService userService) =>
         {
             var result = await userService.DeleteAsync(id);
             return result ? Results.NoContent() : Results.NotFound();

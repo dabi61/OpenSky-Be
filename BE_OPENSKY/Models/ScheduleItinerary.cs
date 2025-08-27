@@ -5,13 +5,13 @@ namespace BE_OPENSKY.Models
     public class ScheduleItinerary
     {
         [Key]
-        public int ScheduleItID { get; set; }
+        public Guid ScheduleItID { get; set; }
         
         [Required]
-        public int ScheduleID { get; set; }
+        public Guid ScheduleID { get; set; }
         
         [Required]
-        public int ItineraryID { get; set; }
+        public Guid ItineraryID { get; set; }
         
         [Required]
         public DateTime StartTime { get; set; }

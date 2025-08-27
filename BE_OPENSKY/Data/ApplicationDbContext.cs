@@ -31,10 +31,10 @@ namespace BE_OPENSKY.Data
             {
                 entity.HasKey(e => e.UserID);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.PassWord).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Password).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Role).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.NumberPhone).HasMaxLength(20);
+                entity.Property(e => e.PhoneNumber).HasMaxLength(20);
                 entity.Property(e => e.CitizenId).HasMaxLength(20);
                 entity.Property(e => e.AvatarURL).HasMaxLength(500);
 
@@ -47,7 +47,7 @@ namespace BE_OPENSKY.Data
                 entity.HasKey(e => e.TourID);
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Star).IsRequired();
 
                 entity.HasOne(e => e.User)
@@ -66,7 +66,7 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Coordinates).HasMaxLength(100);
                 entity.Property(e => e.HotelName).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Star).IsRequired();
 
                 entity.HasOne(e => e.User)
@@ -80,7 +80,7 @@ namespace BE_OPENSKY.Data
             {
                 entity.HasKey(e => e.RoomID);
                 entity.Property(e => e.RoomName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.RoomType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.RoomType).IsRequired().HasConversion<int>(); // Keep as number
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
 
@@ -111,8 +111,8 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Bill>(entity =>
             {
                 entity.HasKey(e => e.BillID);
-                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TableType).IsRequired().HasConversion<string>();
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Deposit).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.RefundPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
@@ -178,7 +178,7 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<FeedBack>(entity =>
             {
                 entity.HasKey(e => e.FeedBackID);
-                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TableType).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Rate).IsRequired().HasMaxLength(1);
                 entity.Property(e => e.Description).HasMaxLength(1000);
 
@@ -216,7 +216,7 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Image>(entity =>
             {
                 entity.HasKey(e => e.ImgID); // Khóa chính
-                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50); // Loại đối tượng (bắt buộc)
+                entity.Property(e => e.TableType).IsRequired().HasConversion<string>(); // Loại đối tượng (bắt buộc)
                 entity.Property(e => e.TypeID).IsRequired(); // ID đối tượng (bắt buộc)
                 entity.Property(e => e.URL).IsRequired().HasMaxLength(500); // Link ảnh (bắt buộc)
                 entity.Property(e => e.Description).HasMaxLength(1000); // Mô tả ảnh
@@ -234,7 +234,7 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Code).IsRequired().HasMaxLength(50); // Mã voucher (bắt buộc)
                 entity.HasIndex(e => e.Code).IsUnique(); // Mã voucher phải duy nhất
                 entity.Property(e => e.Percent).IsRequired(); // Phần trăm giảm giá (bắt buộc)
-                entity.Property(e => e.TableType).IsRequired().HasMaxLength(50); // Loại voucher (bắt buộc)
+                entity.Property(e => e.TableType).IsRequired().HasConversion<string>(); // Loại voucher (bắt buộc)
                 entity.Property(e => e.TableID).IsRequired(); // ID liên kết (bắt buộc)
                 entity.Property(e => e.StartDate).IsRequired(); // Ngày bắt đầu (bắt buộc)
                 entity.Property(e => e.EndDate).IsRequired(); // Ngày hết hạn (bắt buộc)

@@ -20,7 +20,7 @@ public static class TourEndpoints
         .Produces<IEnumerable<Tour>>();
 
         // Lấy tour theo ID
-        tourGroup.MapGet("/{id:int}", async (int id, ITourRepository tourRepository) =>
+        tourGroup.MapGet("/{id:guid}", async (Guid id, ITourRepository tourRepository) =>
         {
             var tour = await tourRepository.GetByIdAsync(id);
             return tour != null ? Results.Ok(tour) : Results.NotFound();
@@ -32,7 +32,7 @@ public static class TourEndpoints
         .Produces(404);
 
         // Lấy tour theo user ID
-        tourGroup.MapGet("/user/{userId:int}", async (int userId, ITourRepository tourRepository) =>
+        tourGroup.MapGet("/user/{userId:guid}", async (Guid userId, ITourRepository tourRepository) =>
         {
             var tours = await tourRepository.GetByUserIdAsync(userId);
             return Results.Ok(tours);
@@ -50,7 +50,7 @@ public static class TourEndpoints
             if (userIdClaim == null)
                 return Results.Unauthorized();
 
-            var userId = int.Parse(userIdClaim.Value);
+            var userId = Guid.Parse(userIdClaim.Value);
             
             var tour = new Tour
             {
@@ -60,7 +60,7 @@ public static class TourEndpoints
                 MaxPeople = tourDto.MaxPeople,
                 Description = tourDto.Description,
                 Star = tourDto.Star,
-                Status = "Active",
+                Status = TourStatus.Active,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -75,7 +75,7 @@ public static class TourEndpoints
         .RequireAuthorization();
 
         // Cập nhật tour
-        tourGroup.MapPut("/{id:int}", async (int id, TourUpdateDTO tourDto, ITourRepository tourRepository, HttpContext httpContext) =>
+        tourGroup.MapPut("/{id:guid}", async (Guid id, TourUpdateDTO tourDto, ITourRepository tourRepository, HttpContext httpContext) =>
         {
             var existingTour = await tourRepository.GetByIdAsync(id);
             if (existingTour == null)
@@ -85,7 +85,7 @@ public static class TourEndpoints
             var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             var userRoleClaim = httpContext.User.FindFirst(ClaimTypes.Role);
             
-            if (userIdClaim == null || (int.Parse(userIdClaim.Value) != existingTour.UserID && 
+            if (userIdClaim == null || (Guid.Parse(userIdClaim.Value) != existingTour.UserID && 
                 !RoleConstants.ManagementRoles.Contains(userRoleClaim?.Value)))
                 return Results.Forbid();
 
@@ -100,8 +100,8 @@ public static class TourEndpoints
                 existingTour.Description = tourDto.Description;
             if (tourDto.Star.HasValue)
                 existingTour.Star = tourDto.Star.Value;
-            if (!string.IsNullOrEmpty(tourDto.Status))
-                existingTour.Status = tourDto.Status;
+            if (tourDto.Status.HasValue)
+                existingTour.Status = tourDto.Status.Value;
 
             var updatedTour = await tourRepository.UpdateAsync(existingTour);
             return Results.Ok(updatedTour);
@@ -115,7 +115,7 @@ public static class TourEndpoints
         .RequireAuthorization();
 
         // Xóa tour
-        tourGroup.MapDelete("/{id:int}", async (int id, ITourRepository tourRepository, HttpContext httpContext) =>
+        tourGroup.MapDelete("/{id:guid}", async (Guid id, ITourRepository tourRepository, HttpContext httpContext) =>
         {
             var existingTour = await tourRepository.GetByIdAsync(id);
             if (existingTour == null)
@@ -125,7 +125,7 @@ public static class TourEndpoints
             var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             var userRoleClaim = httpContext.User.FindFirst(ClaimTypes.Role);
             
-            if (userIdClaim == null || (int.Parse(userIdClaim.Value) != existingTour.UserID && userRoleClaim?.Value != "Admin"))
+            if (userIdClaim == null || (Guid.Parse(userIdClaim.Value) != existingTour.UserID && userRoleClaim?.Value != "Admin"))
                 return Results.Forbid();
 
             var result = await tourRepository.DeleteAsync(id);

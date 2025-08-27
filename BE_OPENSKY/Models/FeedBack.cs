@@ -5,16 +5,16 @@ namespace BE_OPENSKY.Models
     public class FeedBack
     {
         [Key]
-        public int FeedBackID { get; set; }
+        public Guid FeedBackID { get; set; }
         
         [Required]
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
         
         [Required]
-        public string TableType { get; set; } = string.Empty; // Loại đánh giá: Tour, Hotel, User
+        public TableType TableType { get; set; } // Loại đánh giá: Tour, Hotel, User
         
         [Required]
-        public int TableID { get; set; } // ID của đối tượng được đánh giá
+        public Guid TableID { get; set; } // ID của đối tượng được đánh giá
         
         [Required]
         [Range(1, 5)]

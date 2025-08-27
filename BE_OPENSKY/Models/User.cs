@@ -5,14 +5,14 @@ namespace BE_OPENSKY.Models
     public class User
     {
         [Key]
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
         
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
         
         [Required]
-        public string PassWord { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
         
         [Required]
         public string FullName { get; set; } = string.Empty;
@@ -22,11 +22,11 @@ namespace BE_OPENSKY.Models
         [Required]
         public string Role { get; set; } = RoleConstants.Customer; // Vai trò: Supervisor, TourGuide, Admin, Customer, Hotel
         
-        public string? NumberPhone { get; set; } // Số điện thoại
+        public string? PhoneNumber { get; set; } // Số điện thoại
         
         public string? CitizenId { get; set; } // Số CMND/CCCD
         
-        public DateTime? DoB { get; set; } // Ngày sinh
+        public DateOnly? DoB { get; set; } // Ngày sinh
         
         public string? AvatarURL { get; set; } // Link ảnh đại diện
         

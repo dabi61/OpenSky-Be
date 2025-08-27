@@ -5,10 +5,10 @@ namespace BE_OPENSKY.Models
     public class Tour
     {
         [Key]
-        public int TourID { get; set; }
+        public Guid TourID { get; set; }
         
         [Required]
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
         
         [Required]
         public string Address { get; set; } = string.Empty;
@@ -22,7 +22,7 @@ namespace BE_OPENSKY.Models
         public string? Description { get; set; }
         
         [Required]
-        public string Status { get; set; } = "Active"; // Active, Inactive, Draft
+        public TourStatus Status { get; set; } = TourStatus.Active; // Active, Inactive, Draft
         
         [Required]
         public int Star { get; set; } = 0; // Rating from 1-5

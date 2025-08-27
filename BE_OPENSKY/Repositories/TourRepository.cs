@@ -16,14 +16,14 @@ public class TourRepository : ITourRepository
                 .ToListAsync();
         }
 
-        public async Task<Tour?> GetByIdAsync(int id)
+        public async Task<Tour?> GetByIdAsync(Guid id)
         {
             return await _context.Tours
                 .Include(t => t.User)
                 .FirstOrDefaultAsync(t => t.TourID == id);
         }
 
-        public async Task<IEnumerable<Tour>> GetByUserIdAsync(int userId)
+        public async Task<IEnumerable<Tour>> GetByUserIdAsync(Guid userId)
         {
             return await _context.Tours
                 .Include(t => t.User)
@@ -45,7 +45,7 @@ public class TourRepository : ITourRepository
             return tour;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
             var tour = await _context.Tours.FindAsync(id);
             if (tour == null)
@@ -56,7 +56,7 @@ public class TourRepository : ITourRepository
             return true;
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.Tours.AnyAsync(t => t.TourID == id);
         }

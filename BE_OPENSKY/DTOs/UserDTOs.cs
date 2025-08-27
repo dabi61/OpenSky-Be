@@ -12,21 +12,21 @@ namespace BE_OPENSKY.DTOs
         public string Password { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string? Role { get; set; } // Optional: if not provided, defaults to Customer
-        public string? NumberPhone { get; set; }
+        public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
-        public DateTime? DoB { get; set; }
+        public DateOnly? DoB { get; set; }
         public string? AvatarURL { get; set; }
     }
 
     public class UserResponseDTO
     {
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
-        public string? NumberPhone { get; set; }
+        public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
-        public DateTime? DoB { get; set; }
+        public DateOnly? DoB { get; set; }
         public string? AvatarURL { get; set; }
         public DateTime CreatedAt { get; set; }
     }
@@ -34,9 +34,9 @@ namespace BE_OPENSKY.DTOs
     public class UserUpdateDTO
     {
         public string? FullName { get; set; }
-        public string? NumberPhone { get; set; }
+        public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
-        public DateTime? DoB { get; set; }
+        public DateOnly? DoB { get; set; }
         public string? AvatarURL { get; set; }
     }
 

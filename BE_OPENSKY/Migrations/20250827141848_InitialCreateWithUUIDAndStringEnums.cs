@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BE_OPENSKY.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialCreateWithUUIDAndStringEnums : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,9 +18,10 @@ namespace BE_OPENSKY.Migrations
                 {
                     ImgID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TableType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    TypeID = table.Column<int>(type: "integer", nullable: false),
+                    TableType = table.Column<string>(type: "text", nullable: false),
+                    TypeID = table.Column<Guid>(type: "uuid", nullable: false),
                     URL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -32,16 +33,15 @@ namespace BE_OPENSKY.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    UserID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
                     Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    PassWord = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Password = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     FullName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     ProviderId = table.Column<string>(type: "text", nullable: true),
                     Role = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    NumberPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    PhoneNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     CitizenId = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    DoB = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DoB = table.Column<DateOnly>(type: "date", nullable: true),
                     AvatarURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -51,18 +51,36 @@ namespace BE_OPENSKY.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Vouchers",
+                columns: table => new
+                {
+                    VoucherID = table.Column<Guid>(type: "uuid", nullable: false),
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Percent = table.Column<int>(type: "integer", nullable: false),
+                    TableType = table.Column<string>(type: "text", nullable: false),
+                    TableID = table.Column<Guid>(type: "uuid", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    MaxUsage = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Vouchers", x => x.VoucherID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Bills",
                 columns: table => new
                 {
-                    BillID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserID = table.Column<int>(type: "integer", nullable: false),
-                    TableType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    TypeID = table.Column<int>(type: "integer", nullable: false),
+                    BillID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    TableType = table.Column<string>(type: "text", nullable: false),
+                    TypeID = table.Column<Guid>(type: "uuid", nullable: false),
                     Deposit = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     RefundPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
                     TotalPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -80,11 +98,10 @@ namespace BE_OPENSKY.Migrations
                 name: "FeedBacks",
                 columns: table => new
                 {
-                    FeedBackID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserID = table.Column<int>(type: "integer", nullable: false),
-                    TableType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    TableID = table.Column<int>(type: "integer", nullable: false),
+                    FeedBackID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    TableType = table.Column<string>(type: "text", nullable: false),
+                    TableID = table.Column<Guid>(type: "uuid", nullable: false),
                     Rate = table.Column<int>(type: "integer", maxLength: 1, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -104,16 +121,15 @@ namespace BE_OPENSKY.Migrations
                 name: "Hotels",
                 columns: table => new
                 {
-                    HotelID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserID = table.Column<int>(type: "integer", nullable: false),
+                    HotelID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
                     Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     District = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Coordinates = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     HotelName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
                     Star = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -132,10 +148,9 @@ namespace BE_OPENSKY.Migrations
                 name: "Messages",
                 columns: table => new
                 {
-                    MessageID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Sender = table.Column<int>(type: "integer", nullable: false),
-                    Receiver = table.Column<int>(type: "integer", nullable: false),
+                    MessageID = table.Column<Guid>(type: "uuid", nullable: false),
+                    Sender = table.Column<Guid>(type: "uuid", nullable: false),
+                    Receiver = table.Column<Guid>(type: "uuid", nullable: false),
                     MessageText = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -160,14 +175,13 @@ namespace BE_OPENSKY.Migrations
                 name: "Tours",
                 columns: table => new
                 {
-                    TourID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserID = table.Column<int>(type: "integer", nullable: false),
+                    TourID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
                     Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     NumberOfDays = table.Column<int>(type: "integer", nullable: false),
                     MaxPeople = table.Column<int>(type: "integer", nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
                     Star = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -183,12 +197,38 @@ namespace BE_OPENSKY.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserVouchers",
+                columns: table => new
+                {
+                    UserVoucherID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    VoucherID = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserVouchers", x => x.UserVoucherID);
+                    table.ForeignKey(
+                        name: "FK_UserVouchers_Users_UserID",
+                        column: x => x.UserID,
+                        principalTable: "Users",
+                        principalColumn: "UserID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserVouchers_Vouchers_VoucherID",
+                        column: x => x.VoucherID,
+                        principalTable: "Vouchers",
+                        principalColumn: "VoucherID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Notifications",
                 columns: table => new
                 {
-                    NotificationID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    BillID = table.Column<int>(type: "integer", nullable: false),
+                    NotificationID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BillID = table.Column<Guid>(type: "uuid", nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -207,9 +247,8 @@ namespace BE_OPENSKY.Migrations
                 name: "Refunds",
                 columns: table => new
                 {
-                    RefundID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    BillID = table.Column<int>(type: "integer", nullable: false),
+                    RefundID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BillID = table.Column<Guid>(type: "uuid", nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -228,11 +267,10 @@ namespace BE_OPENSKY.Migrations
                 name: "HotelRooms",
                 columns: table => new
                 {
-                    RoomID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HotelID = table.Column<int>(type: "integer", nullable: false),
+                    RoomID = table.Column<Guid>(type: "uuid", nullable: false),
+                    HotelID = table.Column<Guid>(type: "uuid", nullable: false),
                     RoomName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    RoomType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    RoomType = table.Column<int>(type: "integer", nullable: false),
                     Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     MaxPeople = table.Column<int>(type: "integer", nullable: false)
@@ -252,10 +290,9 @@ namespace BE_OPENSKY.Migrations
                 name: "Schedules",
                 columns: table => new
                 {
-                    ScheduleID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TourID = table.Column<int>(type: "integer", nullable: false),
-                    UserID = table.Column<int>(type: "integer", nullable: false),
+                    ScheduleID = table.Column<Guid>(type: "uuid", nullable: false),
+                    TourID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
                     StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     NumberPeople = table.Column<int>(type: "integer", nullable: false),
@@ -282,9 +319,8 @@ namespace BE_OPENSKY.Migrations
                 name: "TourItineraries",
                 columns: table => new
                 {
-                    ItineraryID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TourID = table.Column<int>(type: "integer", nullable: false),
+                    ItineraryID = table.Column<Guid>(type: "uuid", nullable: false),
+                    TourID = table.Column<Guid>(type: "uuid", nullable: false),
                     DayNumber = table.Column<int>(type: "integer", nullable: false),
                     Location = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
@@ -304,10 +340,9 @@ namespace BE_OPENSKY.Migrations
                 name: "ScheduleItineraries",
                 columns: table => new
                 {
-                    ScheduleItID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ScheduleID = table.Column<int>(type: "integer", nullable: false),
-                    ItineraryID = table.Column<int>(type: "integer", nullable: false),
+                    ScheduleItID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ScheduleID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ItineraryID = table.Column<Guid>(type: "uuid", nullable: false),
                     StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -347,6 +382,11 @@ namespace BE_OPENSKY.Migrations
                 name: "IX_Hotels_UserID",
                 table: "Hotels",
                 column: "UserID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Images_TableType_TypeID",
+                table: "Images",
+                columns: new[] { "TableType", "TypeID" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Messages_Receiver",
@@ -403,6 +443,22 @@ namespace BE_OPENSKY.Migrations
                 table: "Users",
                 column: "Email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserVouchers_UserID",
+                table: "UserVouchers",
+                column: "UserID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserVouchers_VoucherID",
+                table: "UserVouchers",
+                column: "VoucherID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vouchers_Code",
+                table: "Vouchers",
+                column: "Code",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -430,6 +486,9 @@ namespace BE_OPENSKY.Migrations
                 name: "ScheduleItineraries");
 
             migrationBuilder.DropTable(
+                name: "UserVouchers");
+
+            migrationBuilder.DropTable(
                 name: "Hotels");
 
             migrationBuilder.DropTable(
@@ -440,6 +499,9 @@ namespace BE_OPENSKY.Migrations
 
             migrationBuilder.DropTable(
                 name: "TourItineraries");
+
+            migrationBuilder.DropTable(
+                name: "Vouchers");
 
             migrationBuilder.DropTable(
                 name: "Tours");

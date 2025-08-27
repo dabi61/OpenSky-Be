@@ -14,8 +14,8 @@ public static class ImageEndpoints
 
         // Upload ảnh cho đối tượng (Tour, Hotel, HotelRoom, User)
         imageGroup.MapPost("/upload", async (
-            [FromForm] string tableType,
-            [FromForm] int typeId,
+            [FromForm] string tableTypeStr,
+            [FromForm] Guid typeId,
             [FromForm] IFormFile file,
             [FromForm] string? description,
             IImageService imageService,
@@ -25,14 +25,14 @@ public static class ImageEndpoints
             if (file == null || file.Length == 0)
                 return Results.BadRequest(new { message = "File không được để trống" });
 
-            if (string.IsNullOrEmpty(tableType))
+            if (string.IsNullOrEmpty(tableTypeStr))
                 return Results.BadRequest(new { message = "TableType không được để trống" });
 
-            if (!IsValidTableType(tableType))
-                return Results.BadRequest(new { message = "TableType không hợp lệ. Chỉ chấp nhận: Tour, Hotel, HotelRoom, User" });
+            if (!Enum.TryParse<TableType>(tableTypeStr, true, out var tableType))
+                return Results.BadRequest(new { message = "TableType không hợp lệ. Chỉ chấp nhận: Tour, Hotel, User" });
 
-            if (typeId <= 0)
-                return Results.BadRequest(new { message = "TypeID phải lớn hơn 0" });
+            if (typeId == Guid.Empty)
+                return Results.BadRequest(new { message = "TypeID không được để trống" });
 
             // Kiểm tra quyền upload
             var hasPermission = await CheckUploadPermissionAsync(tableType, typeId, context);
@@ -78,12 +78,12 @@ public static class ImageEndpoints
         // ===== ENDPOINTS XEM ẢNH =====
 
         // Lấy danh sách ảnh theo đối tượng
-        imageGroup.MapGet("/{tableType}/{typeId:int}", async (
-            string tableType, 
-            int typeId, 
+        imageGroup.MapGet("/{tableType}/{typeId:guid}", async (
+            string tableTypeStr, 
+            Guid typeId, 
             IImageService imageService) =>
         {
-            if (!IsValidTableType(tableType))
+            if (!Enum.TryParse<TableType>(tableTypeStr, true, out var tableType))
                 return Results.BadRequest(new { message = "TableType không hợp lệ" });
 
             var images = await imageService.GetImagesByTableAsync(tableType, typeId);
@@ -154,12 +154,12 @@ public static class ImageEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
         // Xóa tất cả ảnh của đối tượng (Admin/Management)
-        imageGroup.MapDelete("/{tableType}/{typeId:int}/all", async (
-            string tableType,
-            int typeId,
+        imageGroup.MapDelete("/{tableType}/{typeId:guid}/all", async (
+            string tableTypeStr,
+            Guid typeId,
             IImageService imageService) =>
         {
-            if (!IsValidTableType(tableType))
+            if (!Enum.TryParse<TableType>(tableTypeStr, true, out var tableType))
                 return Results.BadRequest(new { message = "TableType không hợp lệ" });
 
             var result = await imageService.DeleteAllImagesAsync(tableType, typeId);
@@ -176,7 +176,7 @@ public static class ImageEndpoints
         // ===== ENDPOINTS ĐẶC BIỆT CHO USER AVATAR =====
 
         // Lấy avatar của user
-        imageGroup.MapGet("/avatar/{userId:int}", async (int userId, IImageService imageService) =>
+        imageGroup.MapGet("/avatar/{userId:guid}", async (Guid userId, IImageService imageService) =>
         {
             var avatar = await imageService.GetUserAvatarAsync(userId);
             return avatar != null 
@@ -190,8 +190,8 @@ public static class ImageEndpoints
         .Produces(404);
 
         // Set ảnh làm avatar chính
-        imageGroup.MapPost("/avatar/{userId:int}/{imageId:int}", async (
-            int userId,
+        imageGroup.MapPost("/avatar/{userId:guid}/{imageId:int}", async (
+            Guid userId,
             int imageId,
             IImageService imageService,
             HttpContext context) =>
@@ -203,7 +203,7 @@ public static class ImageEndpoints
             if (currentUserIdClaim == null)
                 return Results.Unauthorized();
 
-            var currentUserId = int.Parse(currentUserIdClaim.Value);
+            var currentUserId = Guid.Parse(currentUserIdClaim.Value);
             var isAdmin = currentUserRoleClaim?.Value == RoleConstants.Admin;
 
             if (!isAdmin && currentUserId != userId)
@@ -233,14 +233,14 @@ public static class ImageEndpoints
     }
 
     // Kiểm tra quyền upload ảnh
-    private static async Task<bool> CheckUploadPermissionAsync(string tableType, int typeId, HttpContext context)
+    private static async Task<bool> CheckUploadPermissionAsync(TableType tableType, Guid typeId, HttpContext context)
     {
         var currentUserIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
         var currentUserRoleClaim = context.User.FindFirst(ClaimTypes.Role);
 
         if (currentUserIdClaim == null) return false;
 
-        var currentUserId = int.Parse(currentUserIdClaim.Value);
+        var currentUserId = Guid.Parse(currentUserIdClaim.Value);
         var currentUserRole = currentUserRoleClaim?.Value;
 
         // Admin có thể upload cho bất kỳ đối tượng nào
@@ -250,10 +250,9 @@ public static class ImageEndpoints
         // Kiểm tra quyền theo từng loại đối tượng
         return tableType switch
         {
-            "User" => currentUserId == typeId, // Chỉ upload cho chính mình
-            "Tour" => await CheckTourOwnershipAsync(typeId, currentUserId, context),
-            "Hotel" => await CheckHotelOwnershipAsync(typeId, currentUserId, context),
-            "HotelRoom" => await CheckHotelRoomOwnershipAsync(typeId, currentUserId, context),
+            TableType.User => currentUserId == typeId, // Chỉ upload cho chính mình
+            TableType.Tour => await CheckTourOwnershipAsync(typeId, currentUserId, context),
+            TableType.Hotel => await CheckHotelOwnershipAsync(typeId, currentUserId, context),
             _ => false
         };
     }
@@ -280,21 +279,20 @@ public static class ImageEndpoints
         var image = await imageService.GetImageByIdAsync(imageId);
         if (image == null) return false;
 
-        var currentUserId = int.Parse(currentUserIdClaim.Value);
+        var currentUserId = Guid.Parse(currentUserIdClaim.Value);
 
         // Kiểm tra quyền sở hữu theo từng loại đối tượng
         return image.TableType switch
         {
-            "User" => currentUserId == image.TypeID, // Chỉ thao tác ảnh của chính mình
-            "Tour" => await CheckTourOwnershipAsync(image.TypeID, currentUserId, context),
-            "Hotel" => await CheckHotelOwnershipAsync(image.TypeID, currentUserId, context),
-            "HotelRoom" => await CheckHotelRoomOwnershipAsync(image.TypeID, currentUserId, context),
+            TableType.User => currentUserId == image.TypeID, // Chỉ thao tác ảnh của chính mình
+            TableType.Tour => await CheckTourOwnershipAsync(image.TypeID, currentUserId, context),
+            TableType.Hotel => await CheckHotelOwnershipAsync(image.TypeID, currentUserId, context),
             _ => false
         };
     }
 
     // Kiểm tra quyền sở hữu Tour
-    private static Task<bool> CheckTourOwnershipAsync(int tourId, int userId, HttpContext context)
+    private static Task<bool> CheckTourOwnershipAsync(Guid tourId, Guid userId, HttpContext context)
     {
         // TODO: Implement logic kiểm tra user có sở hữu tour không
         // Cần inject ITourRepository hoặc truy vấn DB
@@ -302,14 +300,14 @@ public static class ImageEndpoints
     }
 
     // Kiểm tra quyền sở hữu Hotel
-    private static Task<bool> CheckHotelOwnershipAsync(int hotelId, int userId, HttpContext context)
+    private static Task<bool> CheckHotelOwnershipAsync(Guid hotelId, Guid userId, HttpContext context)
     {
         // TODO: Implement logic kiểm tra user có sở hữu hotel không
         return Task.FromResult(true); // Placeholder
     }
 
     // Kiểm tra quyền sở hữu HotelRoom
-    private static Task<bool> CheckHotelRoomOwnershipAsync(int roomId, int userId, HttpContext context)
+    private static Task<bool> CheckHotelRoomOwnershipAsync(Guid roomId, Guid userId, HttpContext context)
     {
         // TODO: Implement logic kiểm tra user có sở hữu hotel room không
         return Task.FromResult(true); // Placeholder

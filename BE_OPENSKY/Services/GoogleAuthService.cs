@@ -60,7 +60,7 @@ public class GoogleAuthService : IGoogleAuthService
                 {
                     Email = googleUserInfo.Email,
                     FullName = googleUserInfo.Name,
-                    PassWord = string.Empty, // OAuth users don't have passwords
+                    Password = string.Empty, // OAuth users don't have passwords
                     Role = RoleConstants.Customer, // Default role for new users
                     ProviderId = googleUserInfo.Sub, // Google user ID
                     AvatarURL = googleUserInfo.Picture,
@@ -150,7 +150,7 @@ public class GoogleAuthService : IGoogleAuthService
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role,
-            NumberPhone = user.NumberPhone,
+            PhoneNumber = user.PhoneNumber,
             CitizenId = user.CitizenId,
             DoB = user.DoB,
             AvatarURL = user.AvatarURL,

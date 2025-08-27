@@ -5,13 +5,13 @@ namespace BE_OPENSKY.Models
     public class Message
     {
         [Key]
-        public int MessageID { get; set; }
+        public Guid MessageID { get; set; }
         
         [Required]
-        public int Sender { get; set; }
+        public Guid Sender { get; set; }
         
         [Required]
-        public int Receiver { get; set; }
+        public Guid Receiver { get; set; }
         
         [Required]
         public string MessageText { get; set; } = string.Empty;

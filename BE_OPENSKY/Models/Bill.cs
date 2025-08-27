@@ -5,16 +5,16 @@ namespace BE_OPENSKY.Models
     public class Bill
     {
         [Key]
-        public int BillID { get; set; }
+        public Guid BillID { get; set; }
         
         [Required]
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
         
         [Required]
-        public string TableType { get; set; } = string.Empty; // Tour, Hotel, Schedule
+        public TableType TableType { get; set; } // Tour, Hotel, Schedule
         
         [Required]
-        public int TypeID { get; set; }
+        public Guid TypeID { get; set; }
         
         [Required]
         public decimal Deposit { get; set; }
@@ -25,7 +25,7 @@ namespace BE_OPENSKY.Models
         public decimal TotalPrice { get; set; }
         
         [Required]
-        public string Status { get; set; } = "Pending"; // Pending, Paid, Cancelled, Refunded
+        public BillStatus Status { get; set; } = BillStatus.Pending; // Pending, Paid, Cancelled, Refunded
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         

@@ -5,10 +5,10 @@ namespace BE_OPENSKY.Models
     public class Hotel
     {
         [Key]
-        public int HotelID { get; set; }
+        public Guid HotelID { get; set; }
         
         [Required]
-        public int UserID { get; set; }
+        public Guid UserID { get; set; }
         
         [Required]
         [EmailAddress]
@@ -28,7 +28,7 @@ namespace BE_OPENSKY.Models
         public string? Description { get; set; }
         
         [Required]
-        public string Status { get; set; } = "Active"; // Active, Inactive, Draft
+        public HotelStatus Status { get; set; } = HotelStatus.Active; // Active, Inactive, Draft
         
         [Required]
         public int Star { get; set; } = 0; // Rating from 1-5

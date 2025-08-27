@@ -6,8 +6,8 @@
         public Guid VoucherID { get; set; }  // ID voucher (UUID)
         public string Code { get; set; }     // Mã voucher (duy nhất)
         public int Percent { get; set; }     // Phần trăm giảm giá
-        public string TableType { get; set; }  // Loại: "Tour" hoặc "Hotel"
-        public int TableID { get; set; }       // ID của Tour hoặc Hotel (int)
+        public TableType TableType { get; set; }  // Loại: Tour hoặc Hotel
+        public Guid TableID { get; set; }       // ID của Tour hoặc Hotel
         public DateTime StartDate { get; set; } // Ngày bắt đầu hiệu lực
         public DateTime EndDate { get; set; }   // Ngày hết hạn
         public string? Description { get; set; } // Mô tả voucher

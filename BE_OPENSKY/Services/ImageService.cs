@@ -37,8 +37,7 @@ public class ImageService : IImageService
                 throw new ArgumentException($"Định dạng file không được hỗ trợ. Chỉ chấp nhận: {string.Join(", ", _allowedExtensions)}");
 
             // Validate TableType
-            var validTableTypes = new[] { "Tour", "Hotel", "HotelRoom", "User" };
-            if (!validTableTypes.Contains(imageDto.TableType))
+            if (!Enum.IsDefined(typeof(TableType), imageDto.TableType))
                 throw new ArgumentException("TableType không hợp lệ");
 
             // Upload lên Cloudinary
@@ -46,7 +45,7 @@ public class ImageService : IImageService
             var uploadParams = new ImageUploadParams()
             {
                 File = new FileDescription(imageDto.File.FileName, stream),
-                Folder = $"opensky/{imageDto.TableType.ToLower()}",
+                Folder = $"opensky/{imageDto.TableType.ToString().ToLower()}",
                 PublicId = $"{imageDto.TableType}_{imageDto.TypeID}_{DateTime.UtcNow:yyyyMMdd_HHmmss}",
                 Overwrite = false
             };
@@ -89,7 +88,7 @@ public class ImageService : IImageService
         }
     }
 
-    public async Task<IEnumerable<ImageResponseDTO>> GetImagesByTableAsync(string tableType, int typeId)
+    public async Task<IEnumerable<ImageResponseDTO>> GetImagesByTableAsync(TableType tableType, Guid typeId)
     {
         var images = await _context.Images
             .Where(i => i.TableType == tableType && i.TypeID == typeId)
@@ -178,7 +177,7 @@ public class ImageService : IImageService
         }
     }
 
-    public async Task<bool> DeleteAllImagesAsync(string tableType, int typeId)
+    public async Task<bool> DeleteAllImagesAsync(TableType tableType, Guid typeId)
     {
         try
         {
@@ -218,11 +217,11 @@ public class ImageService : IImageService
         }
     }
 
-    public async Task<ImageResponseDTO?> GetUserAvatarAsync(int userId)
+    public async Task<ImageResponseDTO?> GetUserAvatarAsync(Guid userId)
     {
         // Ưu tiên ảnh trong Image table
         var userImage = await _context.Images
-            .Where(i => i.TableType == "User" && i.TypeID == userId)
+            .Where(i => i.TableType == TableType.User && i.TypeID == userId)
             .OrderByDescending(i => i.CreatedAt)
             .FirstOrDefaultAsync();
 
@@ -247,7 +246,7 @@ public class ImageService : IImageService
             {
                 ImgID = 0, // Không có ID vì không lưu trong Image table
                 URL = user.AvatarURL,
-                TableType = "User",
+                TableType = TableType.User,
                 TypeID = userId,
                 Description = "Avatar từ User.AvatarURL",
                 CreatedAt = DateTime.UtcNow
@@ -257,10 +256,10 @@ public class ImageService : IImageService
         return null;
     }
 
-    public async Task<ImageResponseDTO?> SetUserAvatarAsync(int userId, int imgId)
+    public async Task<ImageResponseDTO?> SetUserAvatarAsync(Guid userId, int imgId)
     {
         var image = await _context.Images.FindAsync(imgId);
-        if (image == null || image.TableType != "User" || image.TypeID != userId)
+        if (image == null || image.TableType != TableType.User || image.TypeID != userId)
             return null;
 
         // Cập nhật User.AvatarURL để sync

@@ -5,8 +5,8 @@ public record VoucherCreateDTO
 {
     public string Code { get; init; } = string.Empty; // Mã voucher
     public int Percent { get; init; } // Phần trăm giảm giá
-    public string TableType { get; init; } = string.Empty; // Loại: "Tour" hoặc "Hotel"
-    public int TableID { get; init; } // ID của Tour hoặc Hotel (int)
+    public TableType TableType { get; init; } // Loại: Tour hoặc Hotel
+    public Guid TableID { get; init; } // ID của Tour hoặc Hotel
     public DateTime StartDate { get; init; } // Ngày bắt đầu hiệu lực
     public DateTime EndDate { get; init; } // Ngày hết hạn
     public string? Description { get; init; } // Mô tả voucher
@@ -30,8 +30,8 @@ public record VoucherResponseDTO
     public Guid VoucherID { get; init; } // ID voucher
     public string Code { get; init; } = string.Empty; // Mã voucher
     public int Percent { get; init; } // Phần trăm giảm giá
-    public string TableType { get; init; } = string.Empty; // Loại voucher
-    public int TableID { get; init; } // ID Tour/Hotel (int)
+    public TableType TableType { get; init; } // Loại voucher
+    public Guid TableID { get; init; } // ID Tour/Hotel
     public DateTime StartDate { get; init; } // Ngày bắt đầu
     public DateTime EndDate { get; init; } // Ngày hết hạn
     public string? Description { get; init; } // Mô tả
@@ -53,7 +53,7 @@ public record SaveVoucherDTO
 public record UserVoucherResponseDTO
 {
     public Guid UserVoucherID { get; init; } // ID bản ghi user-voucher
-    public int UserID { get; init; } // ID khách hàng
+    public Guid UserID { get; init; } // ID khách hàng
     public string UserFullName { get; init; } = string.Empty; // Tên khách hàng
     public string UserEmail { get; init; } = string.Empty; // Email khách hàng
     public Guid VoucherID { get; init; } // ID voucher

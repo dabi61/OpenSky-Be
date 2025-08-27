@@ -13,7 +13,7 @@ public class UserService : IUserService
         _jwtHelper = jwtHelper;
     }
 
-        public async Task<UserResponseDTO?> GetByIdAsync(int id)
+        public async Task<UserResponseDTO?> GetByIdAsync(Guid id)
         {
             var user = await _userRepository.GetByIdAsync(id);
             return user != null ? _mapper.Map<UserResponseDTO>(user) : null;
@@ -31,13 +31,13 @@ public class UserService : IUserService
             throw new InvalidOperationException("Email already exists");
 
         var user = _mapper.Map<User>(userDto);
-        user.PassWord = PasswordHelper.HashPassword(userDto.Password);
+        user.Password = PasswordHelper.HashPassword(userDto.Password);
 
         var createdUser = await _userRepository.CreateAsync(user);
         return _mapper.Map<UserResponseDTO>(createdUser);
     }
 
-    public async Task<UserResponseDTO?> UpdateAsync(int id, UserUpdateDTO userDto)
+    public async Task<UserResponseDTO?> UpdateAsync(Guid id, UserUpdateDTO userDto)
     {
         var user = await _userRepository.GetByIdAsync(id);
         if (user == null)
@@ -48,7 +48,7 @@ public class UserService : IUserService
         return _mapper.Map<UserResponseDTO>(updatedUser);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         return await _userRepository.DeleteAsync(id);
     }
@@ -56,22 +56,22 @@ public class UserService : IUserService
     public async Task<string?> LoginAsync(UserLoginDTO loginDto)
     {
         var user = await _userRepository.GetByEmailAsync(loginDto.Email);
-        if (user == null || !PasswordHelper.VerifyPassword(loginDto.Password, user.PassWord))
+        if (user == null || !PasswordHelper.VerifyPassword(loginDto.Password, user.Password))
             return null;
 
         return _jwtHelper.GenerateToken(user);
     }
 
-    public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDTO changePasswordDto)
+    public async Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDTO changePasswordDto)
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
             return false;
 
-        if (!PasswordHelper.VerifyPassword(changePasswordDto.CurrentPassword, user.PassWord))
+        if (!PasswordHelper.VerifyPassword(changePasswordDto.CurrentPassword, user.Password))
             return false;
 
-        user.PassWord = PasswordHelper.HashPassword(changePasswordDto.NewPassword);
+        user.Password = PasswordHelper.HashPassword(changePasswordDto.NewPassword);
         await _userRepository.UpdateAsync(user);
         return true;
     }

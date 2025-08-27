@@ -16,18 +16,18 @@ namespace BE_OPENSKY.DTOs
         public int? MaxPeople { get; set; }
         public string? Description { get; set; }
         public int? Star { get; set; }
-        public string? Status { get; set; }
+        public TourStatus? Status { get; set; }
     }
 
     public class TourResponseDTO
     {
-        public int TourID { get; set; }
-        public int UserID { get; set; }
+        public Guid TourID { get; set; }
+        public Guid UserID { get; set; }
         public string Address { get; set; } = string.Empty;
         public int NumberOfDays { get; set; }
         public int MaxPeople { get; set; }
         public string? Description { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public TourStatus Status { get; set; }
         public int Star { get; set; }
         public DateTime CreatedAt { get; set; }
         public string UserFullName { get; set; } = string.Empty;
@@ -35,11 +35,11 @@ namespace BE_OPENSKY.DTOs
 
     public class TourListDTO
     {
-        public int TourID { get; set; }
+        public Guid TourID { get; set; }
         public string Address { get; set; } = string.Empty;
         public int NumberOfDays { get; set; }
         public int MaxPeople { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public TourStatus Status { get; set; }
         public int Star { get; set; }
         public string UserFullName { get; set; } = string.Empty;
     }

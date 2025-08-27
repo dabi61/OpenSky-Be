@@ -46,7 +46,7 @@ public static class AuthEndpoints
         {
             // Lấy user ID từ JWT token
             var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
             {
                 return Results.Unauthorized();
             }

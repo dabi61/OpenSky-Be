@@ -43,7 +43,7 @@ public class VoucherRepository : IVoucherRepository
     }
 
     // Lấy voucher theo loại (Tour hoặc Hotel)
-    public async Task<IEnumerable<Voucher>> GetByTableTypeAsync(string tableType)
+    public async Task<IEnumerable<Voucher>> GetByTableTypeAsync(TableType tableType)
     {
         return await _context.Vouchers
             .Include(v => v.UserVouchers)
@@ -140,7 +140,7 @@ public class VoucherRepository : IVoucherRepository
     }
 
     // Khách hàng lưu voucher vào tài khoản
-    public async Task<UserVoucher?> SaveVoucherForUserAsync(Guid voucherId, int userId)
+    public async Task<UserVoucher?> SaveVoucherForUserAsync(Guid voucherId, Guid userId)
     {
         // Kiểm tra user đã lưu voucher này chưa
         var existingUserVoucher = await _context.UserVouchers
@@ -191,7 +191,7 @@ public class VoucherRepository : IVoucherRepository
     }
 
     // Lấy tất cả voucher đã lưu của user
-    public async Task<IEnumerable<UserVoucher>> GetUserSavedVouchersAsync(int userId)
+    public async Task<IEnumerable<UserVoucher>> GetUserSavedVouchersAsync(Guid userId)
     {
         return await _context.UserVouchers
             .Include(uv => uv.Voucher)
@@ -202,7 +202,7 @@ public class VoucherRepository : IVoucherRepository
     }
 
     // Kiểm tra user đã lưu voucher này chưa
-    public async Task<bool> HasUserSavedVoucherAsync(Guid voucherId, int userId)
+    public async Task<bool> HasUserSavedVoucherAsync(Guid voucherId, Guid userId)
     {
         return await _context.UserVouchers
             .AnyAsync(uv => uv.VoucherID == voucherId && uv.UserID == userId);

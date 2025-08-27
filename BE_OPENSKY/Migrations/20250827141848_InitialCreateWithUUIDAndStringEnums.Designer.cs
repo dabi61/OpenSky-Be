@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BE_OPENSKY.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250826140648_UpdateVoucherSchemaSimple")]
-    partial class UpdateVoucherSchemaSimple
+    [Migration("20250827141848_InitialCreateWithUUIDAndStringEnums")]
+    partial class InitialCreateWithUUIDAndStringEnums
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,11 +27,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.Bill", b =>
                 {
-                    b.Property<int>("BillID")
+                    b.Property<Guid>("BillID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BillID"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -44,22 +42,20 @@ namespace BE_OPENSKY.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
                     b.Property<string>("TableType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("TypeID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TypeID")
+                        .HasColumnType("uuid");
 
-                    b.Property<int>("UserID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
 
                     b.HasKey("BillID");
 
@@ -70,11 +66,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.FeedBack", b =>
                 {
-                    b.Property<int>("FeedBackID")
+                    b.Property<Guid>("FeedBackID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FeedBackID"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -87,16 +81,15 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("integer");
 
-                    b.Property<int>("TableID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TableID")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("TableType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
 
-                    b.Property<int>("UserID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
 
                     b.HasKey("FeedBackID");
 
@@ -107,11 +100,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.Hotel", b =>
                 {
-                    b.Property<int>("HotelID")
+                    b.Property<Guid>("HotelID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("HotelID"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Address")
                         .IsRequired()
@@ -149,11 +140,10 @@ namespace BE_OPENSKY.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
-                    b.Property<int>("UserID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
 
                     b.HasKey("HotelID");
 
@@ -164,19 +154,17 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.HotelRoom", b =>
                 {
-                    b.Property<int>("RoomID")
+                    b.Property<Guid>("RoomID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RoomID"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Address")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int>("HotelID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("HotelID")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("MaxPeople")
                         .HasColumnType("integer");
@@ -189,10 +177,8 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("RoomType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<int>("RoomType")
+                        .HasColumnType("integer");
 
                     b.HasKey("RoomID");
 
@@ -212,13 +198,16 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("TableType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
 
-                    b.Property<int>("TypeID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TypeID")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("URL")
                         .IsRequired()
@@ -227,16 +216,17 @@ namespace BE_OPENSKY.Migrations
 
                     b.HasKey("ImgID");
 
+                    b.HasIndex("TableType", "TypeID")
+                        .HasDatabaseName("IX_Images_TableType_TypeID");
+
                     b.ToTable("Images");
                 });
 
             modelBuilder.Entity("BE_OPENSKY.Models.Message", b =>
                 {
-                    b.Property<int>("MessageID")
+                    b.Property<Guid>("MessageID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MessageID"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -246,11 +236,11 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<int>("Receiver")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("Receiver")
+                        .HasColumnType("uuid");
 
-                    b.Property<int>("Sender")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("Sender")
+                        .HasColumnType("uuid");
 
                     b.HasKey("MessageID");
 
@@ -263,14 +253,12 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.Notification", b =>
                 {
-                    b.Property<int>("NotificationID")
+                    b.Property<Guid>("NotificationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("uuid");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationID"));
-
-                    b.Property<int>("BillID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("BillID")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -289,14 +277,12 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.Refund", b =>
                 {
-                    b.Property<int>("RefundID")
+                    b.Property<Guid>("RefundID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("uuid");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RefundID"));
-
-                    b.Property<int>("BillID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("BillID")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -315,11 +301,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.Schedule", b =>
                 {
-                    b.Property<int>("ScheduleID")
+                    b.Property<Guid>("ScheduleID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ScheduleID"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -333,11 +317,11 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("TourID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TourID")
+                        .HasColumnType("uuid");
 
-                    b.Property<int>("UserID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
 
                     b.HasKey("ScheduleID");
 
@@ -350,20 +334,18 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.ScheduleItinerary", b =>
                 {
-                    b.Property<int>("ScheduleItID")
+                    b.Property<Guid>("ScheduleItID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ScheduleItID"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("ItineraryID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("ItineraryID")
+                        .HasColumnType("uuid");
 
-                    b.Property<int>("ScheduleID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("ScheduleID")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
@@ -379,11 +361,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.Tour", b =>
                 {
-                    b.Property<int>("TourID")
+                    b.Property<Guid>("TourID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TourID"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Address")
                         .IsRequired()
@@ -408,11 +388,10 @@ namespace BE_OPENSKY.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
-                    b.Property<int>("UserID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
 
                     b.HasKey("TourID");
 
@@ -423,11 +402,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.TourItinerary", b =>
                 {
-                    b.Property<int>("ItineraryID")
+                    b.Property<Guid>("ItineraryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ItineraryID"));
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DayNumber")
                         .HasColumnType("integer");
@@ -441,8 +418,8 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<int>("TourID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TourID")
+                        .HasColumnType("uuid");
 
                     b.HasKey("ItineraryID");
 
@@ -453,11 +430,9 @@ namespace BE_OPENSKY.Migrations
 
             modelBuilder.Entity("BE_OPENSKY.Models.User", b =>
                 {
-                    b.Property<int>("UserID")
+                    b.Property<Guid>("UserID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserID"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("AvatarURL")
                         .HasMaxLength(500)
@@ -470,8 +445,8 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("DoB")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateOnly?>("DoB")
+                        .HasColumnType("date");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -483,14 +458,14 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("NumberPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("PassWord")
+                    b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("ProviderId")
                         .HasColumnType("text");
@@ -520,8 +495,8 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("SavedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("UserID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("VoucherID")
                         .HasColumnType("uuid");
@@ -562,13 +537,12 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("TableID")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TableID")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("TableType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
 
                     b.HasKey("VoucherID");
 

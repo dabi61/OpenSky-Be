@@ -58,7 +58,7 @@ public class VoucherService : IVoucherService
     }
 
     // Lấy voucher theo loại (Tour/Hotel)
-    public async Task<IEnumerable<VoucherResponseDTO>> GetByTableTypeAsync(string tableType)
+    public async Task<IEnumerable<VoucherResponseDTO>> GetByTableTypeAsync(TableType tableType)
     {
         var vouchers = await _voucherRepository.GetByTableTypeAsync(tableType);
         var voucherDtos = new List<VoucherResponseDTO>();
@@ -177,8 +177,8 @@ public class VoucherService : IVoucherService
         var activeVouchers = await _voucherRepository.GetActiveVouchersAsync();
         var expiredVouchers = await _voucherRepository.GetExpiredVouchersAsync();
 
-        var tourVouchers = allVouchers.Count(v => v.TableType == "Tour");
-        var hotelVouchers = allVouchers.Count(v => v.TableType == "Hotel");
+        var tourVouchers = allVouchers.Count(v => v.TableType == TableType.Tour);
+        var hotelVouchers = allVouchers.Count(v => v.TableType == TableType.Hotel);
 
         var totalSaved = allVouchers.Sum(v => v.UserVouchers.Count);
         var totalUsed = allVouchers.Sum(v => v.UserVouchers.Count(uv => uv.IsUsed));
@@ -219,7 +219,7 @@ public class VoucherService : IVoucherService
     }
 
     // Khách hàng lưu voucher bằng mã code
-    public async Task<UserVoucherResponseDTO?> SaveVoucherAsync(string code, int userId)
+    public async Task<UserVoucherResponseDTO?> SaveVoucherAsync(string code, Guid userId)
     {
         // Tìm voucher theo mã
         var voucher = await _voucherRepository.GetByCodeAsync(code);
@@ -281,7 +281,7 @@ public class VoucherService : IVoucherService
     }
 
     // Lấy tất cả voucher đã lưu của user
-    public async Task<IEnumerable<UserVoucherResponseDTO>> GetUserSavedVouchersAsync(int userId)
+    public async Task<IEnumerable<UserVoucherResponseDTO>> GetUserSavedVouchersAsync(Guid userId)
     {
         var userVouchers = await _voucherRepository.GetUserSavedVouchersAsync(userId);
         return userVouchers.Select(uv => new UserVoucherResponseDTO
@@ -304,21 +304,14 @@ public class VoucherService : IVoucherService
     // ===== VALIDATION =====
 
     // Validate Tour/Hotel có tồn tại không
-    public async Task<bool> ValidateVoucherForTableAsync(int tableId, string tableType)
+    public async Task<bool> ValidateVoucherForTableAsync(Guid tableId, TableType tableType)
     {
-        if (tableType == "Tour")
+        return tableType switch
         {
-            var tour = await _tourRepository.GetByIdAsync(tableId);
-            return tour != null;
-        }
-        else if (tableType == "Hotel")
-        {
-            // Note: Cần tạo IHotelRepository nếu chưa có
-            // Tạm thời return true
-            return true;
-        }
-
-        return false;
+            TableType.Tour => await _tourRepository.GetByIdAsync(tableId) != null,
+            TableType.Hotel => true, // Note: Cần tạo IHotelRepository nếu chưa có
+            _ => false
+        };
     }
 
     // ===== PRIVATE METHODS =====
@@ -331,17 +324,12 @@ public class VoucherService : IVoucherService
         var isActive = voucher.StartDate <= now && voucher.EndDate >= now;
 
         // Lấy tên Tour/Hotel liên kết
-        string? relatedItemName = null;
-        if (voucher.TableType == "Tour")
+        string? relatedItemName = voucher.TableType switch
         {
-            var tour = await _tourRepository.GetByIdAsync(voucher.TableID);
-            relatedItemName = tour?.Address; // Dùng Address làm tên tour
-        }
-        else if (voucher.TableType == "Hotel")
-        {
-            // Note: Implement khi có IHotelRepository
-            relatedItemName = "Hotel"; // Placeholder
-        }
+            TableType.Tour => (await _tourRepository.GetByIdAsync(voucher.TableID))?.Address,
+            TableType.Hotel => "Hotel", // Note: Implement khi có IHotelRepository
+            _ => null
+        };
 
         return new VoucherResponseDTO
         {
@@ -382,8 +370,8 @@ public class VoucherService : IVoucherService
             throw new InvalidOperationException("Số lần sử dụng tối đa phải lớn hơn 0");
 
         // Kiểm tra loại voucher
-        if (voucherDto.TableType != "Tour" && voucherDto.TableType != "Hotel")
-            throw new InvalidOperationException("Loại voucher phải là 'Tour' hoặc 'Hotel'");
+        if (voucherDto.TableType != TableType.Tour && voucherDto.TableType != TableType.Hotel)
+            throw new InvalidOperationException("Loại voucher phải là Tour hoặc Hotel");
 
         // Kiểm tra Tour/Hotel có tồn tại không
         var isValidTable = await ValidateVoucherForTableAsync(voucherDto.TableID, voucherDto.TableType);

@@ -5,10 +5,10 @@ namespace BE_OPENSKY.Models
     public class Notification
     {
         [Key]
-        public int NotificationID { get; set; }
+        public Guid NotificationID { get; set; }
         
         [Required]
-        public int BillID { get; set; }
+        public Guid BillID { get; set; }
         
         [Required]
         public string Description { get; set; } = string.Empty;

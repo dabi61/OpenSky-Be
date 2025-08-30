@@ -6,6 +6,15 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // Configure port for Railway deployment only in production
+        var port = Environment.GetEnvironmentVariable("PORT");
+        if (!string.IsNullOrEmpty(port))
+        {
+            // Railway deployment - bind to 0.0.0.0 with Railway's PORT
+            builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+        }
+        // Nếu không có PORT env var, sử dụng launchSettings.json cho local development
+
         // Add services to the container
         builder.Services.AddDatabaseServices(builder.Configuration);
         builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -42,6 +51,9 @@ app.MapTourEndpoints();        // Tour management endpoints
 app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
 app.MapVoucherEndpoints();     // Voucher management endpoints
 app.MapImageEndpoints();       // Image management endpoints
+
+        // Add root endpoint for health check
+        app.MapGet("/", () => "OpenSky BE API is running! Visit /swagger for API documentation.");
 
         app.Run();
     }

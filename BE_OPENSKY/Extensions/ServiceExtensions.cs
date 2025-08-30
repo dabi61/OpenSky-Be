@@ -1,3 +1,5 @@
+using Npgsql;
+
 namespace BE_OPENSKY.Extensions;
 
 public static class ServiceExtensions

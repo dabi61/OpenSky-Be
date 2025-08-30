@@ -52,8 +52,8 @@ app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
 app.MapVoucherEndpoints();     // Voucher management endpoints
 app.MapImageEndpoints();       // Image management endpoints
 
-        // Add root endpoint for health check
-        app.MapGet("/", () => "OpenSky BE API is running! Visit /swagger for API documentation.");
+        // Redirect root to Swagger
+        app.MapGet("/", () => Results.Redirect("/swagger"));
 
         app.Run();
     }

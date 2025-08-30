@@ -20,6 +20,9 @@ public class Program
         builder.Services.AddJwtAuthentication(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         
+        // Add CORS
+        builder.Services.AddCorsServices();
+        
         // Add AutoMapper
         builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
         
@@ -33,6 +36,9 @@ public class Program
 
         // Configure the HTTP request pipeline
         app.UseHttpsRedirection();
+        
+        // Use CORS
+        app.UseCors("AllowAll"); // Sử dụng policy cho phép tất cả origins
         
         // Serve static files
         app.UseStaticFiles();

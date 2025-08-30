@@ -76,4 +76,36 @@ public static class ServiceExtensions
             
         return services;
     }
+
+    // Cấu hình CORS
+    public static IServiceCollection AddCorsServices(this IServiceCollection services)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+
+            // Policy riêng cho production - có thể customize sau
+            options.AddPolicy("Production", policy =>
+            {
+                policy.WithOrigins(
+                    "https://your-frontend-domain.com", // Thay bằng domain frontend thực tế
+                    "http://localhost:3000",             // React dev server
+                    "http://localhost:3001",             // Alternative port
+                    "http://localhost:4200",             // Angular dev server
+                    "http://localhost:5173",             // Vite dev server
+                    "http://localhost:8080"              // Vue dev server
+                )
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials(); // Cho phép cookies/credentials
+            });
+        });
+
+        return services;
+    }
 }

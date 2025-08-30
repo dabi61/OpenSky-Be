@@ -62,19 +62,17 @@ public static class SwaggerExtensions
 
     public static WebApplication UseSwaggerServices(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        // Enable Swagger in all environments (including production for Railway)
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
         {
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "BE_OPENSKY API v1");
-                c.RoutePrefix = "swagger";
-                c.DisplayRequestDuration();
-                c.EnableDeepLinking();
-                c.EnableFilter();
-                c.ShowExtensions();
-            });
-        }
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "BE_OPENSKY API v1");
+            c.RoutePrefix = "swagger";
+            c.DisplayRequestDuration();
+            c.EnableDeepLinking();
+            c.EnableFilter();
+            c.ShowExtensions();
+        });
 
         return app;
     }

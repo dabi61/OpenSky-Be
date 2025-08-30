@@ -47,8 +47,30 @@ public static class ServiceExtensions
     
     public static IServiceCollection AddDatabaseServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // Ưu tiên lấy từ biến môi trường trước, nếu không có thì dùng từ configuration
+        var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                              ?? configuration.GetConnectionString("DefaultConnection");
+
+        // Chuyển đổi nếu dùng DATABASE_URL từ Railway
+        if (connectionString.StartsWith("postgresql://"))
+        {
+            var uri = new Uri(connectionString);
+            var userInfo = uri.UserInfo.Split(':');
+
+            connectionString = new NpgsqlConnectionStringBuilder
+            {
+                Host = uri.Host,
+                Port = uri.Port,
+                Username = userInfo[0],
+                Password = userInfo[1],
+                Database = uri.AbsolutePath.TrimStart('/'),
+                SslMode = SslMode.Require,
+                TrustServerCertificate = true
+            }.ToString();
+        }
+
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(connectionString));
             
         return services;
     }

@@ -34,21 +34,21 @@ public class Program
 
         var app = builder.Build();
 
-        // Auto-apply migrations on startup (for Railway deployment)
-        using (var scope = app.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            try
-            {
-                dbContext.Database.Migrate();
-                app.Logger.LogInformation("Database migrations applied successfully");
-            }
-            catch (Exception ex)
-            {
-                app.Logger.LogError(ex, "Error applying database migrations");
-                // Không throw exception để app vẫn có thể start
-            }
-        }
+        // Auto-apply migrations on startup (for Railway deployment) - DISABLED
+        // using (var scope = app.Services.CreateScope())
+        // {
+        //     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        //     try
+        //     {
+        //         dbContext.Database.Migrate();
+        //         app.Logger.LogInformation("Database migrations applied successfully");
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         app.Logger.LogError(ex, "Error applying database migrations");
+        //         // Không throw exception để app vẫn có thể start
+        //     }
+        // }
 
         // Configure the HTTP request pipeline
         app.UseHttpsRedirection();

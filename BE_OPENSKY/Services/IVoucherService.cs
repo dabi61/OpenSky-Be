@@ -24,6 +24,5 @@ public interface IVoucherService
     Task<bool> MarkVoucherAsUsedAsync(Guid userVoucherId); // Đánh dấu đã sử dụng
     Task<IEnumerable<UserVoucherResponseDTO>> GetUserSavedVouchersAsync(Guid userId); // Lấy voucher đã lưu của user
     
-    // Validation
-    Task<bool> ValidateVoucherForTableAsync(Guid tableId, TableType tableType); // Validate Tour/Hotel tồn tại
+
 }

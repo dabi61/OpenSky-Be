@@ -113,7 +113,6 @@ public class VoucherService : IVoucherService
             Code = voucherDto.Code,
             Percent = voucherDto.Percent,
             TableType = voucherDto.TableType,
-            TableID = voucherDto.TableID,
             StartDate = voucherDto.StartDate.ToUniversalTime(),
             EndDate = voucherDto.EndDate.ToUniversalTime(),
             Description = voucherDto.Description,
@@ -177,9 +176,6 @@ public class VoucherService : IVoucherService
         var activeVouchers = await _voucherRepository.GetActiveVouchersAsync();
         var expiredVouchers = await _voucherRepository.GetExpiredVouchersAsync();
 
-        var tourVouchers = allVouchers.Count(v => v.TableType == TableType.Tour);
-        var hotelVouchers = allVouchers.Count(v => v.TableType == TableType.Hotel);
-
         var totalSaved = allVouchers.Sum(v => v.UserVouchers.Count);
         var totalUsed = allVouchers.Sum(v => v.UserVouchers.Count(uv => uv.IsUsed));
 
@@ -188,8 +184,6 @@ public class VoucherService : IVoucherService
             TotalVouchers = allVouchers.Count(),
             ActiveVouchers = activeVouchers.Count(),
             ExpiredVouchers = expiredVouchers.Count(),
-            TourVouchers = tourVouchers,
-            HotelVouchers = hotelVouchers,
             TotalSaved = totalSaved,
             TotalUsed = totalUsed
         };
@@ -303,16 +297,7 @@ public class VoucherService : IVoucherService
 
     // ===== VALIDATION =====
 
-    // Validate Tour/Hotel có tồn tại không
-    public async Task<bool> ValidateVoucherForTableAsync(Guid tableId, TableType tableType)
-    {
-        return tableType switch
-        {
-            TableType.Tour => await _tourRepository.GetByIdAsync(tableId) != null,
-            TableType.Hotel => true, // Note: Cần tạo IHotelRepository nếu chưa có
-            _ => false
-        };
-    }
+
 
     // ===== PRIVATE METHODS =====
 
@@ -323,21 +308,12 @@ public class VoucherService : IVoucherService
         var now = DateTime.UtcNow;
         var isActive = voucher.StartDate <= now && voucher.EndDate >= now;
 
-        // Lấy tên Tour/Hotel liên kết
-        string? relatedItemName = voucher.TableType switch
-        {
-            TableType.Tour => (await _tourRepository.GetByIdAsync(voucher.TableID))?.Address,
-            TableType.Hotel => "Hotel", // Note: Implement khi có IHotelRepository
-            _ => null
-        };
-
         return new VoucherResponseDTO
         {
             VoucherID = voucher.VoucherID,
             Code = voucher.Code,
             Percent = voucher.Percent,
             TableType = voucher.TableType,
-            TableID = voucher.TableID,
             StartDate = voucher.StartDate,
             EndDate = voucher.EndDate,
             Description = voucher.Description,
@@ -345,7 +321,6 @@ public class VoucherService : IVoucherService
             UsedCount = usedCount,
             RemainingUsage = voucher.MaxUsage - usedCount,
             IsActive = isActive,
-            RelatedItemName = relatedItemName,
             CreatedAt = DateTime.UtcNow // Note: Có thể thêm CreatedAt vào Voucher model
         };
     }
@@ -373,10 +348,7 @@ public class VoucherService : IVoucherService
         if (voucherDto.TableType != TableType.Tour && voucherDto.TableType != TableType.Hotel)
             throw new InvalidOperationException("Loại voucher phải là Tour hoặc Hotel");
 
-        // Kiểm tra Tour/Hotel có tồn tại không
-        var isValidTable = await ValidateVoucherForTableAsync(voucherDto.TableID, voucherDto.TableType);
-        if (!isValidTable)
-            throw new InvalidOperationException($"{voucherDto.TableType} được chỉ định không tồn tại");
+
     }
 
     // Validate khi cập nhật voucher

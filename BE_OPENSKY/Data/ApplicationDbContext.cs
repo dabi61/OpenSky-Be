@@ -241,7 +241,6 @@ namespace BE_OPENSKY.Data
                 entity.HasIndex(e => e.Code).IsUnique(); // Mã voucher phải duy nhất
                 entity.Property(e => e.Percent).IsRequired(); // Phần trăm giảm giá (bắt buộc)
                 entity.Property(e => e.TableType).IsRequired().HasConversion<string>(); // Loại voucher (bắt buộc)
-                entity.Property(e => e.TableID).IsRequired(); // ID liên kết (bắt buộc)
                 entity.Property(e => e.StartDate).IsRequired(); // Ngày bắt đầu (bắt buộc)
                 entity.Property(e => e.EndDate).IsRequired(); // Ngày hết hạn (bắt buộc)
                 entity.Property(e => e.Description).HasMaxLength(1000); // Mô tả voucher

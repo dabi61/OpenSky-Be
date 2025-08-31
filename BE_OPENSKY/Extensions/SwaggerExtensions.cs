@@ -70,7 +70,6 @@ public static class SwaggerExtensions
             c.RoutePrefix = "swagger";
             c.DisplayRequestDuration();
             c.EnableDeepLinking();
-            c.EnableFilter();
             c.ShowExtensions();
         });
 

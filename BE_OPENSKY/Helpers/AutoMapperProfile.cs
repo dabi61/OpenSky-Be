@@ -41,7 +41,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.RemainingUsage, opt => opt.MapFrom(src => src.MaxUsage - src.UserVouchers.Count(uv => uv.IsUsed))) // Số lần còn lại
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => 
                 src.StartDate <= DateTime.UtcNow && src.EndDate >= DateTime.UtcNow)) // Còn hiệu lực không
-            .ForMember(dest => dest.RelatedItemName, opt => opt.Ignore()) // Sẽ set thủ công trong service
+
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow)); // Placeholder - có thể thêm vào model
 
         CreateMap<VoucherCreateDTO, Voucher>()

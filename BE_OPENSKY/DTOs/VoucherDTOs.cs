@@ -6,7 +6,6 @@ public record VoucherCreateDTO
     public string Code { get; init; } = string.Empty; // Mã voucher
     public int Percent { get; init; } // Phần trăm giảm giá
     public TableType TableType { get; init; } // Loại: Tour hoặc Hotel
-    public Guid TableID { get; init; } // ID của Tour hoặc Hotel
     public DateTime StartDate { get; init; } // Ngày bắt đầu hiệu lực
     public DateTime EndDate { get; init; } // Ngày hết hạn
     public string? Description { get; init; } // Mô tả voucher
@@ -31,7 +30,6 @@ public record VoucherResponseDTO
     public string Code { get; init; } = string.Empty; // Mã voucher
     public int Percent { get; init; } // Phần trăm giảm giá
     public TableType TableType { get; init; } // Loại voucher
-    public Guid TableID { get; init; } // ID Tour/Hotel
     public DateTime StartDate { get; init; } // Ngày bắt đầu
     public DateTime EndDate { get; init; } // Ngày hết hạn
     public string? Description { get; init; } // Mô tả
@@ -39,7 +37,6 @@ public record VoucherResponseDTO
     public int UsedCount { get; init; } // Số lần đã sử dụng
     public int RemainingUsage { get; init; } // Số lần còn lại
     public bool IsActive { get; init; } // Còn hiệu lực không
-    public string? RelatedItemName { get; init; } // Tên Tour/Hotel
     public DateTime CreatedAt { get; init; } // Ngày tạo
 }
 
@@ -72,8 +69,6 @@ public record VoucherStatisticsDTO
     public int TotalVouchers { get; init; } // Tổng số voucher
     public int ActiveVouchers { get; init; } // Voucher đang hiệu lực
     public int ExpiredVouchers { get; init; } // Voucher hết hạn
-    public int TourVouchers { get; init; } // Voucher tour
-    public int HotelVouchers { get; init; } // Voucher hotel
     public int TotalSaved { get; init; } // Tổng lượt lưu
     public int TotalUsed { get; init; } // Tổng lượt sử dụng
 }

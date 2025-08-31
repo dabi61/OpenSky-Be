@@ -29,8 +29,12 @@ namespace BE_OPENSKY.Models
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
+        // Foreign key đến UserVoucher (optional)
+        public Guid? UserVoucherID { get; set; }
+        
         // Navigation properties
         public virtual User User { get; set; } = null!;
+        public virtual UserVoucher? UserVoucher { get; set; } // Voucher được sử dụng cho bill này
         public virtual ICollection<Refund> Refunds { get; set; } = new List<Refund>();
         public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     }

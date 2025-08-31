@@ -34,6 +34,22 @@ public class Program
 
         var app = builder.Build();
 
+        // Auto-apply migrations on startup (for Railway deployment)
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            try
+            {
+                dbContext.Database.Migrate();
+                app.Logger.LogInformation("Database migrations applied successfully");
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogError(ex, "Error applying database migrations");
+                // Không throw exception để app vẫn có thể start
+            }
+        }
+
         // Configure the HTTP request pipeline
         app.UseHttpsRedirection();
         
@@ -51,12 +67,12 @@ public class Program
         app.UseAuthorization();
 
         // Map API Endpoints
-app.MapAuthEndpoints();        // Authentication endpoints
-app.MapUserEndpoints();        // User management endpoints
-app.MapTourEndpoints();        // Tour management endpoints
-app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
-app.MapVoucherEndpoints();     // Voucher management endpoints
-app.MapImageEndpoints();       // Image management endpoints
+        app.MapAuthEndpoints();        // Authentication endpoints
+        app.MapUserEndpoints();        // User management endpoints
+        app.MapTourEndpoints();        // Tour management endpoints
+        app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
+        app.MapVoucherEndpoints();     // Voucher management endpoints
+        app.MapImageEndpoints();       // Image management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

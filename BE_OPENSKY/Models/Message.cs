@@ -18,6 +18,9 @@ namespace BE_OPENSKY.Models
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
+        [Required]
+        public bool IsReaded { get; set; } = false; // Đánh dấu tin nhắn đã đọc chưa
+        
         // Thuộc tính điều hướng
         public virtual User SenderUser { get; set; } = null!; // Người gửi
         public virtual User ReceiverUser { get; set; } = null!; // Người nhận

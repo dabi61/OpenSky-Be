@@ -11,6 +11,9 @@ namespace BE_OPENSKY.Models
         public Guid UserID { get; set; }
         
         [Required]
+        public string Name { get; set; } = string.Empty; // Tên tour
+        
+        [Required]
         public string Address { get; set; } = string.Empty;
         
         [Required]
@@ -18,6 +21,9 @@ namespace BE_OPENSKY.Models
         
         [Required]
         public int MaxPeople { get; set; }
+        
+        [Required]
+        public decimal Price { get; set; } // Giá tour
         
         public string? Description { get; set; }
         

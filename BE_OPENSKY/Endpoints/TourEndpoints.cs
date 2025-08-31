@@ -55,9 +55,11 @@ public static class TourEndpoints
             var tour = new Tour
             {
                 UserID = userId,
+                Name = tourDto.Name,
                 Address = tourDto.Address,
                 NumberOfDays = tourDto.NumberOfDays,
                 MaxPeople = tourDto.MaxPeople,
+                Price = tourDto.Price,
                 Description = tourDto.Description,
                 Star = tourDto.Star,
                 Status = TourStatus.Active,
@@ -90,12 +92,16 @@ public static class TourEndpoints
                 return Results.Forbid();
 
             // Update only provided fields
+            if (!string.IsNullOrEmpty(tourDto.Name))
+                existingTour.Name = tourDto.Name;
             if (!string.IsNullOrEmpty(tourDto.Address))
                 existingTour.Address = tourDto.Address;
             if (tourDto.NumberOfDays.HasValue)
                 existingTour.NumberOfDays = tourDto.NumberOfDays.Value;
             if (tourDto.MaxPeople.HasValue)
                 existingTour.MaxPeople = tourDto.MaxPeople.Value;
+            if (tourDto.Price.HasValue)
+                existingTour.Price = tourDto.Price.Value;
             if (!string.IsNullOrEmpty(tourDto.Description))
                 existingTour.Description = tourDto.Description;
             if (tourDto.Star.HasValue)

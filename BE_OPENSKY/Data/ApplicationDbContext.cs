@@ -45,10 +45,12 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Tour>(entity =>
             {
                 entity.HasKey(e => e.TourID);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Description).HasMaxLength(1000);
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Star).IsRequired();
+                entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
 
                 entity.HasOne(e => e.User)
                     .WithMany(e => e.Tours)
@@ -95,7 +97,7 @@ namespace BE_OPENSKY.Data
             {
                 entity.HasKey(e => e.MessageID);
                 entity.Property(e => e.MessageText).IsRequired().HasMaxLength(1000);
-
+                entity.Property(e => e.IsReaded).IsRequired().HasDefaultValue(false);
                 entity.HasOne(e => e.SenderUser)
                     .WithMany(e => e.SentMessages)
                     .HasForeignKey(e => e.Sender)
@@ -121,6 +123,11 @@ namespace BE_OPENSKY.Data
                     .WithMany(e => e.Bills)
                     .HasForeignKey(e => e.UserID)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.UserVoucher)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserVoucherID)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Schedule

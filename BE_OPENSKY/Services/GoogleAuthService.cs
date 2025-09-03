@@ -61,7 +61,6 @@ public class GoogleAuthService : IGoogleAuthService
                     Email = googleUserInfo.Email,
                     FullName = googleUserInfo.Name,
                     Password = Guid.NewGuid().ToString("N"), // placeholder
-                    Role = RoleConstants.Customer,
                     ProviderId = googleUserInfo.Sub,
                     AvatarURL = googleUserInfo.Picture
                 });

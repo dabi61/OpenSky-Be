@@ -22,9 +22,46 @@ namespace BE_OPENSKY.DTOs
         public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
         public DateOnly? DoB { get; set; }
-        public string? AvatarURL { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
+            public string? AvatarURL { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+// DTO cho việc tạo tài khoản bởi Admin/Supervisor
+public class CreateUserDTO
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+}
+
+// DTO cho đơn đăng ký mở khách sạn
+public class HotelApplicationDTO
+{
+    public string HotelName { get; set; } = string.Empty; // Tên khách sạn
+    public string Address { get; set; } = string.Empty; // Địa chỉ
+    public string District { get; set; } = string.Empty; // Quận/Huyện
+    public string? Coordinates { get; set; } // Tọa độ
+    public string? Description { get; set; } // Mô tả
+    public int Star { get; set; } = 3; // Số sao (1-5)
+}
+
+// DTO trả về thông tin khách sạn chờ duyệt
+public class PendingHotelResponseDTO
+{
+    public Guid HotelID { get; set; }
+    public Guid UserID { get; set; }
+    public string UserEmail { get; set; } = string.Empty; // Email của customer
+    public string UserFullName { get; set; } = string.Empty; // Tên của customer
+    public string HotelName { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public string? Coordinates { get; set; }
+    public string? Description { get; set; }
+    public int Star { get; set; }
+    public string Status { get; set; } = string.Empty; // Inactive, Active
+    public DateTime CreatedAt { get; set; }
+}
 
     // DTO đăng nhập
     public class UserLoginDTO
@@ -50,8 +87,8 @@ namespace BE_OPENSKY.DTOs
         [Required]
         public string FullName { get; set; } = string.Empty;
 
-        public string Role { get; set; } = "Customer";
-        public string? ProviderId { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? ProviderId { get; set; } // Chỉ dành cho Google OAuth
         public string? AvatarURL { get; set; }
     }
 

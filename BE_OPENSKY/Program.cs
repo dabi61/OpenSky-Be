@@ -66,6 +66,7 @@ public class Program
 
         // Map API Endpoints
         app.MapAuthEndpoints();        // Authentication endpoints
+        app.MapUserEndpoints();        // User management endpoints
         app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
 
         // Redirect root to Swagger

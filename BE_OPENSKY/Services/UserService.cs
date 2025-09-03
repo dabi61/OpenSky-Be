@@ -15,6 +15,11 @@ public class UserService : IUserService
 
     public async Task<UserResponseDTO> CreateAsync(UserRegisterDTO userDto)
     {
+        return await CreateWithRoleAsync(userDto, RoleConstants.Customer);
+    }
+
+    public async Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role)
+    {
         // Kiểm tra email đã tồn tại chưa
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         if (existingUser != null)
@@ -28,7 +33,8 @@ public class UserService : IUserService
             Email = userDto.Email,
             Password = PasswordHelper.HashPassword(userDto.Password),
             FullName = userDto.FullName,
-            Role = string.IsNullOrEmpty(userDto.Role) ? RoleConstants.Customer : userDto.Role,
+            PhoneNumber = userDto.PhoneNumber,
+            Role = role,
             ProviderId = userDto.ProviderId,
             AvatarURL = userDto.AvatarURL,
             CreatedAt = DateTime.UtcNow
@@ -78,6 +84,52 @@ public class UserService : IUserService
     public Task<User?> GetByEmailAsync(string email)
     {
         return _context.Users.FirstOrDefaultAsync(u => u.Email == email)!;
+    }
+
+    public async Task<bool> ChangeUserRoleAsync(Guid userId, string newRole)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return false;
+        }
+
+        // Kiểm tra role hợp lệ
+        if (!RoleConstants.AllRoles.Contains(newRole))
+        {
+            throw new ArgumentException("Role không hợp lệ");
+        }
+
+        user.Role = newRole;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<List<UserResponseDTO>> GetUsersAsync(string? role = null)
+    {
+        var query = _context.Users.AsQueryable();
+
+        // Lọc theo role nếu có
+        if (!string.IsNullOrEmpty(role))
+        {
+            query = query.Where(u => u.Role == role);
+        }
+
+        var users = await query
+            .OrderBy(u => u.CreatedAt)
+            .Select(u => new UserResponseDTO
+            {
+                UserID = u.UserID,
+                Email = u.Email,
+                FullName = u.FullName,
+                Role = u.Role,
+                PhoneNumber = u.PhoneNumber,
+                AvatarURL = u.AvatarURL,
+                CreatedAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        return users;
     }
 }
 

@@ -10,6 +10,7 @@ public static class ServiceExtensions
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IHotelService, HotelService>();
         
         // Thêm HttpClient cho Google OAuth
         services.AddHttpClient();
@@ -38,8 +39,7 @@ public static class ServiceExtensions
                 Username = userInfo[0],
                 Password = userInfo[1],
                 Database = uri.AbsolutePath.TrimStart('/'),
-                SslMode = SslMode.Require,
-                TrustServerCertificate = true
+                SslMode = SslMode.Require
             }.ToString();
         }
 

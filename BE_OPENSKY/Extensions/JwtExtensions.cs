@@ -37,6 +37,14 @@ public static class JwtExtensions
             options.AddPolicy("HotelOnly", policy => policy.RequireRole(RoleConstants.Hotel));           // Chỉ Nhà cung cấp khách sạn
             options.AddPolicy("CustomerOnly", policy => policy.RequireRole(RoleConstants.Customer));     // Chỉ Khách hàng
 
+            // ===== CHÍNH SÁCH PHÂN QUYỀN KẾT HỢP =====
+            // Sử dụng khi endpoint cho phép nhiều vai trò truy cập
+            options.AddPolicy("SupervisorOrAdmin", policy => 
+                policy.RequireRole(RoleConstants.Admin, RoleConstants.Supervisor)); // Admin hoặc Supervisor
+            
+            options.AddPolicy("ManagementRoles", policy => 
+                policy.RequireRole(RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide)); // Các vai trò quản lý
+
             // Chính sách cho người dùng đã xác thực (bất kỳ vai trò nào)
             options.AddPolicy("AuthenticatedOnly", policy => policy.RequireAuthenticatedUser());
         });

@@ -1,25 +1,25 @@
 using BE_OPENSKY.DTOs;
 using BE_OPENSKY.Helpers;
 using BE_OPENSKY.Models;
-using BE_OPENSKY.Repositories;
+// Đã loại bỏ repositories layer - sử dụng IUserService thay thế
 using System.Text.Json;
 
 namespace BE_OPENSKY.Services;
 
 public class GoogleAuthService : IGoogleAuthService
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IUserService _userService;
     private readonly JwtHelper _jwtHelper;
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;
 
     public GoogleAuthService(
-        IUserRepository userRepository,
+        IUserService userService,
         JwtHelper jwtHelper,
         IConfiguration configuration,
         HttpClient httpClient)
     {
-        _userRepository = userRepository;
+        _userService = userService;
         _jwtHelper = jwtHelper;
         _configuration = configuration;
         _httpClient = httpClient;
@@ -37,8 +37,8 @@ public class GoogleAuthService : IGoogleAuthService
                 throw new InvalidOperationException("Invalid Google token");
             }
 
-            // Check if user exists
-            var existingUser = await _userRepository.GetByEmailAsync(googleUserInfo.Email);
+            // Kiểm tra người dùng đã tồn tại
+            var existingUser = await _userService.GetByEmailAsync(googleUserInfo.Email);
             
             if (existingUser != null)
             {
@@ -56,25 +56,25 @@ public class GoogleAuthService : IGoogleAuthService
             else
             {
                 // Create new user
-                var newUser = new User
+                var createdUserDto = await _userService.CreateAsync(new UserRegisterDTO
                 {
                     Email = googleUserInfo.Email,
                     FullName = googleUserInfo.Name,
-                    Password = string.Empty, // OAuth users don't have passwords
-                    Role = RoleConstants.Customer, // Default role for new users
-                    ProviderId = googleUserInfo.Sub, // Google user ID
-                    AvatarURL = googleUserInfo.Picture,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var createdUser = await _userRepository.CreateAsync(newUser);
-                var token = _jwtHelper.GenerateToken(createdUser);
+                    Password = Guid.NewGuid().ToString("N"), // placeholder
+                    Role = RoleConstants.Customer,
+                    ProviderId = googleUserInfo.Sub,
+                    AvatarURL = googleUserInfo.Picture
+                });
+                
+                // Lấy user entity để tạo token
+                var createdUser = await _userService.GetByEmailAsync(googleUserInfo.Email);
+                var token = _jwtHelper.GenerateToken(createdUser!);
 
                 return new GoogleAuthResponse
                 {
                     Token = token,
                     Message = "Registration successful",
-                    User = MapToUserResponseDTO(createdUser),
+                    User = MapToUserResponseDTO(createdUser!),
                     IsNewUser = true
                 };
             }

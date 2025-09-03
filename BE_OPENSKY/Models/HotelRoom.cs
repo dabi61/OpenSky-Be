@@ -13,8 +13,7 @@ namespace BE_OPENSKY.Models
         [Required]
         public string RoomName { get; set; } = string.Empty;
         
-        [Required]
-        public RoomType RoomType { get; set; } // Single, Double, Suite, etc.
+        public string RoomType { get; set; } = string.Empty;
         
         [Required]
         public string Address { get; set; } = string.Empty;

@@ -9,9 +9,4 @@ public static class RoleConstants
     public const string Customer = "Customer";
 
     public static readonly string[] AllRoles = { Admin, Supervisor, TourGuide, Hotel, Customer };
-    
-    public static readonly string[] ManagementRoles = { Admin, Supervisor };
-    public static readonly string[] StaffRoles = { Admin, Supervisor, TourGuide };
-    public static readonly string[] ServiceProviderRoles = { Admin, Supervisor, TourGuide, Hotel };
-    public static readonly string[] AuthenticatedRoles = { Admin, Supervisor, TourGuide, Hotel, Customer };
 }

@@ -33,6 +33,7 @@ namespace BE_OPENSKY.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Ngày tạo tài khoản
         
         // Thuộc tính điều hướng - Các mối quan hệ với bảng khác
+        public virtual ICollection<Session> Sessions { get; set; } = new List<Session>(); // Phiên đăng nhập
         public virtual ICollection<Message> SentMessages { get; set; } = new List<Message>(); // Tin nhắn đã gửi
         public virtual ICollection<Message> ReceivedMessages { get; set; } = new List<Message>(); // Tin nhắn đã nhận
         public virtual ICollection<FeedBack> FeedBacks { get; set; } = new List<FeedBack>(); // Đánh giá đã viết

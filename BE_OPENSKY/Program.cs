@@ -23,8 +23,6 @@ public class Program
         // Add CORS
         builder.Services.AddCorsServices();
         
-        // Add AutoMapper
-        builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
         
         // Add Helpers
         builder.Services.AddScoped<JwtHelper>();
@@ -68,11 +66,7 @@ public class Program
 
         // Map API Endpoints
         app.MapAuthEndpoints();        // Authentication endpoints
-        app.MapUserEndpoints();        // User management endpoints
-        app.MapTourEndpoints();        // Tour management endpoints
         app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
-        app.MapVoucherEndpoints();     // Voucher management endpoints
-        app.MapImageEndpoints();       // Image management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

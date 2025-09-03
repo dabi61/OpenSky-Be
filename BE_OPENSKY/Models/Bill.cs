@@ -11,7 +11,7 @@ namespace BE_OPENSKY.Models
         public Guid UserID { get; set; }
         
         [Required]
-        public TableType TableType { get; set; } // Tour, Hotel, Schedule
+        public TableType TableType { get; set; } // Loại dịch vụ: Tour, Hotel
         
         [Required]
         public Guid TypeID { get; set; }
@@ -25,16 +25,17 @@ namespace BE_OPENSKY.Models
         public decimal TotalPrice { get; set; }
         
         [Required]
-        public BillStatus Status { get; set; } = BillStatus.Pending; // Pending, Paid, Cancelled, Refunded
+        public BillStatus Status { get; set; } = BillStatus.Pending; // Trạng thái: Chờ(Pending), Đã thanh toán(Paid), Đã hủy(Cancelled), Đã hoàn tiền(Refunded)
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
-        // Foreign key đến UserVoucher (optional)
+        // Khóa ngoại đến UserVoucher (tùy chọn)
         public Guid? UserVoucherID { get; set; }
         
-        // Navigation properties
+        // Thuộc tính điều hướng
         public virtual User User { get; set; } = null!;
-        public virtual UserVoucher? UserVoucher { get; set; } // Voucher được sử dụng cho bill này
+        public virtual UserVoucher? UserVoucher { get; set; } // Voucher được sử dụng cho hóa đơn này
+        public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
         public virtual ICollection<Refund> Refunds { get; set; } = new List<Refund>();
         public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     }

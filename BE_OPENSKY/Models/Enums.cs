@@ -1,47 +1,43 @@
 namespace BE_OPENSKY.Models
 {
-    // Enum for table types used in Voucher, FeedBack, and Bill
+    // Enum cho các loại bảng được sử dụng trong Voucher, FeedBack và Bill
     public enum TableType
     {
         Tour,
-        Hotel,
-        User,
-        Schedule
+        Hotel
     }
 
-    // Enum for Hotel status
+    // Enum cho các loại bảng được sử dụng trong Image
+    public enum TableTypeImage
+    {
+        User,
+        Hotel,
+        RoomHotel,
+        Tour
+    }
+
+    // Enum cho trạng thái khách sạn
     public enum HotelStatus
     {
-        Draft,
-        Active,
-        Inactive
+        Active,   // Hoạt động
+        Inactive  // Không hoạt động
     }
 
-    // Enum for Bill status
+    // Enum cho trạng thái hóa đơn
     public enum BillStatus
     {
-        Pending,
-        Paid,
-        Cancelled,
-        Refunded
+        Pending,   // Chờ xử lý
+        Paid,      // Đã thanh toán
+        Cancelled, // Đã hủy
+        Refunded   // Đã hoàn tiền
     }
 
-    // Enum for Room types
-    public enum RoomType
-    {
-        Single = 1,
-        Double = 2,
-        Triple = 3,
-        Suite = 4,
-        Deluxe = 5,
-        Family = 6
-    }
 
-    // Enum for Tour status
+
+    // Enum cho trạng thái tour
     public enum TourStatus
     {
-        Draft,
-        Active,
-        Inactive
+        Active,   // Hoạt động
+        Inactive  // Không hoạt động
     }
 }

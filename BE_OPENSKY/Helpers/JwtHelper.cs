@@ -9,7 +9,7 @@ public class JwtHelper
         _configuration = configuration;
     }
 
-    public string GenerateToken(User user)
+    public string GenerateAccessToken(User user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"];
@@ -40,6 +40,17 @@ public class JwtHelper
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
+    }
+
+    // Tương thích ngược - giữ tên method cũ
+    public string GenerateToken(User user) => GenerateAccessToken(user);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {

@@ -7,11 +7,13 @@ namespace BE_OPENSKY.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Session> Sessions { get; set; }
         public DbSet<Tour> Tours { get; set; }
         public DbSet<Hotel> Hotels { get; set; }
         public DbSet<HotelRoom> HotelRooms { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Bill> Bills { get; set; }
+        public DbSet<BillDetail> BillDetails { get; set; }
         public DbSet<Schedule> Schedules { get; set; }
         public DbSet<TourItinerary> TourItineraries { get; set; }
         public DbSet<ScheduleItinerary> ScheduleItineraries { get; set; }
@@ -39,6 +41,24 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.AvatarURL).HasMaxLength(500);
 
                 entity.HasIndex(e => e.Email).IsUnique();
+            });
+
+            // Session
+            modelBuilder.Entity<Session>(entity =>
+            {
+                entity.HasKey(e => e.SessionID);
+                entity.Property(e => e.RefreshToken).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+
+                entity.HasOne(e => e.User)
+                    .WithMany(e => e.Sessions)
+                    .HasForeignKey(e => e.UserID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Index để tìm session theo RefreshToken nhanh
+                entity.HasIndex(e => e.RefreshToken).IsUnique();
+                // Index để tìm session active của user
+                entity.HasIndex(e => new { e.UserID, e.IsActive });
             });
 
             // Tour
@@ -128,6 +148,23 @@ namespace BE_OPENSKY.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserVoucherID)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // BillDetail
+            modelBuilder.Entity<BillDetail>(entity =>
+            {
+                entity.HasKey(e => e.BillDetailID);
+                entity.Property(e => e.ItemType).IsRequired().HasConversion<string>();
+                entity.Property(e => e.ItemName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Quantity).IsRequired();
+                entity.Property(e => e.UnitPrice).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(500);
+
+                entity.HasOne(e => e.Bill)
+                    .WithMany(e => e.BillDetails)
+                    .HasForeignKey(e => e.BillID)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Schedule

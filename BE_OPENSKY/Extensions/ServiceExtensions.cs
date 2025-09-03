@@ -6,54 +6,26 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Add Repositories
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<ITourRepository, TourRepository>();
-        services.AddScoped<IVoucherRepository, VoucherRepository>();
-        
-        // Add Services
-        services.AddScoped<IUserService, UserService>();
+        // Thêm các Services
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
-        services.AddScoped<IVoucherService, VoucherService>();
-        services.AddScoped<IImageService, ImageService>();
+        services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IUserService, UserService>();
         
-        // Add HttpClient for Google OAuth
+        // Thêm HttpClient cho Google OAuth
         services.AddHttpClient();
         
-        // Add Cloudinary
-        services.AddCloudinaryService(configuration);
-        
         return services;
     }
 
-    // Cấu hình Cloudinary
-    public static IServiceCollection AddCloudinaryService(this IServiceCollection services, IConfiguration configuration)
-    {
-        var cloudinarySection = configuration.GetSection("Cloudinary");
-        var cloudName = cloudinarySection["CloudName"];
-        var apiKey = cloudinarySection["ApiKey"];
-        var apiSecret = cloudinarySection["ApiSecret"];
 
-        if (string.IsNullOrEmpty(cloudName) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
-        {
-            throw new InvalidOperationException("Cloudinary configuration is missing or incomplete");
-        }
-
-        var cloudinaryAccount = new CloudinaryDotNet.Account(cloudName, apiKey, apiSecret);
-        var cloudinary = new CloudinaryDotNet.Cloudinary(cloudinaryAccount);
-        
-        services.AddSingleton(cloudinary);
-        
-        return services;
-    }
     
     public static IServiceCollection AddDatabaseServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Ưu tiên lấy từ biến môi trường trước, nếu không có thì dùng từ configuration
+        // Ưu tiên lấy từ biến môi trường trước, nếu không có thì dùng từ cấu hình
         var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
                               ?? configuration.GetConnectionString("DefaultConnection");
 
-        // Chuyển đổi nếu dùng DATABASE_URL từ Railway
+        // Chuyển đổi nếu sử dụng DATABASE_URL từ Railway
         if (connectionString.StartsWith("postgresql://"))
         {
             var uri = new Uri(connectionString);
@@ -89,20 +61,20 @@ public static class ServiceExtensions
                       .AllowAnyHeader();
             });
 
-            // Policy riêng cho production - có thể customize sau
+            // Chính sách riêng cho môi trường sản xuất - có thể tùy chỉnh sau
             options.AddPolicy("Production", policy =>
             {
                 policy.WithOrigins(
                     "https://your-frontend-domain.com", // Thay bằng domain frontend thực tế
                     "http://localhost:3000",             // React dev server
-                    "http://localhost:3001",             // Alternative port
+                    "http://localhost:3001",             // Cổng thay thế
                     "http://localhost:4200",             // Angular dev server
                     "http://localhost:5173",             // Vite dev server
                     "http://localhost:8080"              // Vue dev server
                 )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowCredentials(); // Cho phép cookies/credentials
+                .AllowCredentials(); // Cho phép cookies/thông tin xác thực
             });
         });
 

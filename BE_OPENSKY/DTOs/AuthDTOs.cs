@@ -156,4 +156,27 @@ public class PendingHotelResponseDTO
         public string? AvatarURL { get; set; }
         public DateTime CreatedAt { get; set; }
     }
+
+    // DTO cho quên mật khẩu
+    public class ForgotPasswordDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    // DTO cho reset mật khẩu
+    public class ResetPasswordDTO
+    {
+        [Required]
+        public string Token { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        [Compare(nameof(NewPassword), ErrorMessage = "Mật khẩu xác nhận không khớp")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
 }

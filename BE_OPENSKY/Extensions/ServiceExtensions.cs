@@ -1,4 +1,5 @@
 using Npgsql;
+using StackExchange.Redis;
 
 namespace BE_OPENSKY.Extensions;
 
@@ -6,12 +7,27 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // Thêm Redis
+        var redisConnectionString = configuration.GetConnectionString("Redis") 
+            ?? configuration.GetValue<string>("Redis:ConnectionString")
+            ?? "localhost:6379";
+        
+        services.AddSingleton<IConnectionMultiplexer>(provider =>
+        {
+            var redisConfig = ConfigurationOptions.Parse(redisConnectionString);
+            return ConnectionMultiplexer.Connect(redisConfig);
+        });
+        
+        services.AddScoped<IRedisService, RedisService>();
+        
         // Thêm các Services
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IHotelService, HotelService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
+        services.AddScoped<IEmailService, EmailService>();
         
         // Thêm HttpClient cho Google OAuth
         services.AddHttpClient();

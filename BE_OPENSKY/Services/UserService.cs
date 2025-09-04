@@ -209,6 +209,32 @@ public class UserService : IUserService
             CreatedAt = user.CreatedAt
         };
     }
+
+    public async Task<bool> ResetPasswordAsync(Guid userId, string newPassword)
+    {
+        try
+        {
+            if (userId == Guid.Empty)
+                throw new ArgumentException("User ID không hợp lệ", nameof(userId));
+
+            if (string.IsNullOrWhiteSpace(newPassword))
+                throw new ArgumentException("Mật khẩu mới không được để trống", nameof(newPassword));
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                throw new InvalidOperationException("Không tìm thấy tài khoản người dùng");
+
+            // Hash mật khẩu mới
+            user.Password = PasswordHelper.HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Lỗi khi reset mật khẩu: {ex.Message}", ex);
+        }
+    }
 }
 
 

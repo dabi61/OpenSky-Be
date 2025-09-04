@@ -14,6 +14,9 @@ public interface IUserService
     Task<ProfileResponseDTO?> GetProfileAsync(Guid userId);
     Task<ProfileResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileDTO updateDto);
     Task<ProfileResponseDTO> UpdateAvatarAsync(Guid userId, string avatarUrl);
+    
+    // Password reset methods
+    Task<bool> ResetPasswordAsync(Guid userId, string newPassword);
 }
 
 

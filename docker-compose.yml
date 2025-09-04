@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: opensky-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass OpenSky123!
+    restart: unless-stopped
+    networks:
+      - opensky-network
+
+  # Optional: Redis Commander for GUI management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: opensky-redis-commander
+    hostname: redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:OpenSky123!
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - opensky-network
+
+volumes:
+  redis_data:
+
+networks:
+  opensky-network:
+    driver: bridge

@@ -1,5 +1,6 @@
 using Npgsql;
 using StackExchange.Redis;
+using SendGrid;
 
 namespace BE_OPENSKY.Extensions;
 
@@ -28,7 +29,20 @@ public static class ServiceExtensions
         services.AddScoped<IHotelService, HotelService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
-        services.AddScoped<IEmailService, EmailService>();
+        
+        // Email Service - SendGrid for production, SMTP for local
+        var sendGridApiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY");
+        if (!string.IsNullOrEmpty(sendGridApiKey))
+        {
+            // Use SendGrid for production (Railway)
+            services.AddSingleton<ISendGridClient>(provider => new SendGridClient(sendGridApiKey));
+            services.AddScoped<IEmailService, SendGridEmailService>();
+        }
+        else
+        {
+            // Use SMTP for local development
+            services.AddScoped<IEmailService, EmailService>();
+        }
         
         // Thêm HttpClient cho Google OAuth
         services.AddHttpClient();

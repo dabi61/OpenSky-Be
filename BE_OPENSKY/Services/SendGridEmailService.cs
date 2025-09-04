@@ -19,12 +19,15 @@ public class SendGridEmailService : IEmailService
         _logger = logger;
         
         // Railway compatibility - Environment variables first, then config
+        // MUST use verified sender email from SendGrid
         _senderEmail = Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL") 
             ?? _configuration["Email:SenderEmail"] 
-            ?? "noreply@opensky.com";
+            ?? "cuongngba7@gmail.com"; // Use verified sender from SendGrid
         _senderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME") 
             ?? _configuration["Email:SenderName"] 
             ?? "OpenSky Travel";
+            
+        _logger.LogInformation("SendGridEmailService initialized with sender: {Email}", _senderEmail);
     }
 
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetToken)

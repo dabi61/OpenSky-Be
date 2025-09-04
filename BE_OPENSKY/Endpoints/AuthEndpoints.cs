@@ -300,9 +300,11 @@ public static class AuthEndpoints
                 }
                 
                 return Results.Ok(new { 
-                    message = "Mã reset mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
-                    // Trong development, có thể trả về token để test
-                    // token = token // Chỉ dùng trong development
+                    message = emailSent ? 
+                        "Mã reset mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư." :
+                        "Email service không hoạt động, nhưng token đã được tạo.",
+                    // Temporary: Return token if email failed (for testing)
+                    token = emailSent ? null : token
                 });
             }
             catch (InvalidOperationException ex)
@@ -408,6 +410,35 @@ public static class AuthEndpoints
         .Produces(200)
         .Produces(400)
         .Produces(500);
+
+        // Test email service
+        authGroup.MapPost("/test-email", async (IEmailService emailService) =>
+        {
+            try
+            {
+                var testSent = await emailService.SendEmailAsync(
+                    "cuongngba7@gmail.com", 
+                    "Test Email from Railway", 
+                    "<h1>Test thành công!</h1><p>Email service hoạt động trên Railway.</p>"
+                );
+                
+                return Results.Ok(new { 
+                    message = testSent ? "Email test thành công" : "Email test thất bại",
+                    sent = testSent 
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Email test failed",
+                    detail: ex.Message,
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("TestEmail")
+        .WithSummary("Test email service")
+        .WithDescription("Test email service trên Railway");
     }
 
     // Phương thức hỗ trợ để kiểm tra email hợp lệ

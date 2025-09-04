@@ -28,7 +28,7 @@ public class EmailService : IEmailService
         {
             // Use SendGrid SMTP Relay for Railway
             _smtpHost = "smtp.sendgrid.net";
-            _smtpPort = 465; 
+            _smtpPort = 587; 
             _enableSsl = true;
             _username = "apikey";
             _password = sendGridSmtpPassword;

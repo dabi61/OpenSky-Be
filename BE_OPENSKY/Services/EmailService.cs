@@ -21,14 +21,16 @@ public class EmailService : IEmailService
         _configuration = configuration;
         _logger = logger;
         
-        // Railway compatibility - Environment variables first, then config
-        _smtpHost = Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST") ?? _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-        _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT"), out var port) ? port : _configuration.GetValue<int>("Email:SmtpPort", 587);
-        _enableSsl = _configuration.GetValue<bool>("Email:EnableSsl", true);
-        _senderEmail = Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL") ?? _configuration["Email:SenderEmail"] ?? throw new ArgumentNullException("Email:SenderEmail");
-        _senderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME") ?? _configuration["Email:SenderName"] ?? "OpenSky Travel";
-        _username = Environment.GetEnvironmentVariable("EMAIL_USERNAME") ?? _configuration["Email:Username"] ?? _senderEmail;
-        _password = Environment.GetEnvironmentVariable("EMAIL_PASSWORD") ?? _configuration["Email:Password"] ?? throw new ArgumentNullException("Email:Password");
+        // SMTP config - only for local development fallback
+        _smtpHost = "smtp.gmail.com";
+        _smtpPort = 587;
+        _enableSsl = true;
+        _senderEmail = _configuration["Email:SenderEmail"] ?? "cuongngba7@gmail.com";
+        _senderName = _configuration["Email:SenderName"] ?? "OpenSky Travel";
+        _username = "cuongngba7@gmail.com";
+        _password = "ccmn nrsx qzwb bmmq";
+        
+        _logger.LogInformation("EmailService initialized with SMTP: {Host}:{Port}, Sender: {Email}", _smtpHost, _smtpPort, _senderEmail);
     }
 
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetToken)
@@ -68,8 +70,8 @@ public class EmailService : IEmailService
 
     private string GeneratePasswordResetEmailTemplate(string resetToken)
     {
-        // Tạo link reset password (trong production sẽ là domain thực)
-        var resetLink = $"https://localhost:7006/reset-password?token={resetToken}";
+        // Tạo link reset password - Railway domain
+        var resetLink = $"https://opensky-be-production.up.railway.app/reset-password?token={resetToken}";
         
         return $@"
 <!DOCTYPE html>

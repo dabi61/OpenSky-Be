@@ -32,16 +32,36 @@ public static class ServiceExtensions
         
         // Email Service - SendGrid for production, SMTP for local
         var sendGridApiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY");
+        Console.WriteLine($"[DEBUG] SENDGRID_API_KEY exists: {!string.IsNullOrEmpty(sendGridApiKey)}");
+        
         if (!string.IsNullOrEmpty(sendGridApiKey))
         {
             // Use SendGrid for production (Railway)
-            services.AddSingleton<ISendGridClient>(provider => new SendGridClient(sendGridApiKey));
-            services.AddScoped<IEmailService, SendGridEmailService>();
+            try
+            {
+                services.AddSingleton<ISendGridClient>(provider => new SendGridClient(sendGridApiKey));
+                services.AddScoped<IEmailService, SendGridEmailService>();
+                Console.WriteLine("[DEBUG] SendGrid email service registered successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to register SendGrid service: {ex.Message}");
+                throw;
+            }
         }
         else
         {
             // Use SMTP for local development
-            services.AddScoped<IEmailService, EmailService>();
+            try
+            {
+                services.AddScoped<IEmailService, EmailService>();
+                Console.WriteLine("[DEBUG] SMTP email service registered successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to register SMTP service: {ex.Message}");
+                throw;
+            }
         }
         
         // Thêm HttpClient cho Google OAuth

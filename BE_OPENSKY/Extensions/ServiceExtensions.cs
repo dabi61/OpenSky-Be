@@ -7,10 +7,11 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Thêm Redis
-        var redisConnectionString = configuration.GetConnectionString("Redis") 
+        // Thêm Redis - Railway compatibility
+        var redisConnectionString = Environment.GetEnvironmentVariable("REDIS_URL") // Railway Redis
+            ?? configuration.GetConnectionString("Redis") 
             ?? configuration.GetValue<string>("Redis:ConnectionString")
-            ?? "localhost:6379";
+            ?? "localhost:6379"; // Local development fallback
         
         services.AddSingleton<IConnectionMultiplexer>(provider =>
         {

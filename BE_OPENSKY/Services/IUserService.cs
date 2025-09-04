@@ -9,6 +9,11 @@ public interface IUserService
     Task<User?> GetByEmailAsync(string email);
     Task<bool> ChangeUserRoleAsync(Guid userId, string newRole);
     Task<List<UserResponseDTO>> GetUsersAsync(string? role = null);
+    
+    // Profile management methods
+    Task<ProfileResponseDTO?> GetProfileAsync(Guid userId);
+    Task<ProfileResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileDTO updateDto);
+    Task<ProfileResponseDTO> UpdateAvatarAsync(Guid userId, string avatarUrl);
 }
 
 

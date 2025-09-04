@@ -126,4 +126,34 @@ public class PendingHotelResponseDTO
         [Required]
         public string Password { get; set; } = string.Empty;
     }
+
+    // DTO cho cập nhật thông tin cá nhân
+    public class UpdateProfileDTO
+    {
+        public string? FullName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? CitizenId { get; set; }
+        public DateOnly? DoB { get; set; }
+    }
+
+    // DTO cho upload avatar
+    public class UploadAvatarDTO
+    {
+        [Required]
+        public IFormFile Avatar { get; set; } = null!;
+    }
+
+    // DTO cho thông tin profile chi tiết
+    public class ProfileResponseDTO
+    {
+        public Guid UserID { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? CitizenId { get; set; }
+        public DateOnly? DoB { get; set; }
+        public string? AvatarURL { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 }

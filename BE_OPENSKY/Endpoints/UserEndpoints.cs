@@ -2,6 +2,17 @@ namespace BE_OPENSKY.Endpoints;
 
 public static class UserEndpoints
 {
+    private static string? GetBoundaryFromContentType(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+            return null;
+            
+        var boundaryIndex = contentType.IndexOf("boundary=");
+        if (boundaryIndex == -1)
+            return null;
+            
+        return contentType.Substring(boundaryIndex + "boundary=".Length);
+    }
     public static void MapUserEndpoints(this WebApplication app)
     {
         var userGroup = app.MapGroup("/api/users")
@@ -382,5 +393,200 @@ public static class UserEndpoints
         .Produces<List<UserResponseDTO>>(200)
         .Produces(403)
         .RequireAuthorization("SupervisorOrAdmin");
+
+        // Xem thông tin cá nhân
+        userGroup.MapGet("/profile", async (IUserService userService, HttpContext context) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                var profile = await userService.GetProfileAsync(userId);
+                return profile != null 
+                    ? Results.Ok(profile)
+                    : Results.NotFound(new { message = "Không tìm thấy thông tin người dùng" });
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi lấy thông tin cá nhân",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetProfile")
+        .WithSummary("Xem thông tin cá nhân")
+        .WithDescription("User có thể xem thông tin cá nhân của mình")
+        .Produces<ProfileResponseDTO>(200)
+        .Produces(401)
+        .Produces(404)
+        .RequireAuthorization("AuthenticatedOnly");
+
+        // Cập nhật thông tin cá nhân
+        userGroup.MapPut("/profile", async (UpdateProfileDTO updateDto, IUserService userService, HttpContext context) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                var updatedProfile = await userService.UpdateProfileAsync(userId, updateDto);
+                return Results.Ok(updatedProfile);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi cập nhật thông tin cá nhân",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateProfile")
+        .WithSummary("Cập nhật thông tin cá nhân")
+        .WithDescription("User có thể cập nhật thông tin cá nhân của mình")
+        .Produces<ProfileResponseDTO>(200)
+        .Produces(401)
+        .Produces(404)
+        .RequireAuthorization("AuthenticatedOnly");
+
+        // Upload avatar - Smart endpoint (supports both multipart and raw binary)
+        userGroup.MapPost("/profile/avatar", async (HttpContext context, IUserService userService, ICloudinaryService cloudinaryService) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                var contentType = context.Request.ContentType;
+                IFormFile? file = null;
+
+                // Kiểm tra xem là multipart hay raw binary
+                if (context.Request.HasFormContentType)
+                {
+                    // Multipart form data
+                    try
+                    {
+                        var form = await context.Request.ReadFormAsync();
+                        file = form.Files.FirstOrDefault() ?? 
+                               form.Files.GetFile("file") ?? 
+                               form.Files.GetFile("avatar") ?? 
+                               form.Files.GetFile("image");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Multipart parsing failed: {ex.Message}");
+                        // Fallback to raw binary if multipart fails
+                    }
+                }
+
+                // Nếu không có file từ multipart hoặc không phải multipart, thử raw binary
+                if (file == null)
+                {
+                    if (IsImageContentType(contentType))
+                    {
+                        // Raw binary upload
+                        using var memoryStream = new MemoryStream();
+                        await context.Request.Body.CopyToAsync(memoryStream);
+                        var fileBytes = memoryStream.ToArray();
+
+                        if (fileBytes.Length == 0)
+                        {
+                            return Results.BadRequest(new { 
+                                message = "Không tìm thấy file. Hãy gửi file dưới dạng multipart/form-data hoặc raw binary với Content-Type image/*",
+                                contentType = contentType,
+                                suggestion = "Sử dụng Postman với form-data (key: 'file') hoặc raw binary với Content-Type: image/jpeg"
+                            });
+                        }
+
+                        if (fileBytes.Length > 5 * 1024 * 1024) // 5MB
+                        {
+                            return Results.BadRequest(new { message = "File không được vượt quá 5MB" });
+                        }
+
+                        var fileName = $"avatar_{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}.jpg";
+                        file = new FormFileFromBytes(fileBytes, fileName, contentType ?? "image/jpeg");
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { 
+                            message = "Không tìm thấy file hoặc Content-Type không hợp lệ",
+                            receivedContentType = contentType,
+                            supportedFormats = new[] { "multipart/form-data", "image/jpeg", "image/png", "image/gif", "image/webp" }
+                        });
+                    }
+                }
+
+                if (file == null || file.Length == 0)
+                {
+                    return Results.BadRequest(new { message = "File không được để trống" });
+                }
+                
+                Console.WriteLine($"Uploading file: {file.FileName}, Size: {file.Length}, Content-Type: {file.ContentType}");
+                
+                // Upload ảnh lên Cloudinary
+                var avatarUrl = await cloudinaryService.UploadImageAsync(file, "avatars");
+                
+                // Cập nhật avatar URL vào database
+                var updatedProfile = await userService.UpdateAvatarAsync(userId, avatarUrl);
+                
+                return Results.Ok(new { 
+                    message = "Upload avatar thành công",
+                    profile = updatedProfile 
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi upload avatar: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UploadAvatar")
+        .WithSummary("Upload ảnh đại diện")
+        .WithDescription("Upload ảnh đại diện - hỗ trợ cả multipart/form-data và raw binary")
+        .Accepts<IFormFile>("multipart/form-data")
+        .Accepts<byte[]>("image/jpeg", "image/png", "image/gif")
+        .Produces<ProfileResponseDTO>(200)
+        .Produces(400)
+        .Produces(401)
+        .Produces(404)
+        .RequireAuthorization("AuthenticatedOnly");
+    }
+
+    private static bool IsImageContentType(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+            return false;
+            
+        return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
     }
 }

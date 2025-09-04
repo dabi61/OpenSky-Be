@@ -11,6 +11,7 @@ public static class ServiceExtensions
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IHotelService, HotelService>();
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
         
         // Thêm HttpClient cho Google OAuth
         services.AddHttpClient();

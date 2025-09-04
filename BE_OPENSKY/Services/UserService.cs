@@ -131,6 +131,84 @@ public class UserService : IUserService
 
         return users;
     }
+
+    public async Task<ProfileResponseDTO?> GetProfileAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return null;
+
+        return new ProfileResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            DoB = user.DoB,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public async Task<ProfileResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileDTO updateDto)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException("Không tìm thấy tài khoản người dùng");
+
+        // Cập nhật các thông tin được cung cấp
+        if (!string.IsNullOrWhiteSpace(updateDto.FullName))
+            user.FullName = updateDto.FullName;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+            user.PhoneNumber = updateDto.PhoneNumber;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
+            user.CitizenId = updateDto.CitizenId;
+
+        if (updateDto.DoB.HasValue)
+            user.DoB = updateDto.DoB;
+
+        await _context.SaveChangesAsync();
+
+        return new ProfileResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            DoB = user.DoB,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public async Task<ProfileResponseDTO> UpdateAvatarAsync(Guid userId, string avatarUrl)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException("Không tìm thấy tài khoản người dùng");
+
+        user.AvatarURL = avatarUrl;
+        await _context.SaveChangesAsync();
+
+        return new ProfileResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            DoB = user.DoB,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
 }
 
 

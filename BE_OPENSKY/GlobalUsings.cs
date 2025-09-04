@@ -22,3 +22,4 @@ global using BE_OPENSKY.Extensions;
 global using BE_OPENSKY.Endpoints;
 global using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Http.Features;

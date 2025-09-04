@@ -20,6 +20,14 @@ public class Program
         builder.Services.AddJwtAuthentication(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         
+        // Configure form options for file upload
+        builder.Services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10MB limit
+            options.ValueLengthLimit = int.MaxValue;
+            options.MultipartHeadersLengthLimit = int.MaxValue;
+        });
+        
         // Add CORS
         builder.Services.AddCorsServices();
         

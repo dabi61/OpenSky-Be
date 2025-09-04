@@ -21,13 +21,14 @@ public class EmailService : IEmailService
         _configuration = configuration;
         _logger = logger;
         
-        _smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-        _smtpPort = _configuration.GetValue<int>("Email:SmtpPort", 587);
+        // Railway compatibility - Environment variables first, then config
+        _smtpHost = Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST") ?? _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+        _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT"), out var port) ? port : _configuration.GetValue<int>("Email:SmtpPort", 587);
         _enableSsl = _configuration.GetValue<bool>("Email:EnableSsl", true);
-        _senderEmail = _configuration["Email:SenderEmail"] ?? throw new ArgumentNullException("Email:SenderEmail");
-        _senderName = _configuration["Email:SenderName"] ?? "OpenSky Travel";
-        _username = _configuration["Email:Username"] ?? _senderEmail;
-        _password = _configuration["Email:Password"] ?? throw new ArgumentNullException("Email:Password");
+        _senderEmail = Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL") ?? _configuration["Email:SenderEmail"] ?? throw new ArgumentNullException("Email:SenderEmail");
+        _senderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME") ?? _configuration["Email:SenderName"] ?? "OpenSky Travel";
+        _username = Environment.GetEnvironmentVariable("EMAIL_USERNAME") ?? _configuration["Email:Username"] ?? _senderEmail;
+        _password = Environment.GetEnvironmentVariable("EMAIL_PASSWORD") ?? _configuration["Email:Password"] ?? throw new ArgumentNullException("Email:Password");
     }
 
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetToken)

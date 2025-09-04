@@ -217,6 +217,9 @@ public static class AuthEndpoints
         .Produces<AuthResponseDTO>(200)
         .Produces(401);
 
+        // Password Reset Endpoints
+        AddPasswordResetEndpoints(authGroup);
+
         // Endpoint đăng xuất
         authGroup.MapPost("/logout", async (LogoutRequestDTO request, ISessionService sessionService) =>
         {
@@ -267,6 +270,144 @@ public static class AuthEndpoints
         {
             return null;
         }
+    }
+
+    // Password Reset Endpoints
+    private static void AddPasswordResetEndpoints(RouteGroupBuilder authGroup)
+    {
+        // Quên mật khẩu
+        authGroup.MapPost("/forgot-password", async (ForgotPasswordDTO forgotPasswordDto, IPasswordResetService passwordResetService, IEmailService emailService) =>
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(forgotPasswordDto.Email))
+                {
+                    return Results.BadRequest(new { message = "Email không được để trống" });
+                }
+
+                var token = await passwordResetService.GenerateResetTokenAsync(forgotPasswordDto.Email);
+                
+                // Gửi email với token
+                var emailSent = await emailService.SendPasswordResetEmailAsync(forgotPasswordDto.Email, token);
+                
+                if (!emailSent)
+                {
+                    return Results.Problem(
+                        title: "Lỗi gửi email",
+                        detail: "Không thể gửi email reset mật khẩu. Vui lòng thử lại sau.",
+                        statusCode: 500
+                    );
+                }
+                
+                return Results.Ok(new { 
+                    message = "Mã reset mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+                    // Trong development, có thể trả về token để test
+                    // token = token // Chỉ dùng trong development
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi xử lý yêu cầu reset mật khẩu",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("ForgotPassword")
+        .WithSummary("Quên mật khẩu")
+        .WithDescription("Gửi mã reset mật khẩu đến email")
+        .Produces(200)
+        .Produces(400)
+        .Produces(500);
+
+        // Reset mật khẩu
+        authGroup.MapPost("/reset-password", async (ResetPasswordDTO resetPasswordDto, IPasswordResetService passwordResetService) =>
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(resetPasswordDto.Token))
+                {
+                    return Results.BadRequest(new { message = "Token không được để trống" });
+                }
+
+                if (string.IsNullOrWhiteSpace(resetPasswordDto.NewPassword))
+                {
+                    return Results.BadRequest(new { message = "Mật khẩu mới không được để trống" });
+                }
+
+                if (resetPasswordDto.NewPassword != resetPasswordDto.ConfirmPassword)
+                {
+                    return Results.BadRequest(new { message = "Mật khẩu xác nhận không khớp" });
+                }
+
+                var success = await passwordResetService.ResetPasswordAsync(resetPasswordDto.Token, resetPasswordDto.NewPassword);
+                
+                if (success)
+                {
+                    return Results.Ok(new { 
+                        message = "Mật khẩu đã được reset thành công. Bạn có thể đăng nhập với mật khẩu mới."
+                    });
+                }
+                else
+                {
+                    return Results.BadRequest(new { 
+                        message = "Token không hợp lệ hoặc đã hết hạn. Vui lòng thử lại."
+                    });
+                }
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi reset mật khẩu",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("ResetPassword")
+        .WithSummary("Reset mật khẩu")
+        .WithDescription("Reset mật khẩu bằng token")
+        .Produces(200)
+        .Produces(400)
+        .Produces(500);
+
+        // Validate reset token
+        authGroup.MapGet("/validate-reset-token/{token}", async (string token, IPasswordResetService passwordResetService) =>
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    return Results.BadRequest(new { message = "Token không được để trống" });
+                }
+                
+                var isValid = await passwordResetService.ValidateResetTokenAsync(token);
+                
+                return Results.Ok(new { 
+                    isValid = isValid,
+                    message = isValid ? "Token hợp lệ" : "Token không hợp lệ hoặc đã hết hạn"
+                });
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi validate token",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("ValidateResetToken")
+        .WithSummary("Kiểm tra tính hợp lệ của reset token")
+        .WithDescription("Kiểm tra tính hợp lệ của reset token")
+        .Produces(200)
+        .Produces(400)
+        .Produces(500);
     }
 
     // Phương thức hỗ trợ để kiểm tra email hợp lệ

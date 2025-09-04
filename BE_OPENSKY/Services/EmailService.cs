@@ -21,14 +21,30 @@ public class EmailService : IEmailService
         _configuration = configuration;
         _logger = logger;
         
-        // SMTP config - only for local development fallback
-        _smtpHost = "smtp.gmail.com";
-        _smtpPort = 587;
-        _enableSsl = true;
+        // SMTP config - SendGrid SMTP Relay for Railway, Gmail for local
+        var sendGridSmtpPassword = Environment.GetEnvironmentVariable("SENDGRID_SMTP_PASSWORD");
+        
+        if (!string.IsNullOrEmpty(sendGridSmtpPassword))
+        {
+            // Use SendGrid SMTP Relay for Railway
+            _smtpHost = "smtp.sendgrid.net";
+            _smtpPort = 587;
+            _enableSsl = true;
+            _username = "apikey";
+            _password = sendGridSmtpPassword;
+        }
+        else
+        {
+            // Use Gmail SMTP for local development
+            _smtpHost = "smtp.gmail.com";
+            _smtpPort = 587;
+            _enableSsl = true;
+            _username = "cuongngba7@gmail.com";
+            _password = "ccmn nrsx qzwb bmmq";
+        }
+        
         _senderEmail = _configuration["Email:SenderEmail"] ?? "cuongngba7@gmail.com";
         _senderName = _configuration["Email:SenderName"] ?? "OpenSky Travel";
-        _username = "cuongngba7@gmail.com";
-        _password = "ccmn nrsx qzwb bmmq";
         
         _logger.LogInformation("EmailService initialized with SMTP: {Host}:{Port}, Sender: {Email}", _smtpHost, _smtpPort, _senderEmail);
     }

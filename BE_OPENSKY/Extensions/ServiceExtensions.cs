@@ -30,38 +30,16 @@ public static class ServiceExtensions
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         
-        // Email Service - SendGrid for production, SMTP for local
-        var sendGridApiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY");
-        Console.WriteLine($"[DEBUG] SENDGRID_API_KEY exists: {!string.IsNullOrEmpty(sendGridApiKey)}");
-        
-        if (!string.IsNullOrEmpty(sendGridApiKey))
+        // Email Service - SMTP (SendGrid SMTP for Railway, Gmail SMTP for local)
+        try
         {
-            // Use SendGrid for production (Railway)
-            try
-            {
-                services.AddSingleton<ISendGridClient>(provider => new SendGridClient(sendGridApiKey));
-                services.AddScoped<IEmailService, SendGridEmailService>();
-                Console.WriteLine("[DEBUG] SendGrid email service registered successfully");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to register SendGrid service: {ex.Message}");
-                throw;
-            }
+            services.AddScoped<IEmailService, EmailService>();
+            Console.WriteLine("[DEBUG] SMTP email service registered successfully");
         }
-        else
+        catch (Exception ex)
         {
-            // Use SMTP for local development
-            try
-            {
-                services.AddScoped<IEmailService, EmailService>();
-                Console.WriteLine("[DEBUG] SMTP email service registered successfully");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to register SMTP service: {ex.Message}");
-                throw;
-            }
+            Console.WriteLine($"[ERROR] Failed to register SMTP service: {ex.Message}");
+            throw;
         }
         
         // Thêm HttpClient cho Google OAuth

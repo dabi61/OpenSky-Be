@@ -14,20 +14,29 @@ public class SendGridEmailService : IEmailService
 
     public SendGridEmailService(ISendGridClient sendGridClient, IConfiguration configuration, ILogger<SendGridEmailService> logger)
     {
-        _sendGridClient = sendGridClient;
-        _configuration = configuration;
-        _logger = logger;
-        
-        // Railway compatibility - Environment variables first, then config
-        // MUST use verified sender email from SendGrid
-        _senderEmail = Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL") 
-            ?? _configuration["Email:SenderEmail"] 
-            ?? "cuongngba7@gmail.com"; // Use verified sender from SendGrid
-        _senderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME") 
-            ?? _configuration["Email:SenderName"] 
-            ?? "OpenSky Travel";
+        try
+        {
+            _sendGridClient = sendGridClient ?? throw new ArgumentNullException(nameof(sendGridClient));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
-        _logger.LogInformation("SendGridEmailService initialized with sender: {Email}", _senderEmail);
+            // Railway compatibility - Environment variables first, then config
+            // MUST use verified sender email from SendGrid
+            _senderEmail = Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL") 
+                ?? _configuration["Email:SenderEmail"] 
+                ?? "cuongngba7@gmail.com"; // Use verified sender from SendGrid
+            _senderName = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME") 
+                ?? _configuration["Email:SenderName"] 
+                ?? "OpenSky Travel";
+                
+            _logger.LogInformation("SendGridEmailService initialized successfully with sender: {Email}", _senderEmail);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] SendGridEmailService constructor failed: {ex.Message}");
+            Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetToken)

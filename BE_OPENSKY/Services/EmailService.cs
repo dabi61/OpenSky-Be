@@ -28,7 +28,7 @@ public class EmailService : IEmailService
         {
             // Use SendGrid SMTP Relay for Railway
             _smtpHost = "smtp.sendgrid.net";
-            _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("SENDGRID_SMTP_PORT"), out var port) ? port : 587; // Default 587, có thể override thành 465
+            _smtpPort = 465; 
             _enableSsl = true;
             _username = "apikey";
             _password = sendGridSmtpPassword;

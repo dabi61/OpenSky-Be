@@ -27,6 +27,7 @@ public static class ServiceExtensions
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IHotelService, HotelService>();
+        services.AddScoped<IImageService, ImageService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         

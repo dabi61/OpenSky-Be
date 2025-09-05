@@ -1,3 +1,7 @@
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Reflection;
+
 namespace BE_OPENSKY.Extensions;
 
 public static class SwaggerExtensions
@@ -47,6 +51,13 @@ public static class SwaggerExtensions
 
             // Ensure all endpoints are discovered
             c.CustomSchemaIds(type => type.FullName);
+            
+            // Configure file upload support (simple)
+            c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+            {
+                Type = "string",
+                Format = "binary"
+            });
             
             // Include XML comments if available
             var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";

@@ -1,0 +1,208 @@
+### Hotel Management API Tests
+### Đảm bảo bạn đã có một tài khoản Hotel và lấy access token trước khi test
+
+@baseUrl = https://localhost:7006/api
+# @baseUrl = http://localhost:5115/api
+@hotelId = {{38ae9050-e1df-44af-98d9-51108bd608c5}}
+@roomId = {{room_id_here}}
+@accessToken = {{eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImYwOTU2NGY3LTVjMDctNDhjMy1hNmVmLTg5MGYwODFiZjQ3ZiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6InRlc3RjdXN0b21lcjFAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6InRlc3QgY3VzdG9tZXIgMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkhvdGVsIiwianRpIjoiMGViMTNkMzMtYWQ2ZC00NGFiLTk1ZGUtMDY0YWIxZWY4NWMwIiwiaWF0IjoxNzU3MDM0MjI2LCJleHAiOjE3NTcwMzc4MjYsImlzcyI6IkJFX09QRU5TS1kiLCJhdWQiOiJCRV9PUEVOU0tZX1VzZXJzIn0.Ab4aARggqUgNW1pIXCVzYUQortoQ3tKYypwTIdYKeT0}}
+
+### 1. Cập nhật thông tin khách sạn
+PUT {{baseUrl}}/hotels/{{hotelId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "hotelName": "Khách sạn Paradise Cập nhật",
+  "description": "Khách sạn 5 sao với view biển tuyệt đẹp và dịch vụ đẳng cấp quốc tế",
+  "address": "123 Đường Biển, Phường 1",
+  "district": "Quận 1",
+  "coordinates": "10.762622,106.660172",
+  "star": 5
+}
+
+### 2a. Thêm nhiều ảnh cho khách sạn (Multipart - Multiple files)
+POST {{baseUrl}}/hotels/{{hotelId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="files"; filename="hotel1.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/hotel1.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="files"; filename="hotel2.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/hotel2.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 2b. Thêm 1 ảnh cho khách sạn (Raw Binary - Single file)
+POST {{baseUrl}}/hotels/{{hotelId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: image/jpeg
+
+< ./path/to/hotel-image.jpg
+
+### 2c. Thêm ảnh cho khách sạn (Form-data với file picker)
+POST {{baseUrl}}/hotels/{{hotelId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Trong Postman/Insomnia:
+# - Chọn Body > form-data
+# - Key: "files" (có thể chọn multiple files)
+# - Type: File
+# - Value: Chọn file(s) từ máy tính
+
+### 3. Thêm phòng mới cho khách sạn
+POST {{baseUrl}}/hotels/{{hotelId}}/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roomName": "Phòng Deluxe Ocean View",
+  "roomType": "Deluxe",
+  "address": "Tầng 5, Khách sạn Paradise",
+  "price": 2500000,
+  "maxPeople": 2
+}
+
+### 4a. Thêm nhiều ảnh cho phòng (Multipart - Multiple files)
+POST {{baseUrl}}/hotels/rooms/{{roomId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="files"; filename="room1.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/room1.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="files"; filename="room2.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/room2.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 4b. Thêm 1 ảnh cho phòng (Raw Binary - Single file)
+POST {{baseUrl}}/hotels/rooms/{{roomId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: image/jpeg
+
+< ./path/to/room-image.jpg
+
+### 4c. Thêm ảnh cho phòng (Form-data với file picker)
+POST {{baseUrl}}/hotels/rooms/{{roomId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Trong Postman/Insomnia:
+# - Chọn Body > form-data  
+# - Key: "files" (có thể chọn multiple files)
+# - Type: File
+# - Value: Chọn file(s) từ máy tính
+
+### 5. Xem chi tiết khách sạn (với phân trang phòng)
+GET {{baseUrl}}/hotels/{{hotelId}}?page=1&limit=10
+
+### 6. Xem chi tiết phòng
+GET {{baseUrl}}/hotels/rooms/{{roomId}}
+
+### 7. Danh sách phòng có phân trang
+GET {{baseUrl}}/hotels/{{hotelId}}/rooms?page=1&limit=5
+
+### Bonus: Cập nhật thông tin phòng
+PUT {{baseUrl}}/hotels/rooms/{{roomId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roomName": "Phòng Deluxe Ocean View - Cập nhật",
+  "roomType": "Suite",
+  "price": 3000000,
+  "maxPeople": 4
+}
+
+### Bonus: Xóa phòng
+DELETE {{baseUrl}}/hotels/rooms/{{roomId}}
+Authorization: Bearer {{accessToken}}
+
+### ========================
+### Test Authentication Flow
+### ========================
+
+### Đăng nhập để lấy access token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "hotel@example.com",
+  "password": "password123"
+}
+
+### Tạo tài khoản Customer (nếu chưa có)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "password123",
+  "fullName": "Nguyễn Văn A",
+  "phoneNumber": "0123456789"
+}
+
+### Customer đăng ký mở khách sạn
+POST {{baseUrl}}/users/apply-hotel
+Authorization: Bearer {{customer_access_token}}
+Content-Type: application/json
+
+{
+  "hotelName": "Khách sạn Paradise",
+  "address": "123 Đường Biển",
+  "district": "Quận 1",
+  "coordinates": "10.762622,106.660172",
+  "description": "Khách sạn 5 sao với view biển tuyệt đẹp",
+  "star": 5
+}
+
+### Admin duyệt khách sạn (cần admin token)
+POST {{baseUrl}}/users/approve-hotel/{{hotelId}}
+Authorization: Bearer {{admin_access_token}}
+
+### ========================
+### Error Test Cases
+### ========================
+
+### Test không có quyền (Customer thử cập nhật hotel)
+PUT {{baseUrl}}/hotels/{{hotelId}}
+Authorization: Bearer {{customer_access_token}}
+Content-Type: application/json
+
+{
+  "hotelName": "Test unauthorized"
+}
+
+### Test không tìm thấy hotel
+GET {{baseUrl}}/hotels/00000000-0000-0000-0000-000000000000
+
+### Test không tìm thấy room
+GET {{baseUrl}}/hotels/rooms/00000000-0000-0000-0000-000000000000
+
+### Test upload ảnh không có file
+POST {{baseUrl}}/hotels/{{hotelId}}/images
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+### Test tạo phòng với dữ liệu không hợp lệ
+POST {{baseUrl}}/hotels/{{hotelId}}/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roomName": "",
+  "roomType": "",
+  "price": -1000,
+  "maxPeople": 0
+}

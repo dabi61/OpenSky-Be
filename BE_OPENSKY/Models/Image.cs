@@ -9,7 +9,7 @@ namespace BE_OPENSKY.Models
         public int ImgID { get; set; } // ID ảnh
         
         [Required]
-        public TableType TableType { get; set; } // Loại đối tượng: Tour, Hotel, User
+        public TableTypeImage TableType { get; set; } // Loại đối tượng: User, Hotel, RoomHotel, Tour
         
         [Required]
         public Guid TypeID { get; set; } // ID của đối tượng (TourID, HotelID, RoomID, UserID)

@@ -76,6 +76,7 @@ public class Program
         app.MapAuthEndpoints();        // Authentication endpoints
         app.MapUserEndpoints();        // User management endpoints
         app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
+        app.MapHotelEndpoints();       // Hotel management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

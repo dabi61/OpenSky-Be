@@ -246,12 +246,25 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 - DELETE /reject-hotel/{hotelId}: Admin từ chối đơn đăng ký khách sạn
 - GET /my-hotels: Customer xem khách sạn của mình
 
+## Hotels (/api/hotels)
+
+### Hotel Management (Chủ khách sạn)
+
+- PUT /hotels/{hotelId}: Cập nhật thông tin khách sạn
+- POST /hotels/{hotelId}/images: Thêm nhiều ảnh cho khách sạn
+- POST /hotels/{hotelId}/rooms: Thêm phòng mới cho khách sạn
+- POST /hotels/rooms/{roomId}/images: Thêm nhiều ảnh cho phòng
+- GET /hotels/{hotelId}: Xem chi tiết khách sạn (có phân trang phòng)
+- GET /hotels/rooms/{roomId}: Xem chi tiết phòng
+- GET /hotels/{hotelId}/rooms: Danh sách phòng có phân trang
+- PUT /hotels/rooms/{roomId}: Cập nhật thông tin phòng
+- DELETE /hotels/rooms/{roomId}: Xóa phòng
+
 ## API Chưa Implement
 
 **Các API sau chưa được phát triển:**
 
 - Tours (/api/tours)
-- Hotels (/api/hotels)
 - Schedules (/api/schedules)
 - Bills (/api/bills)
 - Vouchers (/api/vouchers)
@@ -259,7 +272,6 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 - Feedback (/api/feedback)
 - Refunds (/api/refunds)
 - Notifications (/api/notifications)
-- Images (/api/images)
 
 ## User Roles & Permissions
 

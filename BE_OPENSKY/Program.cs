@@ -111,6 +111,7 @@ public class Program
         app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
         app.MapHotelEndpoints();
         app.MapHotelReviewEndpoints(); // Hotel management endpoints
+        app.MapBookingEndpoints();     // Booking management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

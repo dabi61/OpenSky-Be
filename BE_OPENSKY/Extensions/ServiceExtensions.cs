@@ -26,6 +26,7 @@ public static class ServiceExtensions
         services.AddScoped<IImageService, ImageService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IHotelReviewService, HotelReviewService>();
+        services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         
         // Email Service - SMTP (SendGrid SMTP for Railway, Gmail SMTP for local)

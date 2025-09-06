@@ -21,6 +21,7 @@ namespace BE_OPENSKY.Data
         public DbSet<Refund> Refunds { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Image> Images { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
 
@@ -303,6 +304,51 @@ namespace BE_OPENSKY.Data
                     .WithMany(e => e.UserVouchers)
                     .HasForeignKey(e => e.VoucherID)
                     .OnDelete(DeleteBehavior.Cascade); // Xóa voucher thì xóa luôn bản ghi đã lưu
+            });
+
+            // Booking
+            modelBuilder.Entity<Booking>(entity =>
+            {
+                entity.HasKey(e => e.BookingID);
+                entity.Property(e => e.BookingType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.GuestName).HasMaxLength(100);
+                entity.Property(e => e.GuestPhone).HasMaxLength(20);
+                entity.Property(e => e.GuestEmail).HasMaxLength(100);
+                entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+                entity.Property(e => e.PaymentStatus).HasMaxLength(100);
+
+                // Quan hệ với bảng User
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Quan hệ với bảng Hotel (optional)
+                entity.HasOne(e => e.Hotel)
+                    .WithMany()
+                    .HasForeignKey(e => e.HotelID)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Quan hệ với bảng HotelRoom (optional)
+                entity.HasOne(e => e.Room)
+                    .WithMany()
+                    .HasForeignKey(e => e.RoomID)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Quan hệ với bảng Bill (optional)
+                entity.HasOne(e => e.Bill)
+                    .WithMany()
+                    .HasForeignKey(e => e.BillID)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.BookingType);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.BillID);
             });
         }
     }

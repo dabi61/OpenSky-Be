@@ -48,4 +48,14 @@ namespace BE_OPENSKY.Models
         Occupied,     // Đã được đặt
         Maintenance  // Bảo trì
     }
+
+    // Enum cho trạng thái booking
+    public enum BookingStatus
+    {
+        Pending,      // Chờ xác nhận
+        Confirmed,    // Đã xác nhận
+        Cancelled,    // Đã hủy
+        Completed,    // Hoàn thành
+        Refunded      // Đã hoàn tiền
+    }
 }

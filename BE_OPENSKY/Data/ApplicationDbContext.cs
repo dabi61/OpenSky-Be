@@ -105,6 +105,7 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.RoomType).IsRequired().HasMaxLength(50); // String type
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>(); // RoomStatus enum
 
                 entity.HasOne(e => e.Hotel)
                     .WithMany(e => e.HotelRooms)

@@ -728,6 +728,94 @@ public static class HotelEndpoints
         .Produces(500)
         .AllowAnonymous(); // Public endpoint - không cần authentication
 
+        // 9. Cập nhật trạng thái phòng
+        hotelGroup.MapPut("/rooms/{roomId:guid}/status", async (Guid roomId, UpdateRoomStatusDTO updateDto, IHotelService hotelService, HttpContext context) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                // Kiểm tra quyền Hotel
+                if (!context.User.IsInRole(RoleConstants.Hotel))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Cập nhật trạng thái phòng
+                var success = await hotelService.UpdateRoomStatusAsync(roomId, userId, updateDto);
+                
+                return success 
+                    ? Results.Ok(new { message = "Cập nhật trạng thái phòng thành công" })
+                    : Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi cập nhật trạng thái phòng",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateRoomStatus")
+        .WithSummary("Cập nhật trạng thái phòng")
+        .WithDescription("Chủ khách sạn có thể cập nhật trạng thái phòng (Available, Occupied, Maintenance)")
+        .Produces(200)
+        .Produces(401)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("HotelOnly");
+
+        // 10. Xem danh sách phòng theo trạng thái
+        hotelGroup.MapGet("/{hotelId:guid}/rooms/status", async (Guid hotelId, IHotelService hotelService, HttpContext context, string? status = null) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                // Kiểm tra quyền Hotel
+                if (!context.User.IsInRole(RoleConstants.Hotel))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Kiểm tra quyền sở hữu khách sạn
+                var isOwner = await hotelService.IsHotelOwnerAsync(hotelId, userId);
+                if (!isOwner)
+                {
+                    return Results.Json(new { message = "Bạn không có quyền xem phòng của khách sạn này" }, statusCode: 403);
+                }
+
+                var roomStatusList = await hotelService.GetRoomStatusListAsync(hotelId, status);
+                return Results.Ok(roomStatusList);
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi lấy danh sách trạng thái phòng",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetRoomStatusList")
+        .WithSummary("Xem danh sách phòng theo trạng thái")
+        .WithDescription("Chủ khách sạn có thể xem danh sách phòng theo trạng thái (có thể lọc theo status)")
+        .Produces<RoomStatusListDTO>(200)
+        .Produces(401)
+        .Produces(403)
+        .RequireAuthorization("HotelOnly");
+
     }
 
     private static bool IsImageContentType(string? contentType)

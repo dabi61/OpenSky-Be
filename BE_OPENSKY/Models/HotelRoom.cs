@@ -24,6 +24,9 @@ namespace BE_OPENSKY.Models
         [Required]
         public int MaxPeople { get; set; }
         
+        [Required]
+        public RoomStatus Status { get; set; } = RoomStatus.Available; // Trạng thái phòng
+        
         // Navigation properties
         public virtual Hotel Hotel { get; set; } = null!;
     }

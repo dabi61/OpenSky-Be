@@ -25,4 +25,8 @@ public interface IHotelService
     
     // Tìm kiếm và lọc khách sạn
     Task<HotelSearchResponseDTO> SearchHotelsAsync(HotelSearchDTO searchDto);
+    
+    // Quản lý trạng thái phòng
+    Task<bool> UpdateRoomStatusAsync(Guid roomId, Guid userId, UpdateRoomStatusDTO updateDto);
+    Task<RoomStatusListDTO> GetRoomStatusListAsync(Guid hotelId, string? status = null);
 }

@@ -426,8 +426,8 @@ public static class UserEndpoints
         .Produces(404)
         .RequireAuthorization("AuthenticatedOnly");
 
-        // Cập nhật thông tin cá nhân
-        userGroup.MapPut("/profile", async (UpdateProfileDTO updateDto, IUserService userService, HttpContext context) =>
+        // Cập nhật thông tin cá nhân và upload avatar (gộp 2 API thành 1)
+        userGroup.MapPut("/profile", async (HttpContext context, IUserService userService, ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -438,141 +438,113 @@ public static class UserEndpoints
                     return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
                 }
 
-                var updatedProfile = await userService.UpdateProfileAsync(userId, updateDto);
-                return Results.Ok(updatedProfile);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.NotFound(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return Results.Problem(
-                    title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi cập nhật thông tin cá nhân",
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("UpdateProfile")
-        .WithSummary("Cập nhật thông tin cá nhân")
-        .WithDescription("User có thể cập nhật thông tin cá nhân của mình")
-        .Produces<ProfileResponseDTO>(200)
-        .Produces(401)
-        .Produces(404)
-        .RequireAuthorization("AuthenticatedOnly");
+                // Khởi tạo UpdateProfileDTO
+                var updateDto = new UpdateProfileDTO();
 
-        // Upload avatar - Smart endpoint (supports both multipart and raw binary)
-        userGroup.MapPost("/profile/avatar", async (HttpContext context, IUserService userService, ICloudinaryService cloudinaryService) =>
-        {
-            try
-            {
-                // Lấy user ID từ JWT token
-                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                {
-                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
-                }
-
-                var contentType = context.Request.ContentType;
-                IFormFile? file = null;
-
-                // Kiểm tra xem là multipart hay raw binary
+                // Xử lý multipart form data
                 if (context.Request.HasFormContentType)
                 {
-                    // Multipart form data
                     try
                     {
                         var form = await context.Request.ReadFormAsync();
-                        file = form.Files.FirstOrDefault() ?? 
-                               form.Files.GetFile("file") ?? 
-                               form.Files.GetFile("avatar") ?? 
-                               form.Files.GetFile("image");
+                        
+                        // Lấy thông tin text từ form
+                        if (form.ContainsKey("fullName"))
+                            updateDto.FullName = form["fullName"].FirstOrDefault();
+                        if (form.ContainsKey("phoneNumber"))
+                            updateDto.PhoneNumber = form["phoneNumber"].FirstOrDefault();
+                        if (form.ContainsKey("citizenId"))
+                            updateDto.CitizenId = form["citizenId"].FirstOrDefault();
+                        if (form.ContainsKey("doB") && !string.IsNullOrEmpty(form["doB"].FirstOrDefault()))
+                        {
+                            var doBString = form["doB"].FirstOrDefault();
+                            // Thử parse với format dd-MM-yyyy trước
+                            if (DateTime.TryParseExact(doBString, "dd-MM-yyyy", null, System.Globalization.DateTimeStyles.None, out var doB))
+                            {
+                                updateDto.DoB = DateOnly.FromDateTime(doB);
+                            }
+                            // Nếu không được, thử parse với format mặc định
+                            else if (DateTime.TryParse(doBString, out doB))
+                            {
+                                updateDto.DoB = DateOnly.FromDateTime(doB);
+                            }
+                        }
+
+                        // Lấy file avatar từ form
+                        var avatarFile = form.Files.FirstOrDefault() ?? 
+                                       form.Files.GetFile("file") ?? 
+                                       form.Files.GetFile("avatar") ?? 
+                                       form.Files.GetFile("image");
+
+                        if (avatarFile != null && avatarFile.Length > 0)
+                        {
+                            Console.WriteLine($"Uploading avatar: {avatarFile.FileName}, Size: {avatarFile.Length}, Content-Type: {avatarFile.ContentType}");
+                            
+                            // Upload ảnh lên Cloudinary
+                            var avatarUrl = await cloudinaryService.UploadImageAsync(avatarFile, "avatars");
+                            
+                            // Cập nhật avatar URL vào database
+                            await userService.UpdateAvatarAsync(userId, avatarUrl);
+                        }
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Multipart parsing failed: {ex.Message}");
-                        // Fallback to raw binary if multipart fails
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
                     }
                 }
-
-                // Nếu không có file từ multipart hoặc không phải multipart, thử raw binary
-                if (file == null)
+                else
                 {
-                    if (IsImageContentType(contentType))
+                    // Nếu không phải multipart, thử parse JSON
+                    try
                     {
-                        // Raw binary upload
-                        using var memoryStream = new MemoryStream();
-                        await context.Request.Body.CopyToAsync(memoryStream);
-                        var fileBytes = memoryStream.ToArray();
-
-                        if (fileBytes.Length == 0)
+                        context.Request.EnableBuffering();
+                        context.Request.Body.Position = 0;
+                        
+                        using var reader = new StreamReader(context.Request.Body);
+                        var jsonString = await reader.ReadToEndAsync();
+                        
+                        if (!string.IsNullOrEmpty(jsonString))
                         {
-                            return Results.BadRequest(new { 
-                                message = "Không tìm thấy file. Hãy gửi file dưới dạng multipart/form-data hoặc raw binary với Content-Type image/*",
-                                contentType = contentType,
-                                suggestion = "Sử dụng Postman với form-data (key: 'file') hoặc raw binary với Content-Type: image/jpeg"
-                            });
+                            updateDto = System.Text.Json.JsonSerializer.Deserialize<UpdateProfileDTO>(jsonString) ?? new UpdateProfileDTO();
                         }
-
-                        if (fileBytes.Length > 5 * 1024 * 1024) // 5MB
-                        {
-                            return Results.BadRequest(new { message = "File không được vượt quá 5MB" });
-                        }
-
-                        var fileName = $"avatar_{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}.jpg";
-                        file = new FormFileFromBytes(fileBytes, fileName, contentType ?? "image/jpeg");
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        return Results.BadRequest(new { 
-                            message = "Không tìm thấy file hoặc Content-Type không hợp lệ",
-                            receivedContentType = contentType,
-                            supportedFormats = new[] { "multipart/form-data", "image/jpeg", "image/png", "image/gif", "image/webp" }
-                        });
+                        Console.WriteLine($"JSON parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu JSON" });
                     }
                 }
 
-                if (file == null || file.Length == 0)
-                {
-                    return Results.BadRequest(new { message = "File không được để trống" });
-                }
-                
-                Console.WriteLine($"Uploading file: {file.FileName}, Size: {file.Length}, Content-Type: {file.ContentType}");
-                
-                // Upload ảnh lên Cloudinary
-                var avatarUrl = await cloudinaryService.UploadImageAsync(file, "avatars");
-                
-                // Cập nhật avatar URL vào database
-                var updatedProfile = await userService.UpdateAvatarAsync(userId, avatarUrl);
+                // Cập nhật thông tin profile
+                var updatedProfile = await userService.UpdateProfileAsync(userId, updateDto);
                 
                 return Results.Ok(new { 
-                    message = "Upload avatar thành công",
+                    message = "Cập nhật thông tin thành công",
                     profile = updatedProfile 
                 });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
             }
             catch (ArgumentException ex)
             {
                 return Results.BadRequest(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
-            {
-                return Results.NotFound(new { message = ex.Message });
-            }
             catch (Exception ex)
             {
                 return Results.Problem(
                     title: "Lỗi hệ thống",
-                    detail: $"Có lỗi xảy ra khi upload avatar: {ex.Message}",
+                    detail: $"Có lỗi xảy ra khi cập nhật thông tin: {ex.Message}",
                     statusCode: 500
                 );
             }
         })
-        .WithName("UploadAvatar")
-        .WithSummary("Upload ảnh đại diện")
-        .WithDescription("Upload ảnh đại diện - hỗ trợ cả multipart/form-data và raw binary")
-        .Accepts<IFormFile>("multipart/form-data")
-        .Accepts<byte[]>("image/jpeg", "image/png", "image/gif")
+        .WithName("UpdateProfile")
+        .WithSummary("Cập nhật thông tin cá nhân và upload avatar")
+        .WithDescription("Cập nhật thông tin cá nhân và upload avatar trong một request. Hỗ trợ multipart/form-data với các trường text và file")
+        .Accepts<UpdateProfileWithAvatarDTO>("multipart/form-data")
         .Produces<ProfileResponseDTO>(200)
         .Produces(400)
         .Produces(401)
@@ -580,12 +552,5 @@ public static class UserEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
     }
-
-    private static bool IsImageContentType(string? contentType)
-    {
-        if (string.IsNullOrEmpty(contentType))
-            return false;
-            
-        return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-    }
 }
+

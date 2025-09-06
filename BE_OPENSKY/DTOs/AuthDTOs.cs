@@ -148,6 +148,16 @@ public class PendingHotelResponseDTO
         public DateOnly? DoB { get; set; }
     }
 
+    // DTO cho cập nhật profile với avatar (multipart form data)
+    public class UpdateProfileWithAvatarDTO
+    {
+        public string? FullName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? CitizenId { get; set; }
+        public string? DoB { get; set; } // String để dễ xử lý trong form
+        public IFormFile? Avatar { get; set; }
+    }
+
     // DTO cho upload avatar
     public class UploadAvatarDTO
     {

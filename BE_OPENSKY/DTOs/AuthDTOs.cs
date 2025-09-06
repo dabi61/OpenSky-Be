@@ -84,6 +84,20 @@ public class PendingHotelResponseDTO
 
         [Required]
         public string FullName { get; set; } = string.Empty;
+    }
+
+    // DTO đăng ký tài khoản cho Google OAuth (có thêm các trường optional)
+    public class GoogleUserRegisterDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string FullName { get; set; } = string.Empty;
 
         public string? PhoneNumber { get; set; }
         public string? ProviderId { get; set; } // Chỉ dành cho Google OAuth

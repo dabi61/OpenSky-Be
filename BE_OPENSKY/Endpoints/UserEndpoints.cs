@@ -45,8 +45,7 @@ public static class UserEndpoints
                 {
                     Email = createUserDto.Email,
                     Password = createUserDto.Password,
-                    FullName = createUserDto.FullName,
-                    PhoneNumber = createUserDto.PhoneNumber
+                    FullName = createUserDto.FullName
                 };
 
                 var user = await userService.CreateWithRoleAsync(registerDto, RoleConstants.Supervisor);
@@ -99,8 +98,7 @@ public static class UserEndpoints
                 {
                     Email = createUserDto.Email,
                     Password = createUserDto.Password,
-                    FullName = createUserDto.FullName,
-                    PhoneNumber = createUserDto.PhoneNumber
+                    FullName = createUserDto.FullName
                 };
 
                 var user = await userService.CreateWithRoleAsync(registerDto, RoleConstants.TourGuide);

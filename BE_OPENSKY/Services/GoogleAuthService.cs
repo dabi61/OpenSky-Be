@@ -56,7 +56,7 @@ public class GoogleAuthService : IGoogleAuthService
             else
             {
                 // Create new user
-                var createdUserDto = await _userService.CreateAsync(new UserRegisterDTO
+                var createdUserDto = await _userService.CreateGoogleUserAsync(new GoogleUserRegisterDTO
                 {
                     Email = googleUserInfo.Email,
                     FullName = googleUserInfo.Name,

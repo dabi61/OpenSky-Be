@@ -18,7 +18,7 @@ public class UserService : IUserService
         return await CreateWithRoleAsync(userDto, RoleConstants.Customer);
     }
 
-    public async Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role)
+    public async Task<UserResponseDTO> CreateGoogleUserAsync(GoogleUserRegisterDTO userDto)
     {
         // Kiểm tra email đã tồn tại chưa
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
@@ -34,9 +34,46 @@ public class UserService : IUserService
             Password = PasswordHelper.HashPassword(userDto.Password),
             FullName = userDto.FullName,
             PhoneNumber = userDto.PhoneNumber,
-            Role = role,
+            Role = RoleConstants.Customer,
             ProviderId = userDto.ProviderId,
             AvatarURL = userDto.AvatarURL,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new UserResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            PhoneNumber = user.PhoneNumber,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public async Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role)
+    {
+        // Kiểm tra email đã tồn tại chưa
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
+        if (existingUser != null)
+        {
+            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+        }
+
+        var user = new User
+        {
+            UserID = Guid.NewGuid(),
+            Email = userDto.Email,
+            Password = PasswordHelper.HashPassword(userDto.Password),
+            FullName = userDto.FullName,
+            PhoneNumber = null, // Không bắt buộc trong đăng ký
+            Role = role,
+            ProviderId = null, // Không bắt buộc trong đăng ký
+            AvatarURL = null, // Không bắt buộc trong đăng ký
             CreatedAt = DateTime.UtcNow
         };
 

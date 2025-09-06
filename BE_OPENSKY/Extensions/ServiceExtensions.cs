@@ -84,9 +84,22 @@ public static class ServiceExtensions
         {
             options.AddPolicy("AllowAll", policy =>
             {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
+                policy.WithOrigins(
+                    "http://localhost:3000",             // React dev server
+                    "http://localhost:3001",             // Cổng thay thế
+                    "http://localhost:4200",             // Angular dev server
+                    "http://localhost:5173",             // Vite dev server
+                    "http://localhost:8080",             // Vue dev server
+                    "https://localhost:3000",            // HTTPS versions
+                    "https://localhost:3001",
+                    "https://localhost:4200",
+                    "https://localhost:5173",
+                    "https://localhost:8080"
+                )
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials() // Cho phép gửi cookies/credentials
+                .SetPreflightMaxAge(TimeSpan.FromSeconds(86400)); // Cache preflight for 24 hours
             });
 
             // Chính sách riêng cho môi trường sản xuất - có thể tùy chỉnh sau
@@ -102,7 +115,8 @@ public static class ServiceExtensions
                 )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowCredentials(); // Cho phép cookies/thông tin xác thực
+                .AllowCredentials() // Cho phép cookies/thông tin xác thực
+                .SetPreflightMaxAge(TimeSpan.FromSeconds(86400)); // Cache preflight for 24 hours
             });
         });
 

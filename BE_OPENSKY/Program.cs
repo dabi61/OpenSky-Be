@@ -59,8 +59,41 @@ public class Program
         // Configure the HTTP request pipeline
         app.UseHttpsRedirection();
         
-        // Use CORS
+        // Use CORS - MUST be before UseAuthentication and UseAuthorization
         app.UseCors("AllowAll"); // Sử dụng policy cho phép tất cả origins
+        
+        // Handle preflight OPTIONS requests explicitly
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Method == "OPTIONS")
+            {
+                var origin = context.Request.Headers["Origin"].FirstOrDefault();
+                var allowedOrigins = new[] {
+                    "http://localhost:3000", "http://localhost:3001", "http://localhost:4200", 
+                    "http://localhost:5173", "http://localhost:8080",
+                    "https://localhost:3000", "https://localhost:3001", "https://localhost:4200", 
+                    "https://localhost:5173", "https://localhost:8080"
+                };
+                
+                if (allowedOrigins.Contains(origin))
+                {
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", origin);
+                }
+                else
+                {
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                }
+                
+                context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+                context.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
+                context.Response.Headers.Add("Access-Control-Max-Age", "86400");
+                context.Response.StatusCode = 200;
+                await context.Response.WriteAsync("");
+                return;
+            }
+            await next();
+        });
         
         // Serve static files
         app.UseStaticFiles();

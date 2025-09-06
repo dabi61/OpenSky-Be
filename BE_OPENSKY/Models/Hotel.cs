@@ -18,7 +18,7 @@ namespace BE_OPENSKY.Models
         public string Address { get; set; } = string.Empty;
         
         [Required]
-        public string District { get; set; } = string.Empty;
+        public string Province { get; set; } = string.Empty;
         
         public string? Coordinates { get; set; }
         

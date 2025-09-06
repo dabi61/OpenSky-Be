@@ -46,7 +46,7 @@ erDiagram
         Guid UserID FK
         string Email
         string Address
-        string District
+        string Province
         string Coordinates
         string HotelName
         string Description

@@ -39,7 +39,7 @@ public class HotelService : IHotelService
             Email = user.Email, // Sử dụng email của user
             HotelName = applicationDto.HotelName,
             Address = applicationDto.Address,
-            District = applicationDto.District,
+            Province = applicationDto.Province,
             Coordinates = applicationDto.Coordinates,
             Description = applicationDto.Description,
             Star = applicationDto.Star,
@@ -67,7 +67,7 @@ public class HotelService : IHotelService
                 UserFullName = h.User.FullName,
                 HotelName = h.HotelName,
                 Address = h.Address,
-                District = h.District,
+                Province = h.Province,
                 Coordinates = h.Coordinates,
                 Description = h.Description,
                 Star = h.Star,
@@ -95,7 +95,7 @@ public class HotelService : IHotelService
             UserFullName = hotel.User.FullName,
             HotelName = hotel.HotelName,
             Address = hotel.Address,
-            District = hotel.District,
+            Province = hotel.Province,
             Coordinates = hotel.Coordinates,
             Description = hotel.Description,
             Star = hotel.Star,
@@ -151,7 +151,7 @@ public class HotelService : IHotelService
                 UserFullName = "",
                 HotelName = h.HotelName,
                 Address = h.Address,
-                District = h.District,
+                Province = h.Province,
                 Coordinates = h.Coordinates,
                 Description = h.Description,
                 Star = h.Star,
@@ -209,7 +209,7 @@ public class HotelService : IHotelService
             HotelName = hotel.HotelName,
             Description = hotel.Description,
             Address = hotel.Address,
-            District = hotel.District,
+            Province = hotel.Province,
             Coordinates = hotel.Coordinates,
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
@@ -237,8 +237,8 @@ public class HotelService : IHotelService
         if (!string.IsNullOrWhiteSpace(updateDto.Address))
             hotel.Address = updateDto.Address;
         
-        if (!string.IsNullOrWhiteSpace(updateDto.District))
-            hotel.District = updateDto.District;
+        if (!string.IsNullOrWhiteSpace(updateDto.Province))
+            hotel.Province = updateDto.Province;
         
         if (updateDto.Coordinates != null)
             hotel.Coordinates = updateDto.Coordinates;

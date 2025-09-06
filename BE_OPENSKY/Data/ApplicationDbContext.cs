@@ -84,7 +84,7 @@ namespace BE_OPENSKY.Data
                 entity.HasKey(e => e.HotelID);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.District).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Province).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Coordinates).HasMaxLength(100);
                 entity.Property(e => e.HotelName).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);

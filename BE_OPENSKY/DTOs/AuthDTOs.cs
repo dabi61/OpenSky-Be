@@ -40,7 +40,7 @@ public class HotelApplicationDTO
 {
     public string HotelName { get; set; } = string.Empty; // Tên khách sạn
     public string Address { get; set; } = string.Empty; // Địa chỉ
-    public string District { get; set; } = string.Empty; // Quận/Huyện
+    public string Province { get; set; } = string.Empty; // Tỉnh/Thành phố
     public string? Coordinates { get; set; } // Tọa độ
     public string? Description { get; set; } // Mô tả
     public int Star { get; set; } = 3; // Số sao (1-5)
@@ -55,7 +55,7 @@ public class PendingHotelResponseDTO
     public string UserFullName { get; set; } = string.Empty; // Tên của customer
     public string HotelName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
-    public string District { get; set; } = string.Empty;
+    public string Province { get; set; } = string.Empty;
     public string? Coordinates { get; set; }
     public string? Description { get; set; }
     public int Star { get; set; }

@@ -8,7 +8,7 @@ namespace BE_OPENSKY.DTOs
         public string? HotelName { get; set; }
         public string? Description { get; set; }
         public string? Address { get; set; }
-        public string? District { get; set; }
+        public string? Province { get; set; }
         public string? Coordinates { get; set; }
         [Range(1, 5)]
         public int? Star { get; set; }
@@ -23,7 +23,7 @@ namespace BE_OPENSKY.DTOs
         public string HotelName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string Address { get; set; } = string.Empty;
-        public string District { get; set; } = string.Empty;
+        public string Province { get; set; } = string.Empty;
         public string? Coordinates { get; set; }
         public int Star { get; set; }
         public string Status { get; set; } = string.Empty;

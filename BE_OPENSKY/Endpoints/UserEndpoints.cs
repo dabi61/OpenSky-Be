@@ -152,8 +152,8 @@ public static class UserEndpoints
                 if (string.IsNullOrWhiteSpace(applicationDto.Address))
                     return Results.BadRequest(new { message = "Địa chỉ không được để trống" });
                 
-                if (string.IsNullOrWhiteSpace(applicationDto.District))
-                    return Results.BadRequest(new { message = "Quận/Huyện không được để trống" });
+                if (string.IsNullOrWhiteSpace(applicationDto.Province))
+                    return Results.BadRequest(new { message = "Tỉnh/Thành phố không được để trống" });
 
                 if (applicationDto.Star < 1 || applicationDto.Star > 5)
                     return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });

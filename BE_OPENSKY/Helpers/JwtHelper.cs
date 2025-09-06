@@ -1,3 +1,10 @@
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Cryptography;
+using BE_OPENSKY.Models;
+
 namespace BE_OPENSKY.Helpers;
 
 public class JwtHelper
@@ -9,7 +16,7 @@ public class JwtHelper
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(User user)
+    public string GenerateAccessToken(User user, string? sessionId = null)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"];
@@ -17,15 +24,19 @@ public class JwtHelper
         var audience = jwtSettings["Audience"];
         var expirationInMinutes = int.Parse(jwtSettings["ExpirationInMinutes"]!);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.FullName),
-            new Claim(ClaimTypes.Role, user.Role),
+            new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()), // Sub - UserID
+            new Claim(ClaimTypes.Role, user.Role), // Role
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
+
+        // Thêm SessionId nếu có
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            claims.Add(new Claim("SessionId", sessionId));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -50,7 +61,7 @@ public class JwtHelper
     }
 
     // Tương thích ngược - giữ tên method cũ
-    public string GenerateToken(User user) => GenerateAccessToken(user);
+    public string GenerateToken(User user, string? sessionId = null) => GenerateAccessToken(user, sessionId);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {

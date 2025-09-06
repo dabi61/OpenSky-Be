@@ -1,7 +1,3 @@
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Reflection;
-
 namespace BE_OPENSKY.Extensions;
 
 public static class SwaggerExtensions

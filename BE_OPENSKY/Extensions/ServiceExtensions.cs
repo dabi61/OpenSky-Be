@@ -1,7 +1,3 @@
-using Npgsql;
-using StackExchange.Redis;
-using SendGrid;
-
 namespace BE_OPENSKY.Extensions;
 
 public static class ServiceExtensions

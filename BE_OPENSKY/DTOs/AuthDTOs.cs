@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BE_OPENSKY.DTOs
 {
     // DTO cho phản hồi khi đăng nhập/làm mới token thành công

@@ -22,4 +22,7 @@ public interface IHotelService
     Task<bool> DeleteRoomAsync(Guid roomId, Guid userId);
     Task<PaginatedRoomsResponseDTO> GetHotelRoomsAsync(Guid hotelId, int page = 1, int limit = 10);
     Task<bool> IsRoomOwnerAsync(Guid roomId, Guid userId);
+    
+    // Tìm kiếm và lọc khách sạn
+    Task<HotelSearchResponseDTO> SearchHotelsAsync(HotelSearchDTO searchDto);
 }

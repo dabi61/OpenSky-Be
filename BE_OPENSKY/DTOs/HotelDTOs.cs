@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BE_OPENSKY.DTOs
 {
     // DTO cho cập nhật thông tin khách sạn
@@ -122,6 +120,50 @@ namespace BE_OPENSKY.DTOs
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
         public int TotalRooms { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+    }
+
+    // DTOs cho tìm kiếm và lọc khách sạn
+    public class HotelSearchDTO
+    {
+        public string? Query { get; set; } // Tìm kiếm theo tên
+        public string? Province { get; set; } // Lọc theo tỉnh
+        public string? Address { get; set; } // Lọc theo địa chỉ
+        public List<int>? Stars { get; set; } // Lọc theo số sao [4,5]
+        public decimal? MinPrice { get; set; } // Giá tối thiểu
+        public decimal? MaxPrice { get; set; } // Giá tối đa
+        public string? SortBy { get; set; } = "name"; // Sắp xếp theo: name, price, star, createdAt
+        public string? SortOrder { get; set; } = "asc"; // asc, desc
+        public int Page { get; set; } = 1;
+        public int Limit { get; set; } = 10;
+    }
+
+    public class HotelSearchResultDTO
+    {
+        public Guid HotelID { get; set; }
+        public string HotelName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Province { get; set; } = string.Empty;
+        public string? Coordinates { get; set; }
+        public string? Description { get; set; }
+        public int Star { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public List<string> Images { get; set; } = new(); // URLs của ảnh khách sạn
+        public decimal MinPrice { get; set; } // Giá phòng rẻ nhất
+        public decimal MaxPrice { get; set; } // Giá phòng đắt nhất
+        public int TotalRooms { get; set; } // Tổng số phòng
+        public int AvailableRooms { get; set; } // Số phòng còn trống
+    }
+
+    public class HotelSearchResponseDTO
+    {
+        public List<HotelSearchResultDTO> Hotels { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int Limit { get; set; }
         public int TotalPages { get; set; }
         public bool HasNextPage { get; set; }
         public bool HasPreviousPage { get; set; }

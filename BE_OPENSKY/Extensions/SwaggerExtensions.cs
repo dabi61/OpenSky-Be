@@ -1,7 +1,3 @@
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Reflection;
-
 namespace BE_OPENSKY.Extensions;
 
 public static class SwaggerExtensions
@@ -52,11 +48,44 @@ public static class SwaggerExtensions
             // Ensure all endpoints are discovered
             c.CustomSchemaIds(type => type.FullName);
             
-            // Configure file upload support (simple)
+            // Configure file upload support
             c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
             {
                 Type = "string",
                 Format = "binary"
+            });
+            
+            // Configure multipart form data for profile update
+            c.MapType<UpdateProfileWithAvatarDTO>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+            {
+                Type = "object",
+                Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                {
+                    ["fullName"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                    },
+                    ["phoneNumber"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                    },
+                    ["citizenId"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                    },
+                    ["doB"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                        Format = "date",
+                        Description = "Ngày sinh (dd-MM-yyyy)",
+                        Example = new Microsoft.OpenApi.Any.OpenApiString("01-01-1990")
+                    },
+                    ["avatar"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                        Format = "binary",
+                    }
+                }
             });
             
             // Include XML comments if available

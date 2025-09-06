@@ -3,6 +3,7 @@ namespace BE_OPENSKY.Services;
 public interface IUserService
 {
     Task<UserResponseDTO> CreateAsync(UserRegisterDTO userDto);
+    Task<UserResponseDTO> CreateGoogleUserAsync(GoogleUserRegisterDTO userDto);
     Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role);
     Task<string?> LoginAsync(LoginRequestDTO loginDto);
     Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDTO changePasswordDto);

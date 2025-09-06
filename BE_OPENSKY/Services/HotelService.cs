@@ -1,6 +1,3 @@
-using BE_OPENSKY.Data;
-using Microsoft.EntityFrameworkCore;
-
 namespace BE_OPENSKY.Services;
 
 public class HotelService : IHotelService
@@ -406,5 +403,142 @@ public class HotelService : IHotelService
         return await _context.HotelRooms
             .Include(r => r.Hotel)
             .AnyAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status == HotelStatus.Active);
+    }
+
+    public async Task<HotelSearchResponseDTO> SearchHotelsAsync(HotelSearchDTO searchDto)
+    {
+        var query = _context.Hotels
+            .Where(h => h.Status == HotelStatus.Active) // Chỉ lấy khách sạn đã được duyệt
+            .AsQueryable();
+
+        // Tìm kiếm theo tên khách sạn
+        if (!string.IsNullOrWhiteSpace(searchDto.Query))
+        {
+            var searchTerm = searchDto.Query.ToLower();
+            query = query.Where(h => h.HotelName.ToLower().Contains(searchTerm) ||
+                                   h.Description != null && h.Description.ToLower().Contains(searchTerm));
+        }
+
+        // Lọc theo tỉnh
+        if (!string.IsNullOrWhiteSpace(searchDto.Province))
+        {
+            query = query.Where(h => h.Province.ToLower().Contains(searchDto.Province.ToLower()));
+        }
+
+        // Lọc theo địa chỉ
+        if (!string.IsNullOrWhiteSpace(searchDto.Address))
+        {
+            var addressTerm = searchDto.Address.ToLower();
+            query = query.Where(h => h.Address.ToLower().Contains(addressTerm));
+        }
+
+        // Lọc theo số sao
+        if (searchDto.Stars != null && searchDto.Stars.Any())
+        {
+            query = query.Where(h => searchDto.Stars.Contains(h.Star));
+        }
+
+        // Lọc theo giá phòng (cần join với HotelRoom)
+        if (searchDto.MinPrice.HasValue || searchDto.MaxPrice.HasValue)
+        {
+            var roomQuery = _context.HotelRooms.AsQueryable();
+            
+            if (searchDto.MinPrice.HasValue)
+            {
+                roomQuery = roomQuery.Where(r => r.Price >= searchDto.MinPrice.Value);
+            }
+            
+            if (searchDto.MaxPrice.HasValue)
+            {
+                roomQuery = roomQuery.Where(r => r.Price <= searchDto.MaxPrice.Value);
+            }
+
+            var hotelIdsWithPriceFilter = await roomQuery
+                .Select(r => r.HotelID)
+                .Distinct()
+                .ToListAsync();
+
+            query = query.Where(h => hotelIdsWithPriceFilter.Contains(h.HotelID));
+        }
+
+        // Sắp xếp
+        query = searchDto.SortBy?.ToLower() switch
+        {
+            "price" => searchDto.SortOrder?.ToLower() == "desc" 
+                ? query.OrderByDescending(h => _context.HotelRooms.Where(r => r.HotelID == h.HotelID).Min(r => r.Price))
+                : query.OrderBy(h => _context.HotelRooms.Where(r => r.HotelID == h.HotelID).Min(r => r.Price)),
+            "star" => searchDto.SortOrder?.ToLower() == "desc" 
+                ? query.OrderByDescending(h => h.Star)
+                : query.OrderBy(h => h.Star),
+            "createdat" => searchDto.SortOrder?.ToLower() == "desc" 
+                ? query.OrderByDescending(h => h.CreatedAt)
+                : query.OrderBy(h => h.CreatedAt),
+            _ => searchDto.SortOrder?.ToLower() == "desc" 
+                ? query.OrderByDescending(h => h.HotelName)
+                : query.OrderBy(h => h.HotelName)
+        };
+
+        // Đếm tổng số kết quả
+        var totalCount = await query.CountAsync();
+
+        // Phân trang
+        var skip = (searchDto.Page - 1) * searchDto.Limit;
+        var hotels = await query
+            .Skip(skip)
+            .Take(searchDto.Limit)
+            .ToListAsync();
+
+        // Lấy thông tin bổ sung cho mỗi khách sạn
+        var result = new List<HotelSearchResultDTO>();
+
+        foreach (var hotel in hotels)
+        {
+            // Lấy ảnh khách sạn
+            var images = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotel.HotelID)
+                .Select(i => i.URL)
+                .ToListAsync();
+
+            // Lấy thông tin phòng
+            var rooms = await _context.HotelRooms
+                .Where(r => r.HotelID == hotel.HotelID)
+                .ToListAsync();
+
+            var minPrice = rooms.Any() ? rooms.Min(r => r.Price) : 0;
+            var maxPrice = rooms.Any() ? rooms.Max(r => r.Price) : 0;
+            var totalRooms = rooms.Count;
+            var availableRooms = totalRooms; // Tạm thời coi tất cả phòng đều available
+
+            result.Add(new HotelSearchResultDTO
+            {
+                HotelID = hotel.HotelID,
+                HotelName = hotel.HotelName,
+                Address = hotel.Address,
+                Province = hotel.Province,
+                Coordinates = hotel.Coordinates,
+                Description = hotel.Description,
+                Star = hotel.Star,
+                Status = hotel.Status.ToString(),
+                CreatedAt = hotel.CreatedAt,
+                Images = images,
+                MinPrice = minPrice,
+                MaxPrice = maxPrice,
+                TotalRooms = totalRooms,
+                AvailableRooms = availableRooms
+            });
+        }
+
+        var totalPages = (int)Math.Ceiling((double)totalCount / searchDto.Limit);
+
+        return new HotelSearchResponseDTO
+        {
+            Hotels = result,
+            TotalCount = totalCount,
+            Page = searchDto.Page,
+            Limit = searchDto.Limit,
+            TotalPages = totalPages,
+            HasNextPage = searchDto.Page < totalPages,
+            HasPreviousPage = searchDto.Page > 1
+        };
     }
 }

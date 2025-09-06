@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BE_OPENSKY.DTOs
 {
     // DTO cho phản hồi khi đăng nhập/làm mới token thành công
@@ -86,6 +84,20 @@ public class PendingHotelResponseDTO
 
         [Required]
         public string FullName { get; set; } = string.Empty;
+    }
+
+    // DTO đăng ký tài khoản cho Google OAuth (có thêm các trường optional)
+    public class GoogleUserRegisterDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string FullName { get; set; } = string.Empty;
 
         public string? PhoneNumber { get; set; }
         public string? ProviderId { get; set; } // Chỉ dành cho Google OAuth
@@ -134,6 +146,16 @@ public class PendingHotelResponseDTO
         public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
         public DateOnly? DoB { get; set; }
+    }
+
+    // DTO cho cập nhật profile với avatar (multipart form data)
+    public class UpdateProfileWithAvatarDTO
+    {
+        public string? FullName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? CitizenId { get; set; }
+        public string? DoB { get; set; } // String để dễ xử lý trong form
+        public IFormFile? Avatar { get; set; }
     }
 
     // DTO cho upload avatar

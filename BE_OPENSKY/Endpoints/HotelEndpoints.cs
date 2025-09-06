@@ -1,5 +1,3 @@
-using System.Security.Claims;
-
 namespace BE_OPENSKY.Endpoints;
 
 public static class HotelEndpoints
@@ -644,6 +642,92 @@ public static class HotelEndpoints
         .Produces(403)
         .Produces(404)
         .RequireAuthorization("HotelOnly");
+
+        // 8. Tìm kiếm và lọc khách sạn (Public - không cần auth)
+        hotelGroup.MapGet("/search", async (
+            IHotelService hotelService,
+            string? q = null,
+            string? province = null,
+            string? address = null,
+            string? stars = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            string? sortBy = "name",
+            string? sortOrder = "asc",
+            int page = 1,
+            int limit = 10) =>
+        {
+            try
+            {
+                // Parse stars parameter
+                var starsList = new List<int>();
+                if (!string.IsNullOrEmpty(stars))
+                {
+                    var starValues = stars.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var starValue in starValues)
+                    {
+                        if (int.TryParse(starValue.Trim(), out var star) && star >= 1 && star <= 5)
+                        {
+                            starsList.Add(star);
+                        }
+                    }
+                }
+
+                // Validate parameters
+                if (page < 1) page = 1;
+                if (limit < 1 || limit > 100) limit = 10;
+
+                var searchDto = new HotelSearchDTO
+                {
+                    Query = q,
+                    Province = province,
+                    Address = address,
+                    Stars = starsList.Any() ? starsList : null,
+                    MinPrice = minPrice,
+                    MaxPrice = maxPrice,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    Page = page,
+                    Limit = limit
+                };
+
+                var result = await hotelService.SearchHotelsAsync(searchDto);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi tìm kiếm khách sạn: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("SearchHotels")
+        .WithSummary("Tìm kiếm và lọc khách sạn")
+        .WithDescription("Tìm kiếm khách sạn theo tên, địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang.")
+        .WithOpenApi(operation => new(operation)
+        {
+            Summary = "Tìm kiếm và lọc khách sạn",
+            Description = "Tìm kiếm khách sạn theo tên, địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang.",
+            Parameters = new List<OpenApiParameter>
+            {
+                new() { Name = "q", In = ParameterLocation.Query, Description = "Tìm kiếm theo tên khách sạn hoặc mô tả", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "province", In = ParameterLocation.Query, Description = "Lọc theo tỉnh/thành phố", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "address", In = ParameterLocation.Query, Description = "Lọc theo địa chỉ", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "stars", In = ParameterLocation.Query, Description = "Lọc theo số sao (cách nhau bằng dấu phẩy, ví dụ: 4,5)", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "minPrice", In = ParameterLocation.Query, Description = "Giá phòng tối thiểu (VND)", Required = false, Schema = new() { Type = "number", Format = "decimal" } },
+                new() { Name = "maxPrice", In = ParameterLocation.Query, Description = "Giá phòng tối đa (VND)", Required = false, Schema = new() { Type = "number", Format = "decimal" } },
+                new() { Name = "sortBy", In = ParameterLocation.Query, Description = "Sắp xếp theo: name, price, star, createdAt", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "sortOrder", In = ParameterLocation.Query, Description = "Thứ tự sắp xếp: asc, desc", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "page", In = ParameterLocation.Query, Description = "Số trang (mặc định: 1)", Required = false, Schema = new() { Type = "integer", Minimum = 1 } },
+                new() { Name = "limit", In = ParameterLocation.Query, Description = "Số kết quả mỗi trang (mặc định: 10, tối đa: 100)", Required = false, Schema = new() { Type = "integer", Minimum = 1, Maximum = 100 } }
+            }
+        })
+        .Produces<HotelSearchResponseDTO>(200)
+        .Produces(500)
+        .AllowAnonymous(); // Public endpoint - không cần authentication
+
     }
 
     private static bool IsImageContentType(string? contentType)

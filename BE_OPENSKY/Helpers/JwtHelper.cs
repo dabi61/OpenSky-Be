@@ -1,10 +1,3 @@
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using System.Security.Cryptography;
-using BE_OPENSKY.Models;
-
 namespace BE_OPENSKY.Helpers;
 
 public class JwtHelper

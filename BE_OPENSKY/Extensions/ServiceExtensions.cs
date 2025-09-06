@@ -1,7 +1,3 @@
-using Npgsql;
-using StackExchange.Redis;
-using SendGrid;
-
 namespace BE_OPENSKY.Extensions;
 
 public static class ServiceExtensions
@@ -29,6 +25,7 @@ public static class ServiceExtensions
         services.AddScoped<IHotelService, HotelService>();
         services.AddScoped<IImageService, ImageService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.AddScoped<IHotelReviewService, HotelReviewService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         
         // Email Service - SMTP (SendGrid SMTP for Railway, Gmail SMTP for local)

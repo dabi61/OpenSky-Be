@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BE_OPENSKY.Models
 {
     public class Hotel

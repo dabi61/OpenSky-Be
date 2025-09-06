@@ -178,22 +178,11 @@ public static class AuthEndpoints
                 var session = await sessionService.RefreshSessionAsync(request.RefreshToken);
                 var accessToken = jwtHelper.GenerateAccessToken(session.User);
 
-                var response = new AuthResponseDTO
+                // Refresh endpoint chỉ trả về access token mới
+                var response = new
                 {
                     AccessToken = accessToken,
-                    RefreshToken = session.RefreshToken,
-                    AccessTokenExpires = DateTime.UtcNow.AddHours(1),
-                    RefreshTokenExpires = session.ExpiresAt,
-                    User = new UserResponseDTO
-                    {
-                        UserID = session.User.UserID,
-                        Email = session.User.Email,
-                        FullName = session.User.FullName,
-                        Role = session.User.Role,
-                        PhoneNumber = session.User.PhoneNumber,
-                        AvatarURL = session.User.AvatarURL,
-                        CreatedAt = session.User.CreatedAt
-                    }
+                    AccessTokenExpires = DateTime.UtcNow.AddHours(1)
                 };
 
                 return Results.Ok(response);
@@ -213,8 +202,8 @@ public static class AuthEndpoints
         })
         .WithName("RefreshToken")
         .WithSummary("Làm mới access token")
-        .WithDescription("Sử dụng refresh token để lấy access token mới")
-        .Produces<AuthResponseDTO>(200)
+        .WithDescription("Sử dụng refresh token để lấy access token mới. Chỉ trả về access token và thời gian hết hạn.")
+        .Produces(200)
         .Produces(401);
 
         // Password Reset Endpoints

@@ -11,7 +11,7 @@ public static class GoogleAuthEndpoints
             .WithOpenApi();
 
         // Google OAuth authentication
-        googleAuthGroup.MapPost("/login", async (GoogleAuthRequest request, IGoogleAuthService googleAuthService) =>
+        googleAuthGroup.MapPost("/login", async (GoogleAuthRequest request, [FromServices] IGoogleAuthService googleAuthService) =>
         {
             try
             {
@@ -44,7 +44,7 @@ public static class GoogleAuthEndpoints
         .Produces(500);
 
         // Test endpoint for development
-        googleAuthGroup.MapPost("/test", async (GoogleAuthRequest request, IGoogleAuthService googleAuthService) =>
+        googleAuthGroup.MapPost("/test", async (GoogleAuthRequest request, [FromServices] IGoogleAuthService googleAuthService) =>
         {
             try
             {

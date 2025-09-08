@@ -20,7 +20,7 @@ public static class UserEndpoints
             .WithOpenApi();
 
         // Admin có thể tạo tài khoản Supervisor
-        userGroup.MapPost("/create-supervisor", async (CreateUserDTO createUserDto, IUserService userService, HttpContext context) =>
+        userGroup.MapPost("/create-supervisor", async ([FromBody] CreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {
@@ -73,7 +73,7 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // Supervisor có thể tạo tài khoản TourGuide
-        userGroup.MapPost("/create-tourguide", async (CreateUserDTO createUserDto, IUserService userService, HttpContext context) =>
+        userGroup.MapPost("/create-tourguide", async ([FromBody] CreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {
@@ -126,7 +126,7 @@ public static class UserEndpoints
         .RequireAuthorization("SupervisorOrAdmin");
 
         // Customer đăng ký mở khách sạn (chuyển từ Customer -> Hotel sau khi được duyệt)
-        userGroup.MapPost("/apply-hotel", async (HotelApplicationDTO applicationDto, IHotelService hotelService, HttpContext context) =>
+        userGroup.MapPost("/apply-hotel", async ([FromBody] HotelApplicationDTO applicationDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -188,7 +188,7 @@ public static class UserEndpoints
         .RequireAuthorization("CustomerOnly");
 
         // Admin xem tất cả đơn đăng ký khách sạn chờ duyệt
-        userGroup.MapGet("/pending-hotels", async (IHotelService hotelService, HttpContext context) =>
+        userGroup.MapGet("/pending-hotels", async ([FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -218,7 +218,7 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // Admin xem chi tiết đơn đăng ký khách sạn
-        userGroup.MapGet("/pending-hotels/{hotelId:guid}", async (Guid hotelId, IHotelService hotelService, HttpContext context) =>
+        userGroup.MapGet("/pending-hotels/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -252,7 +252,7 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // Admin duyệt đơn đăng ký khách sạn
-        userGroup.MapPost("/approve-hotel/{hotelId:guid}", async (Guid hotelId, IHotelService hotelService, HttpContext context) =>
+        userGroup.MapPost("/approve-hotel/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -298,7 +298,7 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // Admin từ chối đơn đăng ký khách sạn
-        userGroup.MapDelete("/reject-hotel/{hotelId:guid}", async (Guid hotelId, IHotelService hotelService, HttpContext context) =>
+        userGroup.MapDelete("/reject-hotel/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -332,7 +332,7 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // Customer xem đơn đăng ký khách sạn của mình
-        userGroup.MapGet("/my-hotels", async (IHotelService hotelService, HttpContext context) =>
+        userGroup.MapGet("/my-hotels", async ([FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -362,8 +362,8 @@ public static class UserEndpoints
         .Produces(401)
         .RequireAuthorization("AuthenticatedOnly");
 
-        // Lấy danh sách người dùng (phân quyền theo role)
-        userGroup.MapGet("/", async (IUserService userService, HttpContext context, string? role = null) =>
+        // Lấy danh sách người dùng với phân trang (phân quyền theo role)
+        userGroup.MapGet("/", async ([FromServices] IUserService userService, HttpContext context, int page = 1, int limit = 10, string? role = null) =>
         {
             try
             {
@@ -373,8 +373,12 @@ public static class UserEndpoints
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
 
-                var users = await userService.GetUsersAsync(role);
-                return Results.Ok(users);
+                // Validate pagination parameters
+                if (page < 1) page = 1;
+                if (limit < 1 || limit > 100) limit = 10; // Giới hạn tối đa 100 items per page
+
+                var result = await userService.GetUsersPaginatedAsync(page, limit, role);
+                return Results.Ok(result);
             }
             catch (Exception)
             {
@@ -386,14 +390,14 @@ public static class UserEndpoints
             }
         })
         .WithName("GetUsers")
-        .WithSummary("Lấy danh sách người dùng")
-        .WithDescription("Admin và Supervisor có thể xem danh sách người dùng")
-        .Produces<List<UserResponseDTO>>(200)
+        .WithSummary("Lấy danh sách người dùng với phân trang")
+        .WithDescription("Admin và Supervisor có thể xem danh sách người dùng với phân trang. Hỗ trợ lọc theo role.")
+        .Produces<PaginatedUsersResponseDTO>(200)
         .Produces(403)
         .RequireAuthorization("SupervisorOrAdmin");
 
         // Xem thông tin cá nhân
-        userGroup.MapGet("/profile", async (IUserService userService, HttpContext context) =>
+        userGroup.MapGet("/profile", async ([FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {
@@ -427,7 +431,7 @@ public static class UserEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
         // Cập nhật thông tin cá nhân và upload avatar (gộp 2 API thành 1)
-        userGroup.MapPut("/profile", async (HttpContext context, IUserService userService, ICloudinaryService cloudinaryService) =>
+        userGroup.MapPut("/profile", async (HttpContext context, [FromServices] IUserService userService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {

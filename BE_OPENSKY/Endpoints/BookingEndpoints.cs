@@ -14,7 +14,7 @@ namespace BE_OPENSKY.Endpoints
                 .WithOpenApi();
 
             // 1. Customer đặt phòng
-            bookingGroup.MapPost("/", async (CreateHotelBookingDTO createDto, IBookingService bookingService, HttpContext context) =>
+            bookingGroup.MapPost("/", async ([FromBody] CreateHotelBookingDTO createDto, [FromServices] IBookingService bookingService, HttpContext context) =>
             {
                 try
                 {
@@ -48,8 +48,8 @@ namespace BE_OPENSKY.Endpoints
             .Produces(401)
             .RequireAuthorization();
 
-            // 2. Customer xem booking của mình
-            bookingGroup.MapGet("/my-bookings", async (IBookingService bookingService, HttpContext context) =>
+            // 2. Customer xem booking của mình với phân trang
+            bookingGroup.MapGet("/my-bookings", async ([FromServices] IBookingService bookingService, HttpContext context, int page = 1, int limit = 10, string? status = null) =>
             {
                 try
                 {
@@ -59,8 +59,12 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
                     }
 
-                    var bookings = await bookingService.GetMyBookingsAsync(userIdGuid);
-                    return Results.Ok(bookings);
+                    // Validate pagination parameters
+                    if (page < 1) page = 1;
+                    if (limit < 1 || limit > 100) limit = 10;
+
+                    var result = await bookingService.GetBookingsPaginatedAsync(page, limit, status, userIdGuid);
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -72,14 +76,14 @@ namespace BE_OPENSKY.Endpoints
                 }
             })
             .WithName("GetMyBookings")
-            .WithSummary("Xem booking của tôi")
-            .WithDescription("Customer xem danh sách booking của mình")
-            .Produces<BookingListDTO>(200)
+            .WithSummary("Xem booking của tôi với phân trang")
+            .WithDescription("Customer xem danh sách booking của mình với phân trang và lọc theo trạng thái")
+            .Produces<PaginatedBookingsResponseDTO>(200)
             .Produces(401)
             .RequireAuthorization();
 
             // 3. Hotel xác nhận booking
-            bookingGroup.MapPut("/{bookingId:guid}/confirm", async (Guid bookingId, IBookingService bookingService, HttpContext context) =>
+            bookingGroup.MapPut("/{bookingId:guid}/confirm", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context) =>
             {
                 try
                 {
@@ -117,7 +121,7 @@ namespace BE_OPENSKY.Endpoints
             .RequireAuthorization("HotelOnly");
 
             // 4. Hotel hủy booking
-            bookingGroup.MapPut("/{bookingId:guid}/cancel", async (Guid bookingId, IBookingService bookingService, HttpContext context, string? reason = null) =>
+            bookingGroup.MapPut("/{bookingId:guid}/cancel", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context, string? reason = null) =>
             {
                 try
                 {
@@ -155,7 +159,7 @@ namespace BE_OPENSKY.Endpoints
             .RequireAuthorization("HotelOnly");
 
             // 5. Customer hủy booking
-            bookingGroup.MapPut("/{bookingId:guid}/customer-cancel", async (Guid bookingId, IBookingService bookingService, HttpContext context, string? reason = null) =>
+            bookingGroup.MapPut("/{bookingId:guid}/customer-cancel", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context, string? reason = null) =>
             {
                 try
                 {
@@ -188,7 +192,7 @@ namespace BE_OPENSKY.Endpoints
             .RequireAuthorization();
 
             // 6. Lấy thông tin booking theo ID
-            bookingGroup.MapGet("/{bookingId:guid}", async (Guid bookingId, IBookingService bookingService, HttpContext context) =>
+            bookingGroup.MapGet("/{bookingId:guid}", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context) =>
             {
                 try
                 {
@@ -221,7 +225,7 @@ namespace BE_OPENSKY.Endpoints
             .RequireAuthorization();
 
             // 7. Cập nhật trạng thái booking (cho admin/hotel)
-            bookingGroup.MapPut("/{bookingId:guid}/status", async (Guid bookingId, UpdateBookingStatusDTO updateDto, IBookingService bookingService, HttpContext context) =>
+            bookingGroup.MapPut("/{bookingId:guid}/status", async (Guid bookingId, [FromBody] UpdateBookingStatusDTO updateDto, [FromServices] IBookingService bookingService, HttpContext context) =>
             {
                 try
                 {
@@ -262,6 +266,252 @@ namespace BE_OPENSKY.Endpoints
             .Produces(403)
             .Produces(404)
             .RequireAuthorization("HotelOnly");
+
+            // 8. Hotel xem booking của khách sạn với phân trang
+            bookingGroup.MapGet("/hotel/{hotelId:guid}", async (Guid hotelId, [FromServices] IBookingService bookingService, HttpContext context, int page = 1, int limit = 10, string? status = null) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    // Validate pagination parameters
+                    if (page < 1) page = 1;
+                    if (limit < 1 || limit > 100) limit = 10;
+
+                    var result = await bookingService.GetHotelBookingsPaginatedAsync(hotelId, userIdGuid, page, limit, status);
+                    return Results.Ok(result);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    return Results.Json(new { message = ex.Message }, statusCode: 403);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetHotelBookingsPaginated")
+            .WithSummary("Hotel xem booking của khách sạn với phân trang")
+            .WithDescription("Hotel xem danh sách booking của khách sạn với phân trang và lọc theo trạng thái")
+            .Produces<PaginatedBookingsResponseDTO>(200)
+            .Produces(401)
+            .Produces(403)
+            .RequireAuthorization("HotelOnly");
+
+            // 9. Phân trang danh sách booking (cho Admin/Supervisor)
+            bookingGroup.MapGet("/admin/all", async ([FromServices] IBookingService bookingService, HttpContext context, int page = 1, int limit = 10, string? status = null, Guid? hotelId = null) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    // Kiểm tra quyền Admin hoặc Supervisor
+                    if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                    {
+                        return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                    }
+
+                    // Validate pagination parameters
+                    if (page < 1) page = 1;
+                    if (limit < 1 || limit > 100) limit = 10;
+
+                    var result = await bookingService.GetBookingsPaginatedAsync(page, limit, status, null, hotelId);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetAllBookings")
+            .WithSummary("Admin/Supervisor xem tất cả booking")
+            .WithDescription("Admin và Supervisor có thể xem tất cả booking với phân trang và lọc")
+            .Produces<PaginatedBookingsResponseDTO>(200)
+            .Produces(401)
+            .Produces(403)
+            .RequireAuthorization("SupervisorOrAdmin");
+
+            // 10. Tìm kiếm booking
+            bookingGroup.MapPost("/search", async ([FromBody] BookingSearchDTO searchDto, [FromServices] IBookingService bookingService, HttpContext context) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    var result = await bookingService.SearchBookingsAsync(searchDto);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("SearchBookings")
+            .WithSummary("Tìm kiếm booking")
+            .WithDescription("Tìm kiếm booking theo nhiều tiêu chí với phân trang")
+            .Produces<PaginatedBookingsResponseDTO>(200)
+            .Produces(401)
+            .RequireAuthorization();
+
+            // 11. Kiểm tra phòng có sẵn
+            bookingGroup.MapPost("/check-availability", async ([FromBody] RoomAvailabilityCheckDTO checkDto, [FromServices] IBookingService bookingService, HttpContext context) =>
+            {
+                try
+                {
+                    var result = await bookingService.CheckRoomAvailabilityAsync(checkDto);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("CheckRoomAvailability")
+            .WithSummary("Kiểm tra phòng có sẵn")
+            .WithDescription("Kiểm tra phòng có sẵn trong khoảng thời gian cụ thể")
+            .Produces<RoomAvailabilityResponseDTO>(200)
+            .RequireAuthorization();
+
+            // 12. Thống kê booking
+            bookingGroup.MapGet("/stats", async ([FromServices] IBookingService bookingService, HttpContext context, Guid? hotelId = null, DateTime? fromDate = null, DateTime? toDate = null) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    // Nếu có hotelId, kiểm tra quyền sở hữu
+                    if (hotelId.HasValue)
+                    {
+                        if (!context.User.IsInRole(RoleConstants.Hotel) && !context.User.IsInRole(RoleConstants.Admin))
+                        {
+                            return Results.Json(new { message = "Bạn không có quyền truy cập thống kê khách sạn này" }, statusCode: 403);
+                        }
+                    }
+
+                    var result = await bookingService.GetBookingStatsAsync(hotelId, fromDate, toDate);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetBookingStats")
+            .WithSummary("Thống kê booking")
+            .WithDescription("Lấy thống kê booking theo hotel và khoảng thời gian")
+            .Produces<BookingStatsDTO>(200)
+            .Produces(401)
+            .Produces(403)
+            .RequireAuthorization();
+
+            // 12. Test endpoint để kiểm tra toàn bộ luồng booking với thanh toán
+            bookingGroup.MapGet("/test-complete-flow", async ([FromServices] IBookingService bookingService, [FromServices] IBillService billService, [FromServices] IVNPayService vnPayService) =>
+            {
+                try
+                {
+                    var testData = new
+                    {
+                        Message = "Luồng Booking hoàn chỉnh với VNPay đã sẵn sàng",
+                        CompleteFlow = new[]
+                        {
+                            "1. Customer đặt phòng → POST /api/bookings → Status: Pending",
+                            "2. Hotel xác nhận → PUT /api/bookings/{id}/confirm → Status: Confirmed + Tạo Bill",
+                            "3. Customer thanh toán → POST /api/payments/vnpay/create → Tạo URL VNPay",
+                            "4. VNPay callback → GET /api/payments/vnpay-callback → Cập nhật Bill Status: Paid",
+                            "5. Hoàn thành → PUT /api/bookings/{id}/status → Status: Completed"
+                        },
+                        Endpoints = new
+                        {
+                            Booking = new[]
+                            {
+                                "POST /api/bookings - Đặt phòng",
+                                "GET /api/bookings/my-bookings - Xem booking của mình",
+                                "PUT /api/bookings/{id}/confirm - Hotel xác nhận",
+                                "PUT /api/bookings/{id}/cancel - Hủy booking",
+                                "GET /api/bookings/{id} - Chi tiết booking"
+                            },
+                            Payment = new[]
+                            {
+                                "POST /api/payments/vnpay/create - Tạo URL thanh toán",
+                                "GET /api/payments/vnpay-callback - Callback từ VNPay",
+                                "GET /api/payments/status/{transactionId} - Kiểm tra trạng thái",
+                                "GET /api/payments/bills - Danh sách hóa đơn",
+                                "GET /api/payments/bills/{id} - Chi tiết hóa đơn"
+                            }
+                        },
+                        VNPayConfig = new
+                        {
+                            SandboxMode = true,
+                            TestCards = new[]
+                            {
+                                "9704198526191432198 - NCB",
+                                "9704220199999999999 - VietinBank",
+                                "9704366699999999999 - Vietcombank"
+                            },
+                            TestAmount = "100000 VND (1,000,000 xu)"
+                        },
+                        ValidationRules = new
+                        {
+                            CheckInDate = "Phải >= ngày hiện tại",
+                            CheckOutDate = "Phải > CheckInDate",
+                            MaxNights = "Tối đa 365 đêm",
+                            MaxFutureDate = "Tối đa 2 năm trong tương lai",
+                            RoomPrice = "Phải > 0"
+                        }
+                    };
+                    
+                    return Results.Ok(testData);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("TestCompleteBookingFlow")
+            .WithSummary("Test luồng booking hoàn chỉnh với VNPay")
+            .WithDescription("Endpoint để kiểm tra toàn bộ luồng booking từ đặt phòng đến thanh toán")
+            .Produces(200)
+            .AllowAnonymous();
         }
     }
 }

@@ -140,6 +140,8 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Deposit).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.RefundPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
 
                 entity.HasOne(e => e.User)
                     .WithMany(e => e.Bills)
@@ -162,6 +164,8 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.UnitPrice).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
 
                 entity.HasOne(e => e.Bill)
                     .WithMany(e => e.BillDetails)

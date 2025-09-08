@@ -112,6 +112,7 @@ public class Program
         app.MapHotelEndpoints();
         app.MapHotelReviewEndpoints(); // Hotel management endpoints
         app.MapBookingEndpoints();     // Booking management endpoints
+        app.MapPaymentEndpoints();     // Payment management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

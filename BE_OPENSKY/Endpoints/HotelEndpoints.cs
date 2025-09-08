@@ -14,7 +14,7 @@ public static class HotelEndpoints
             .WithOpenApi();
 
         // 1. Cập nhật thông tin khách sạn
-        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, UpdateHotelDTO updateDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, [FromBody] UpdateHotelDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -57,7 +57,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 2. Thêm nhiều ảnh cho khách sạn - Smart endpoint (giống profile avatar)
-        hotelGroup.MapPost("/{hotelId:guid}/images", async (Guid hotelId, HttpContext context, IHotelService hotelService, ICloudinaryService cloudinaryService) =>
+        hotelGroup.MapPost("/{hotelId:guid}/images", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -237,7 +237,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 3. Thêm phòng mới cho khách sạn
-        hotelGroup.MapPost("/{hotelId:guid}/rooms", async (Guid hotelId, CreateRoomDTO createRoomDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPost("/{hotelId:guid}/rooms", async (Guid hotelId, [FromBody] CreateRoomDTO createRoomDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -302,7 +302,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 4. Thêm nhiều ảnh cho phòng - Smart endpoint (giống profile avatar)
-        hotelGroup.MapPost("/rooms/{roomId:guid}/images", async (Guid roomId, HttpContext context, IHotelService hotelService, ICloudinaryService cloudinaryService) =>
+        hotelGroup.MapPost("/rooms/{roomId:guid}/images", async (Guid roomId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -482,7 +482,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 5. Xem chi tiết khách sạn (với phân trang phòng)
-        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, IHotelService hotelService, int page = 1, int limit = 10) =>
+        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
         {
             try
             {
@@ -511,7 +511,7 @@ public static class HotelEndpoints
         .Produces(404);
 
         // 6. Xem chi tiết phòng
-        hotelGroup.MapGet("/rooms/{roomId:guid}", async (Guid roomId, IHotelService hotelService) =>
+        hotelGroup.MapGet("/rooms/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService) =>
         {
             try
             {
@@ -537,7 +537,7 @@ public static class HotelEndpoints
         .Produces(404);
 
         // 7. Danh sách phòng có phân trang (endpoint riêng)
-        hotelGroup.MapGet("/{hotelId:guid}/rooms", async (Guid hotelId, IHotelService hotelService, int page = 1, int limit = 10) =>
+        hotelGroup.MapGet("/{hotelId:guid}/rooms", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
         {
             try
             {
@@ -563,7 +563,7 @@ public static class HotelEndpoints
         .Produces<PaginatedRoomsResponseDTO>(200);
 
         // Bonus: Cập nhật thông tin phòng
-        hotelGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, UpdateRoomDTO updateDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, [FromBody] UpdateRoomDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -606,7 +606,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // Bonus: Xóa phòng
-        hotelGroup.MapDelete("/rooms/{roomId:guid}", async (Guid roomId, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapDelete("/rooms/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -734,7 +734,7 @@ public static class HotelEndpoints
         .AllowAnonymous(); // Public endpoint - không cần authentication
 
         // 9. Cập nhật trạng thái phòng
-        hotelGroup.MapPut("/rooms/{roomId:guid}/status", async (Guid roomId, UpdateRoomStatusDTO updateDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPut("/rooms/{roomId:guid}/status", async (Guid roomId, [FromBody] UpdateRoomStatusDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -777,7 +777,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 10. Xem danh sách phòng theo trạng thái
-        hotelGroup.MapGet("/{hotelId:guid}/rooms/status", async (Guid hotelId, IHotelService hotelService, HttpContext context, string? status = null) =>
+        hotelGroup.MapGet("/{hotelId:guid}/rooms/status", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, string? status = null) =>
         {
             try
             {
@@ -822,7 +822,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
             // 11. Hotel xem danh sách booking
-            hotelGroup.MapGet("/{hotelId:guid}/bookings", async (Guid hotelId, IBookingService bookingService, HttpContext context) =>
+            hotelGroup.MapGet("/{hotelId:guid}/bookings", async (Guid hotelId, [FromServices] IBookingService bookingService, HttpContext context) =>
             {
                 try
                 {

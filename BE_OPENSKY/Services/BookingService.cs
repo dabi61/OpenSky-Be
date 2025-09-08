@@ -217,7 +217,8 @@ namespace BE_OPENSKY.Services
                     Deposit = 0, // Có thể tính deposit sau
                     TotalPrice = booking.TotalPrice,
                     Status = BillStatus.Pending,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.Bills.Add(bill);
@@ -234,7 +235,8 @@ namespace BE_OPENSKY.Services
                     UnitPrice = booking.Room?.Price ?? 0,
                     TotalPrice = booking.TotalPrice,
                     Notes = $"Booking phòng từ {booking.CheckInDate:dd/MM/yyyy} đến {booking.CheckOutDate:dd/MM/yyyy}",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.BillDetails.Add(billDetail);
@@ -428,6 +430,394 @@ namespace BE_OPENSKY.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<PaginatedBookingsResponseDTO> GetBookingsPaginatedAsync(int page = 1, int limit = 10, string? status = null, Guid? userId = null, Guid? hotelId = null)
+        {
+            // Validate pagination parameters
+            page = Math.Max(1, page);
+            limit = Math.Max(1, Math.Min(100, limit));
+
+            var query = _context.Bookings
+                .Include(b => b.Hotel)
+                .Include(b => b.Room)
+                .Include(b => b.User)
+                .Include(b => b.Bill)
+                .AsQueryable();
+
+            // Lọc theo user nếu có
+            if (userId.HasValue)
+            {
+                query = query.Where(b => b.UserID == userId.Value);
+            }
+
+            // Lọc theo hotel nếu có
+            if (hotelId.HasValue)
+            {
+                query = query.Where(b => b.HotelID == hotelId.Value);
+            }
+
+            // Lọc theo status nếu có
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<BookingStatus>(status, true, out var bookingStatus))
+            {
+                query = query.Where(b => b.Status == bookingStatus);
+            }
+
+            // Đếm tổng số bookings
+            var totalBookings = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalBookings / limit);
+
+            // Lấy bookings với phân trang
+            var bookings = await query
+                .OrderByDescending(b => b.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(b => new BookingResponseDTO
+                {
+                    BookingID = b.BookingID,
+                    UserID = b.UserID,
+                    UserName = b.User.FullName,
+                    BookingType = b.BookingType,
+                    HotelID = b.HotelID,
+                    HotelName = b.Hotel != null ? b.Hotel.HotelName : "",
+                    RoomID = b.RoomID,
+                    RoomName = b.Room != null ? b.Room.RoomName : "",
+                    RoomType = b.Room != null ? b.Room.RoomType : "",
+                    CheckInDate = b.CheckInDate,
+                    CheckOutDate = b.CheckOutDate,
+                    TotalPrice = b.TotalPrice,
+                    Status = b.Status.ToString(),
+                    Notes = b.Notes,
+                    GuestName = b.GuestName,
+                    GuestPhone = b.GuestPhone,
+                    GuestEmail = b.GuestEmail,
+                    PaymentMethod = b.PaymentMethod,
+                    PaymentStatus = b.PaymentStatus,
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt
+                })
+                .ToListAsync();
+
+            return new PaginatedBookingsResponseDTO
+            {
+                Bookings = bookings,
+                CurrentPage = page,
+                PageSize = limit,
+                TotalBookings = totalBookings,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+
+        public async Task<PaginatedBookingsResponseDTO> SearchBookingsAsync(BookingSearchDTO searchDto)
+        {
+            // Validate pagination parameters
+            searchDto.Page = Math.Max(1, searchDto.Page);
+            searchDto.Limit = Math.Max(1, Math.Min(100, searchDto.Limit));
+
+            var query = _context.Bookings
+                .Include(b => b.Hotel)
+                .Include(b => b.Room)
+                .Include(b => b.User)
+                .Include(b => b.Bill)
+                .AsQueryable();
+
+            // Tìm kiếm theo query (tên khách, email, số điện thoại)
+            if (!string.IsNullOrWhiteSpace(searchDto.Query))
+            {
+                var searchTerm = searchDto.Query.ToLower();
+                query = query.Where(b => 
+                    (b.GuestName != null && b.GuestName.ToLower().Contains(searchTerm)) ||
+                    (b.GuestEmail != null && b.GuestEmail.ToLower().Contains(searchTerm)) ||
+                    (b.GuestPhone != null && b.GuestPhone.Contains(searchTerm)) ||
+                    (b.User.FullName != null && b.User.FullName.ToLower().Contains(searchTerm)) ||
+                    (b.User.Email != null && b.User.Email.ToLower().Contains(searchTerm))
+                );
+            }
+
+            // Lọc theo status
+            if (!string.IsNullOrEmpty(searchDto.Status) && Enum.TryParse<BookingStatus>(searchDto.Status, true, out var bookingStatus))
+            {
+                query = query.Where(b => b.Status == bookingStatus);
+            }
+
+            // Lọc theo ngày check-in
+            if (searchDto.FromDate.HasValue)
+            {
+                query = query.Where(b => b.CheckInDate >= searchDto.FromDate.Value);
+            }
+
+            // Lọc theo ngày check-out
+            if (searchDto.ToDate.HasValue)
+            {
+                query = query.Where(b => b.CheckOutDate <= searchDto.ToDate.Value);
+            }
+
+            // Lọc theo hotel
+            if (searchDto.HotelId.HasValue)
+            {
+                query = query.Where(b => b.HotelID == searchDto.HotelId.Value);
+            }
+
+            // Lọc theo phòng
+            if (searchDto.RoomId.HasValue)
+            {
+                query = query.Where(b => b.RoomID == searchDto.RoomId.Value);
+            }
+
+            // Lọc theo loại booking
+            if (!string.IsNullOrEmpty(searchDto.BookingType))
+            {
+                query = query.Where(b => b.BookingType == searchDto.BookingType);
+            }
+
+            // Sắp xếp
+            query = searchDto.SortBy?.ToLower() switch
+            {
+                "checkindate" => searchDto.SortOrder?.ToLower() == "asc" 
+                    ? query.OrderBy(b => b.CheckInDate)
+                    : query.OrderByDescending(b => b.CheckInDate),
+                "totalprice" => searchDto.SortOrder?.ToLower() == "asc" 
+                    ? query.OrderBy(b => b.TotalPrice)
+                    : query.OrderByDescending(b => b.TotalPrice),
+                _ => searchDto.SortOrder?.ToLower() == "asc" 
+                    ? query.OrderBy(b => b.CreatedAt)
+                    : query.OrderByDescending(b => b.CreatedAt)
+            };
+
+            // Đếm tổng số bookings
+            var totalBookings = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalBookings / searchDto.Limit);
+
+            // Lấy bookings với phân trang
+            var bookings = await query
+                .Skip((searchDto.Page - 1) * searchDto.Limit)
+                .Take(searchDto.Limit)
+                .Select(b => new BookingResponseDTO
+                {
+                    BookingID = b.BookingID,
+                    UserID = b.UserID,
+                    UserName = b.User.FullName,
+                    BookingType = b.BookingType,
+                    HotelID = b.HotelID,
+                    HotelName = b.Hotel != null ? b.Hotel.HotelName : "",
+                    RoomID = b.RoomID,
+                    RoomName = b.Room != null ? b.Room.RoomName : "",
+                    RoomType = b.Room != null ? b.Room.RoomType : "",
+                    CheckInDate = b.CheckInDate,
+                    CheckOutDate = b.CheckOutDate,
+                    TotalPrice = b.TotalPrice,
+                    Status = b.Status.ToString(),
+                    Notes = b.Notes,
+                    GuestName = b.GuestName,
+                    GuestPhone = b.GuestPhone,
+                    GuestEmail = b.GuestEmail,
+                    PaymentMethod = b.PaymentMethod,
+                    PaymentStatus = b.PaymentStatus,
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt
+                })
+                .ToListAsync();
+
+            return new PaginatedBookingsResponseDTO
+            {
+                Bookings = bookings,
+                CurrentPage = searchDto.Page,
+                PageSize = searchDto.Limit,
+                TotalBookings = totalBookings,
+                TotalPages = totalPages,
+                HasNextPage = searchDto.Page < totalPages,
+                HasPreviousPage = searchDto.Page > 1
+            };
+        }
+
+        public async Task<PaginatedBookingsResponseDTO> GetHotelBookingsPaginatedAsync(Guid hotelId, Guid userId, int page = 1, int limit = 10, string? status = null)
+        {
+            // Kiểm tra quyền sở hữu khách sạn
+            var hotel = await _context.Hotels
+                .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId);
+            
+            if (hotel == null)
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập khách sạn này");
+
+            return await GetBookingsPaginatedAsync(page, limit, status, null, hotelId);
+        }
+
+        public async Task<RoomAvailabilityResponseDTO> CheckRoomAvailabilityAsync(RoomAvailabilityCheckDTO checkDto)
+        {
+            // Kiểm tra phòng có tồn tại không
+            var room = await _context.HotelRooms
+                .Include(r => r.Hotel)
+                .FirstOrDefaultAsync(r => r.RoomID == checkDto.RoomId);
+
+            if (room == null)
+            {
+                return new RoomAvailabilityResponseDTO
+                {
+                    IsAvailable = false,
+                    Message = "Không tìm thấy phòng"
+                };
+            }
+
+            // Kiểm tra phòng có đang bảo trì không
+            if (room.Status == RoomStatus.Maintenance)
+            {
+                return new RoomAvailabilityResponseDTO
+                {
+                    IsAvailable = false,
+                    Message = "Phòng đang trong quá trình bảo trì"
+                };
+            }
+
+            // Kiểm tra ngày check-in phải sau ngày hiện tại
+            if (checkDto.CheckInDate <= DateTime.UtcNow.Date)
+            {
+                return new RoomAvailabilityResponseDTO
+                {
+                    IsAvailable = false,
+                    Message = "Ngày check-in phải sau ngày hiện tại"
+                };
+            }
+
+            // Kiểm tra ngày check-out phải sau check-in
+            if (checkDto.CheckOutDate <= checkDto.CheckInDate)
+            {
+                return new RoomAvailabilityResponseDTO
+                {
+                    IsAvailable = false,
+                    Message = "Ngày check-out phải sau ngày check-in"
+                };
+            }
+
+            // Tìm các booking xung đột
+            var conflictingBookings = await _context.Bookings
+                .Where(b => b.RoomID == checkDto.RoomId &&
+                           b.Status != BookingStatus.Cancelled &&
+                           b.Status != BookingStatus.Refunded &&
+                           ((b.CheckInDate < checkDto.CheckOutDate && b.CheckOutDate > checkDto.CheckInDate)))
+                .Select(b => new BookingConflictDTO
+                {
+                    BookingId = b.BookingID,
+                    CheckInDate = b.CheckInDate,
+                    CheckOutDate = b.CheckOutDate,
+                    Status = b.Status.ToString(),
+                    GuestName = b.GuestName ?? b.User.FullName
+                })
+                .ToListAsync();
+
+            // Tính giá
+            var numberOfNights = (int)(checkDto.CheckOutDate - checkDto.CheckInDate).TotalDays;
+            var totalPrice = room.Price * numberOfNights;
+
+            if (conflictingBookings.Any())
+            {
+                return new RoomAvailabilityResponseDTO
+                {
+                    IsAvailable = false,
+                    Message = $"Phòng không có sẵn trong khoảng thời gian từ {checkDto.CheckInDate:dd/MM/yyyy} đến {checkDto.CheckOutDate:dd/MM/yyyy}",
+                    Conflicts = conflictingBookings,
+                    Price = room.Price,
+                    NumberOfNights = numberOfNights,
+                    TotalPrice = totalPrice
+                };
+            }
+
+            return new RoomAvailabilityResponseDTO
+            {
+                IsAvailable = true,
+                Message = "Phòng có sẵn",
+                Price = room.Price,
+                NumberOfNights = numberOfNights,
+                TotalPrice = totalPrice
+            };
+        }
+
+        public async Task<BookingStatsDTO> GetBookingStatsAsync(Guid? hotelId = null, DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            var query = _context.Bookings.AsQueryable();
+
+            // Lọc theo hotel nếu có
+            if (hotelId.HasValue)
+            {
+                query = query.Where(b => b.HotelID == hotelId.Value);
+            }
+
+            // Lọc theo ngày nếu có
+            if (fromDate.HasValue)
+            {
+                query = query.Where(b => b.CreatedAt >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(b => b.CreatedAt <= toDate.Value);
+            }
+
+            var bookings = await query.ToListAsync();
+
+            var stats = new BookingStatsDTO
+            {
+                TotalBookings = bookings.Count,
+                PendingBookings = bookings.Count(b => b.Status == BookingStatus.Pending),
+                ConfirmedBookings = bookings.Count(b => b.Status == BookingStatus.Confirmed),
+                CancelledBookings = bookings.Count(b => b.Status == BookingStatus.Cancelled),
+                CompletedBookings = bookings.Count(b => b.Status == BookingStatus.Completed),
+                RefundedBookings = bookings.Count(b => b.Status == BookingStatus.Refunded),
+                TotalRevenue = bookings.Sum(b => b.TotalPrice),
+                PendingRevenue = bookings.Where(b => b.Status == BookingStatus.Pending).Sum(b => b.TotalPrice),
+                ConfirmedRevenue = bookings.Where(b => b.Status == BookingStatus.Confirmed).Sum(b => b.TotalPrice),
+                CompletedRevenue = bookings.Where(b => b.Status == BookingStatus.Completed).Sum(b => b.TotalPrice)
+            };
+
+            // Thống kê theo tháng
+            var monthlyStats = bookings
+                .GroupBy(b => new { b.CreatedAt.Year, b.CreatedAt.Month })
+                .Select(g => new MonthlyStatsDTO
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Bookings = g.Count(),
+                    Revenue = g.Sum(b => b.TotalPrice)
+                })
+                .OrderBy(s => s.Year)
+                .ThenBy(s => s.Month)
+                .ToList();
+
+            stats.MonthlyStats = monthlyStats;
+
+            return stats;
+        }
+
+        public async Task<bool> UpdateBookingPaymentStatusAsync(Guid billId, string paymentStatus)
+        {
+            try
+            {
+                // Tìm booking theo bill ID
+                var booking = await _context.Bookings
+                    .FirstOrDefaultAsync(b => b.BillID == billId);
+
+                if (booking == null)
+                    return false;
+
+                // Cập nhật trạng thái thanh toán
+                booking.PaymentStatus = paymentStatus;
+                booking.UpdatedAt = DateTime.UtcNow;
+
+                // Nếu thanh toán thành công, có thể cập nhật trạng thái booking
+                if (paymentStatus == "Paid" && booking.Status == BookingStatus.Confirmed)
+                {
+                    // Có thể thêm logic để cập nhật trạng thái booking nếu cần
+                    // booking.Status = BookingStatus.Completed;
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

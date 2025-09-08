@@ -27,5 +27,23 @@ namespace BE_OPENSKY.Services
         
         // Cập nhật trạng thái booking (cho admin)
         Task<bool> UpdateBookingStatusAsync(Guid bookingId, Guid userId, UpdateBookingStatusDTO updateDto);
+        
+        // Phân trang booking
+        Task<PaginatedBookingsResponseDTO> GetBookingsPaginatedAsync(int page = 1, int limit = 10, string? status = null, Guid? userId = null, Guid? hotelId = null);
+        
+        // Tìm kiếm booking
+        Task<PaginatedBookingsResponseDTO> SearchBookingsAsync(BookingSearchDTO searchDto);
+        
+        // Hotel xem booking của khách sạn với phân trang
+        Task<PaginatedBookingsResponseDTO> GetHotelBookingsPaginatedAsync(Guid hotelId, Guid userId, int page = 1, int limit = 10, string? status = null);
+        
+        // Kiểm tra phòng có sẵn nâng cao
+        Task<RoomAvailabilityResponseDTO> CheckRoomAvailabilityAsync(RoomAvailabilityCheckDTO checkDto);
+        
+        // Thống kê booking
+        Task<BookingStatsDTO> GetBookingStatsAsync(Guid? hotelId = null, DateTime? fromDate = null, DateTime? toDate = null);
+        
+        // Cập nhật trạng thái thanh toán booking
+        Task<bool> UpdateBookingPaymentStatusAsync(Guid billId, string paymentStatus);
     }
 }

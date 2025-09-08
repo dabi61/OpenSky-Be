@@ -24,6 +24,18 @@ namespace BE_OPENSKY.DTOs
     public DateTime CreatedAt { get; set; }
 }
 
+// DTO cho phân trang danh sách users
+public class PaginatedUsersResponseDTO
+{
+    public List<UserResponseDTO> Users { get; set; } = new();
+    public int CurrentPage { get; set; }
+    public int PageSize { get; set; }
+    public int TotalUsers { get; set; }
+    public int TotalPages { get; set; }
+    public bool HasNextPage { get; set; }
+    public bool HasPreviousPage { get; set; }
+}
+
 // DTO cho việc tạo tài khoản bởi Admin/Supervisor
 public class CreateUserDTO
 {

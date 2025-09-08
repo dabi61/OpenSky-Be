@@ -108,6 +108,7 @@ namespace BE_OPENSKY.DTOs
         // Payment info
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
+        public Guid? BillID { get; set; } // Thêm BillID
         
         // Timestamps
         public DateTime CreatedAt { get; set; }
@@ -146,11 +147,29 @@ namespace BE_OPENSKY.DTOs
         public string? GuestEmail { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
+        public Guid? BillID { get; set; } // Thêm BillID
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
 
-    // DTO cho danh sách booking
+    // DTO cho danh sách booking (chỉ các trường cơ bản)
+    public class BookingSummaryDTO
+    {
+        public Guid BookingID { get; set; }
+        public string HotelName { get; set; } = string.Empty;
+        public string RoomName { get; set; } = string.Empty;
+        public string RoomType { get; set; } = string.Empty;
+        public DateTime CheckInDate { get; set; }
+        public DateTime CheckOutDate { get; set; }
+        public decimal TotalPrice { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string GuestName { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = string.Empty;
+        public Guid? BillID { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    // DTO cho danh sách booking (chi tiết đầy đủ)
     public class BookingListDTO
     {
         public List<BookingResponseDTO> Bookings { get; set; } = new();
@@ -193,7 +212,7 @@ namespace BE_OPENSKY.DTOs
     // DTO cho phân trang danh sách booking (tổng quát)
     public class PaginatedBookingsResponseDTO
     {
-        public List<BookingResponseDTO> Bookings { get; set; } = new();
+        public List<BookingSummaryDTO> Bookings { get; set; } = new();
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
         public int TotalBookings { get; set; }
@@ -277,48 +296,6 @@ namespace BE_OPENSKY.DTOs
         public decimal Revenue { get; set; }
     }
 
-    // DTO cho VNPay payment
-    public class VNPayPaymentRequestDTO
-    {
-        [Required]
-        public Guid BillId { get; set; }
-        
-        [Required]
-        public decimal Amount { get; set; }
-        
-        [StringLength(500)]
-        public string? OrderDescription { get; set; }
-        
-        [StringLength(100)]
-        public string? OrderType { get; set; } = "hotel_booking";
-        
-        [StringLength(255)]
-        public string? ReturnUrl { get; set; }
-    }
-
-    public class VNPayPaymentResponseDTO
-    {
-        public string PaymentUrl { get; set; } = string.Empty;
-        public string TransactionId { get; set; } = string.Empty;
-        public string OrderId { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-        public string OrderDescription { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-    }
-
-    public class VNPayCallbackDTO
-    {
-        public string vnp_TxnRef { get; set; } = string.Empty;
-        public string vnp_Amount { get; set; } = string.Empty;
-        public string vnp_ResponseCode { get; set; } = string.Empty;
-        public string vnp_TransactionStatus { get; set; } = string.Empty;
-        public string vnp_OrderInfo { get; set; } = string.Empty;
-        public string vnp_PayDate { get; set; } = string.Empty;
-        public string vnp_TransactionNo { get; set; } = string.Empty;
-        public string vnp_BankCode { get; set; } = string.Empty;
-        public string vnp_CardType { get; set; } = string.Empty;
-        public string vnp_SecureHash { get; set; } = string.Empty;
-    }
 
     public class PaymentResultDTO
     {
@@ -328,5 +305,29 @@ namespace BE_OPENSKY.DTOs
         public decimal Amount { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public DateTime PaymentDate { get; set; }
+    }
+
+    // DTO cho QR Payment (Test đơn giản)
+    public class QRPaymentRequestDTO
+    {
+        [Required]
+        public Guid BillId { get; set; }
+    }
+
+    public class QRPaymentResponseDTO
+    {
+        public string QRCode { get; set; } = string.Empty;
+        public string PaymentUrl { get; set; } = string.Empty;
+        public Guid BillId { get; set; }
+        public decimal Amount { get; set; }
+        public string OrderDescription { get; set; } = string.Empty;
+        public DateTime ExpiresAt { get; set; }
+    }
+
+    public class QRPaymentStatusDTO
+    {
+        public string Status { get; set; } = string.Empty; // "Pending", "Paid", "Expired"
+        public string Message { get; set; } = string.Empty;
+        public DateTime? PaidAt { get; set; }
     }
 }

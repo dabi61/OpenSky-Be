@@ -45,5 +45,11 @@ namespace BE_OPENSKY.Services
         
         // Cập nhật trạng thái thanh toán booking
         Task<bool> UpdateBookingPaymentStatusAsync(Guid billId, string paymentStatus);
+        
+        // Cập nhật trạng thái booking
+        Task<bool> UpdateBookingStatusAsync(Guid billId, string status);
+        
+        // Tạo QR code thanh toán (test đơn giản)
+        Task<QRPaymentResponseDTO> CreateQRPaymentAsync(Guid billId);
     }
 }

@@ -459,20 +459,20 @@ namespace BE_OPENSKY.Endpoints
             .Produces(403)
             .RequireAuthorization();
 
-            // 12. Test endpoint để kiểm tra toàn bộ luồng booking với thanh toán
-            bookingGroup.MapGet("/test-complete-flow", async ([FromServices] IBookingService bookingService, [FromServices] IBillService billService, [FromServices] IVNPayService vnPayService) =>
+            // 12. Test endpoint để kiểm tra toàn bộ luồng booking với QR Payment
+            bookingGroup.MapGet("/test-complete-flow", async ([FromServices] IBookingService bookingService, [FromServices] IBillService billService, [FromServices] IQRPaymentService qrPaymentService) =>
             {
                 try
                 {
                     var testData = new
                     {
-                        Message = "Luồng Booking hoàn chỉnh với VNPay đã sẵn sàng",
+                        Message = "Luồng Booking hoàn chỉnh với QR Payment đã sẵn sàng",
                         CompleteFlow = new[]
                         {
                             "1. Customer đặt phòng → POST /api/bookings → Status: Pending",
                             "2. Hotel xác nhận → PUT /api/bookings/{id}/confirm → Status: Confirmed + Tạo Bill",
-                            "3. Customer thanh toán → POST /api/payments/vnpay/create → Tạo URL VNPay",
-                            "4. VNPay callback → GET /api/payments/vnpay-callback → Cập nhật Bill Status: Paid",
+                            "3. Customer tạo QR code → POST /api/payments/qr/create → Tạo QR code",
+                            "4. Quét QR code → GET /api/payments/qr/scan → Thanh toán thành công",
                             "5. Hoàn thành → PUT /api/bookings/{id}/status → Status: Completed"
                         },
                         Endpoints = new
@@ -487,23 +487,18 @@ namespace BE_OPENSKY.Endpoints
                             },
                             Payment = new[]
                             {
-                                "POST /api/payments/vnpay/create - Tạo URL thanh toán",
-                                "GET /api/payments/vnpay-callback - Callback từ VNPay",
-                                "GET /api/payments/status/{transactionId} - Kiểm tra trạng thái",
-                                "GET /api/payments/bills - Danh sách hóa đơn",
+                                "POST /api/payments/qr/create - Tạo QR code thanh toán",
+                                "GET /api/payments/qr/scan - Quét QR code thanh toán",
+                                "GET /api/payments/qr/status/{billId} - Kiểm tra trạng thái",
                                 "GET /api/payments/bills/{id} - Chi tiết hóa đơn"
                             }
                         },
-                        VNPayConfig = new
+                        QRPaymentFeatures = new
                         {
-                            SandboxMode = true,
-                            TestCards = new[]
-                            {
-                                "9704198526191432198 - NCB",
-                                "9704220199999999999 - VietinBank",
-                                "9704366699999999999 - Vietcombank"
-                            },
-                            TestAmount = "100000 VND (1,000,000 xu)"
+                            SimpleTest = "Chỉ cần quét QR code là thanh toán thành công",
+                            NoRealPayment = "Không cần thẻ thật, chỉ test đơn giản",
+                            AutoExpire = "QR code hết hạn sau 15 phút",
+                            HTMLResult = "Hiển thị kết quả thanh toán đẹp"
                         },
                         ValidationRules = new
                         {
@@ -527,7 +522,7 @@ namespace BE_OPENSKY.Endpoints
                 }
             })
             .WithName("TestCompleteBookingFlow")
-            .WithSummary("Test luồng booking hoàn chỉnh với VNPay")
+            .WithSummary("Test luồng booking hoàn chỉnh với QR Payment")
             .WithDescription("Endpoint để kiểm tra toàn bộ luồng booking từ đặt phòng đến thanh toán")
             .Produces(200)
             .AllowAnonymous();

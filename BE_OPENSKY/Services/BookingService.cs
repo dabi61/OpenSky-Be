@@ -472,29 +472,20 @@ namespace BE_OPENSKY.Services
                 .OrderByDescending(b => b.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
-                .Select(b => new BookingResponseDTO
+                .Select(b => new BookingSummaryDTO
                 {
                     BookingID = b.BookingID,
-                    UserID = b.UserID,
-                    UserName = b.User.FullName,
-                    BookingType = b.BookingType,
-                    HotelID = b.HotelID,
                     HotelName = b.Hotel != null ? b.Hotel.HotelName : "",
-                    RoomID = b.RoomID,
                     RoomName = b.Room != null ? b.Room.RoomName : "",
                     RoomType = b.Room != null ? b.Room.RoomType : "",
                     CheckInDate = b.CheckInDate,
                     CheckOutDate = b.CheckOutDate,
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
-                    Notes = b.Notes,
-                    GuestName = b.GuestName,
-                    GuestPhone = b.GuestPhone,
-                    GuestEmail = b.GuestEmail,
-                    PaymentMethod = b.PaymentMethod,
-                    PaymentStatus = b.PaymentStatus,
-                    CreatedAt = b.CreatedAt,
-                    UpdatedAt = b.UpdatedAt
+                    GuestName = b.GuestName ?? "",
+                    PaymentStatus = b.PaymentStatus ?? "",
+                    BillID = b.BillID,
+                    CreatedAt = b.CreatedAt
                 })
                 .ToListAsync();
 
@@ -594,29 +585,20 @@ namespace BE_OPENSKY.Services
             var bookings = await query
                 .Skip((searchDto.Page - 1) * searchDto.Limit)
                 .Take(searchDto.Limit)
-                .Select(b => new BookingResponseDTO
+                .Select(b => new BookingSummaryDTO
                 {
                     BookingID = b.BookingID,
-                    UserID = b.UserID,
-                    UserName = b.User.FullName,
-                    BookingType = b.BookingType,
-                    HotelID = b.HotelID,
                     HotelName = b.Hotel != null ? b.Hotel.HotelName : "",
-                    RoomID = b.RoomID,
                     RoomName = b.Room != null ? b.Room.RoomName : "",
                     RoomType = b.Room != null ? b.Room.RoomType : "",
                     CheckInDate = b.CheckInDate,
                     CheckOutDate = b.CheckOutDate,
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
-                    Notes = b.Notes,
-                    GuestName = b.GuestName,
-                    GuestPhone = b.GuestPhone,
-                    GuestEmail = b.GuestEmail,
-                    PaymentMethod = b.PaymentMethod,
-                    PaymentStatus = b.PaymentStatus,
-                    CreatedAt = b.CreatedAt,
-                    UpdatedAt = b.UpdatedAt
+                    GuestName = b.GuestName ?? "",
+                    PaymentStatus = b.PaymentStatus ?? "",
+                    BillID = b.BillID,
+                    CreatedAt = b.CreatedAt
                 })
                 .ToListAsync();
 
@@ -690,6 +672,7 @@ namespace BE_OPENSKY.Services
                     GuestEmail = b.GuestEmail ?? string.Empty,
                     PaymentMethod = b.PaymentMethod,
                     PaymentStatus = b.PaymentStatus,
+                    BillID = b.BillID,
                     CreatedAt = b.CreatedAt,
                     UpdatedAt = b.UpdatedAt
                 })
@@ -876,6 +859,59 @@ namespace BE_OPENSKY.Services
 
                 await _context.SaveChangesAsync();
                 return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<QRPaymentResponseDTO> CreateQRPaymentAsync(Guid billId)
+        {
+            // Kiểm tra Bill có tồn tại không
+            var bill = await _context.Bills
+                .FirstOrDefaultAsync(b => b.BillID == billId);
+
+            if (bill == null)
+                throw new ArgumentException("Không tìm thấy hóa đơn");
+
+            // Tạo QR code đơn giản
+            var qrCode = $"QR_PAY_{billId}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+            var paymentUrl = $"https://localhost:7006/api/payments/qr/scan?code={qrCode}";
+            var expiresAt = DateTime.UtcNow.AddMinutes(15);
+
+            return new QRPaymentResponseDTO
+            {
+                QRCode = qrCode,
+                PaymentUrl = paymentUrl,
+                BillId = billId,
+                Amount = bill.TotalPrice,
+                OrderDescription = $"Thanh toán hóa đơn #{billId}",
+                ExpiresAt = expiresAt
+            };
+        }
+
+        public async Task<bool> UpdateBookingStatusAsync(Guid billId, string status)
+        {
+            try
+            {
+                // Tìm booking theo BillID
+                var booking = await _context.Bookings
+                    .FirstOrDefaultAsync(b => b.BillID == billId);
+
+                if (booking == null)
+                    return false;
+
+                // Cập nhật trạng thái
+                if (Enum.TryParse<BookingStatus>(status, true, out var bookingStatus))
+                {
+                    booking.Status = bookingStatus;
+                    booking.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+
+                return false;
             }
             catch
             {

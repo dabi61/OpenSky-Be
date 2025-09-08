@@ -13,10 +13,6 @@ namespace BE_OPENSKY.DTOs
         
         [Required]
         public DateTime CheckOutDate { get; set; }
-        
-        [Required]
-        [Range(1, 10)]
-        public int NumberOfGuests { get; set; }
     }
 
     // DTO cho internal use (có đầy đủ thông tin guest)
@@ -30,10 +26,6 @@ namespace BE_OPENSKY.DTOs
         
         [Required]
         public DateTime CheckOutDate { get; set; }
-        
-        [Required]
-        [Range(1, 10)]
-        public int NumberOfGuests { get; set; }
         
         // Các field này sẽ được tự động điền từ user đã đăng nhập
         [StringLength(100)]
@@ -96,7 +88,6 @@ namespace BE_OPENSKY.DTOs
         // Booking info
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
-        public int NumberOfGuests { get; set; }
         public decimal TotalPrice { get; set; }
         public string Status { get; set; } = string.Empty;
         

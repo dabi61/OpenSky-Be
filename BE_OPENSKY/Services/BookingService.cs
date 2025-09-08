@@ -28,7 +28,7 @@ namespace BE_OPENSKY.Services
                 throw new InvalidOperationException("Phòng không có sẵn để đặt");
 
             // Kiểm tra ngày check-in phải sau ngày hiện tại
-            if (createBookingDto.CheckInDate <= DateTime.UtcNow)
+            if (createBookingDto.CheckInDate <= DateTime.UtcNow.Date)
                 throw new InvalidOperationException("Ngày check-in phải sau ngày hiện tại");
 
             // Kiểm tra ngày check-out phải sau check-in
@@ -201,11 +201,8 @@ namespace BE_OPENSKY.Services
                 booking.Status = BookingStatus.Confirmed;
                 booking.UpdatedAt = DateTime.UtcNow;
 
-                // Cập nhật trạng thái phòng
-                if (booking.Room != null)
-                {
-                    booking.Room.Status = RoomStatus.Occupied;
-                }
+                // KHÔNG cập nhật RoomStatus ở đây
+                // Phòng chỉ chuyển thành Occupied khi khách check-in thực sự
 
                 // Tạo Bill
                 var bill = new Bill
@@ -664,7 +661,6 @@ namespace BE_OPENSKY.Services
                     RoomType = b.Room.RoomType ?? string.Empty,
                     CheckInDate = b.CheckInDate,
                     CheckOutDate = b.CheckOutDate,
-                    NumberOfGuests = 1, // Default value since NumberOfGuests doesn't exist in Booking model
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
                     GuestName = b.GuestName ?? string.Empty,
@@ -912,6 +908,70 @@ namespace BE_OPENSKY.Services
                 }
 
                 return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> CheckInBookingAsync(Guid bookingId, Guid userId)
+        {
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Room)
+                    .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId);
+
+                if (booking == null)
+                    return false;
+
+                // Chỉ cho phép check-in nếu booking đã confirmed và đã thanh toán
+                if (booking.Status != BookingStatus.Confirmed || booking.PaymentStatus != "Paid")
+                    return false;
+
+                // Cập nhật trạng thái booking
+                booking.Status = BookingStatus.Completed;
+                booking.UpdatedAt = DateTime.UtcNow;
+
+                // Cập nhật trạng thái phòng thành Occupied
+                if (booking.Room != null)
+                {
+                    booking.Room.Status = RoomStatus.Occupied;
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> CheckOutBookingAsync(Guid bookingId, Guid userId)
+        {
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Room)
+                    .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId);
+
+                if (booking == null)
+                    return false;
+
+                // Chỉ cho phép check-out nếu booking đã completed
+                if (booking.Status != BookingStatus.Completed)
+                    return false;
+
+                // Cập nhật trạng thái phòng thành Available
+                if (booking.Room != null)
+                {
+                    booking.Room.Status = RoomStatus.Available;
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
             }
             catch
             {

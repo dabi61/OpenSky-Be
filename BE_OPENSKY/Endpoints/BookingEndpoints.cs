@@ -31,13 +31,12 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 404);
                     }
 
-                    // Tạo DTO đầy đủ với thông tin guest
+                    // Tạo DTO đầy đủ với thông tin guest (chỉ lấy phần ngày)
                     var createDto = new CreateHotelBookingDTO
                     {
                         RoomID = requestDto.RoomID,
-                        CheckInDate = requestDto.CheckInDate,
-                        CheckOutDate = requestDto.CheckOutDate,
-                        NumberOfGuests = requestDto.NumberOfGuests,
+                        CheckInDate = requestDto.CheckInDate.Date, // Chỉ lấy ngày, bỏ thời gian
+                        CheckOutDate = requestDto.CheckOutDate.Date, // Chỉ lấy ngày, bỏ thời gian
                         GuestName = userProfile.FullName,
                         GuestPhone = userProfile.PhoneNumber ?? string.Empty,
                         GuestEmail = userProfile.Email
@@ -367,7 +366,7 @@ namespace BE_OPENSKY.Endpoints
             .RequireAuthorization("SupervisorOrAdmin");
 
             // 10. Tìm kiếm booking
-            bookingGroup.MapPost("/search", async ([FromBody] BookingSearchDTO searchDto, [FromServices] IBookingService bookingService, HttpContext context) =>
+            bookingGroup.MapGet("/search", async ([FromServices] IBookingService bookingService, HttpContext context, [FromQuery] string? query = null, [FromQuery] string? status = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] Guid? hotelId = null, [FromQuery] Guid? roomId = null, [FromQuery] int page = 1, [FromQuery] int limit = 10) =>
             {
                 try
                 {
@@ -376,6 +375,18 @@ namespace BE_OPENSKY.Endpoints
                     {
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
                     }
+
+                    var searchDto = new BookingSearchDTO
+                    {
+                        Query = query,
+                        Status = status,
+                        FromDate = fromDate,
+                        ToDate = toDate,
+                        HotelId = hotelId,
+                        RoomId = roomId,
+                        Page = page,
+                        Limit = limit
+                    };
 
                     var result = await bookingService.SearchBookingsAsync(searchDto);
                     return Results.Ok(result);
@@ -419,7 +430,83 @@ namespace BE_OPENSKY.Endpoints
             .Produces<RoomAvailabilityResponseDTO>(200)
             .RequireAuthorization();
 
-            // 12. Thống kê booking
+            // 12. Check-in booking
+            bookingGroup.MapPut("/{bookingId:guid}/check-in", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    var success = await bookingService.CheckInBookingAsync(bookingId, userIdGuid);
+                    if (success)
+                    {
+                        return Results.Ok(new { message = "Check-in thành công" });
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { message = "Không thể check-in. Vui lòng kiểm tra trạng thái booking và thanh toán." });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("CheckInBooking")
+            .WithSummary("Check-in booking")
+            .WithDescription("Customer check-in phòng (cập nhật RoomStatus thành Occupied)")
+            .Produces(200)
+            .Produces(400)
+            .Produces(401)
+            .RequireAuthorization();
+
+            // 13. Check-out booking
+            bookingGroup.MapPut("/{bookingId:guid}/check-out", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    var success = await bookingService.CheckOutBookingAsync(bookingId, userIdGuid);
+                    if (success)
+                    {
+                        return Results.Ok(new { message = "Check-out thành công" });
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { message = "Không thể check-out. Vui lòng kiểm tra trạng thái booking." });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("CheckOutBooking")
+            .WithSummary("Check-out booking")
+            .WithDescription("Customer check-out phòng (cập nhật RoomStatus thành Available)")
+            .Produces(200)
+            .Produces(400)
+            .Produces(401)
+            .RequireAuthorization();
+
+            // 14. Thống kê booking
             bookingGroup.MapGet("/stats", async ([FromServices] IBookingService bookingService, HttpContext context, Guid? hotelId = null, DateTime? fromDate = null, DateTime? toDate = null) =>
             {
                 try

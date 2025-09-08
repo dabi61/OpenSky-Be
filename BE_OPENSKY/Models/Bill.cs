@@ -28,6 +28,7 @@ namespace BE_OPENSKY.Models
         public BillStatus Status { get; set; } = BillStatus.Pending; // Trạng thái: Chờ(Pending), Đã thanh toán(Paid), Đã hủy(Cancelled), Đã hoàn tiền(Refunded)
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
         // Khóa ngoại đến UserVoucher (tùy chọn)
         public Guid? UserVoucherID { get; set; }

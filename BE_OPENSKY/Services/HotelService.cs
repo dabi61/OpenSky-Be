@@ -271,7 +271,8 @@ public class HotelService : IHotelService
             RoomType = createRoomDto.RoomType,
             Address = createRoomDto.Address,
             Price = createRoomDto.Price,
-            MaxPeople = createRoomDto.MaxPeople
+            MaxPeople = createRoomDto.MaxPeople,
+            Status = RoomStatus.Available // Đảm bảo phòng mới luôn có trạng thái Available
         };
 
         _context.HotelRooms.Add(room);
@@ -540,5 +541,91 @@ public class HotelService : IHotelService
             HasNextPage = searchDto.Page < totalPages,
             HasPreviousPage = searchDto.Page > 1
         };
+    }
+
+    // Quản lý trạng thái phòng
+    public async Task<bool> UpdateRoomStatusAsync(Guid roomId, Guid userId, UpdateRoomStatusDTO updateDto)
+    {
+        // Kiểm tra phòng có tồn tại không
+        var room = await _context.HotelRooms
+            .Include(r => r.Hotel)
+            .FirstOrDefaultAsync(r => r.RoomID == roomId);
+
+        if (room == null)
+        {
+            return false;
+        }
+
+        // Kiểm tra quyền sở hữu khách sạn
+        if (room.Hotel.UserID != userId)
+        {
+            return false;
+        }
+
+        // Convert string status to enum
+        if (!Enum.TryParse<RoomStatus>(updateDto.Status, true, out var roomStatus))
+        {
+            throw new ArgumentException($"Trạng thái không hợp lệ: {updateDto.Status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance");
+        }
+
+        // Cập nhật trạng thái phòng
+        room.Status = roomStatus;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<RoomStatusListDTO> GetRoomStatusListAsync(Guid hotelId, string? status = null)
+    {
+        // Kiểm tra khách sạn có tồn tại không
+        var hotel = await _context.Hotels.FindAsync(hotelId);
+        if (hotel == null)
+        {
+            throw new InvalidOperationException("Không tìm thấy khách sạn");
+        }
+
+        // Query phòng theo trạng thái
+        var query = _context.HotelRooms
+            .Where(r => r.HotelID == hotelId);
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<RoomStatus>(status, true, out var roomStatus))
+            {
+                query = query.Where(r => r.Status == roomStatus);
+            }
+            else
+            {
+                throw new ArgumentException($"Trạng thái không hợp lệ: {status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance");
+            }
+        }
+
+        var rooms = await query
+            .OrderBy(r => r.RoomName)
+            .ToListAsync();
+
+        // Thống kê trạng thái
+        var allRooms = await _context.HotelRooms
+            .Where(r => r.HotelID == hotelId)
+            .ToListAsync();
+
+        var roomStatusList = new RoomStatusListDTO
+        {
+            Rooms = rooms.Select(r => new RoomStatusResponseDTO
+            {
+                RoomID = r.RoomID,
+                RoomName = r.RoomName,
+                RoomType = r.RoomType,
+                Status = r.Status.ToString(),
+                UpdatedAt = DateTime.UtcNow // Tạm thời dùng DateTime.UtcNow
+            }).ToList(),
+            TotalRooms = allRooms.Count,
+            AvailableRooms = allRooms.Count(r => r.Status == RoomStatus.Available),
+            OccupiedRooms = allRooms.Count(r => r.Status == RoomStatus.Occupied),
+            MaintenanceRooms = allRooms.Count(r => r.Status == RoomStatus.Maintenance),
+            OutOfOrderRooms = 0 // Tạm thời set = 0 vì không có OutOfOrder
+        };
+
+        return roomStatusList;
     }
 }

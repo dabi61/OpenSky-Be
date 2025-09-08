@@ -169,6 +169,53 @@ public class UserService : IUserService
         return users;
     }
 
+    public async Task<PaginatedUsersResponseDTO> GetUsersPaginatedAsync(int page = 1, int limit = 10, string? role = null)
+    {
+        // Validate pagination parameters
+        page = Math.Max(1, page);
+        limit = Math.Max(1, Math.Min(100, limit)); // Giới hạn tối đa 100 items per page
+
+        var query = _context.Users.AsQueryable();
+
+        // Lọc theo role nếu có
+        if (!string.IsNullOrEmpty(role))
+        {
+            query = query.Where(u => u.Role == role);
+        }
+
+        // Đếm tổng số users
+        var totalUsers = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalUsers / limit);
+
+        // Lấy users với phân trang
+        var users = await query
+            .OrderBy(u => u.CreatedAt)
+            .Skip((page - 1) * limit)
+            .Take(limit)
+            .Select(u => new UserResponseDTO
+            {
+                UserID = u.UserID,
+                Email = u.Email,
+                FullName = u.FullName,
+                Role = u.Role,
+                PhoneNumber = u.PhoneNumber,
+                AvatarURL = u.AvatarURL,
+                CreatedAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        return new PaginatedUsersResponseDTO
+        {
+            Users = users,
+            CurrentPage = page,
+            PageSize = limit,
+            TotalUsers = totalUsers,
+            TotalPages = totalPages,
+            HasNextPage = page < totalPages,
+            HasPreviousPage = page > 1
+        };
+    }
+
     public async Task<ProfileResponseDTO?> GetProfileAsync(Guid userId)
     {
         var user = await _context.Users.FindAsync(userId);

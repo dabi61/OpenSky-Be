@@ -3,6 +3,7 @@ using System;
 using BE_OPENSKY.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BE_OPENSKY.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250906091308_AddRoomStatusToHotelRoom")]
+    partial class AddRoomStatusToHotelRoom
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,9 +53,6 @@ namespace BE_OPENSKY.Migrations
 
                     b.Property<Guid>("TypeID")
                         .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserID")
                         .HasColumnType("uuid");
@@ -106,105 +106,11 @@ namespace BE_OPENSKY.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.HasKey("BillDetailID");
 
                     b.HasIndex("BillID");
 
                     b.ToTable("BillDetails");
-                });
-
-            modelBuilder.Entity("BE_OPENSKY.Models.Booking", b =>
-                {
-                    b.Property<Guid>("BookingID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("BillID")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BookingType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime>("CheckInDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CheckOutDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("GuestEmail")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("GuestName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("GuestPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid?>("HotelID")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PaymentStatus")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("RoomID")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ScheduleID")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("TourID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserID")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("BookingID");
-
-                    b.HasIndex("BillID");
-
-                    b.HasIndex("BookingType");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("HotelID");
-
-                    b.HasIndex("RoomID");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("UserID");
-
-                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("BE_OPENSKY.Models.FeedBack", b =>
@@ -772,38 +678,6 @@ namespace BE_OPENSKY.Migrations
                         .IsRequired();
 
                     b.Navigation("Bill");
-                });
-
-            modelBuilder.Entity("BE_OPENSKY.Models.Booking", b =>
-                {
-                    b.HasOne("BE_OPENSKY.Models.Bill", "Bill")
-                        .WithMany()
-                        .HasForeignKey("BillID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("BE_OPENSKY.Models.Hotel", "Hotel")
-                        .WithMany()
-                        .HasForeignKey("HotelID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("BE_OPENSKY.Models.HotelRoom", "Room")
-                        .WithMany()
-                        .HasForeignKey("RoomID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("BE_OPENSKY.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bill");
-
-                    b.Navigation("Hotel");
-
-                    b.Navigation("Room");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BE_OPENSKY.Models.FeedBack", b =>

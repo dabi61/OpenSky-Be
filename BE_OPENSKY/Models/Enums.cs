@@ -40,4 +40,22 @@ namespace BE_OPENSKY.Models
         Active,   // Hoạt động
         Inactive  // Không hoạt động
     }
+
+    // Enum cho trạng thái phòng
+    public enum RoomStatus
+    {
+        Available,    // Có sẵn
+        Occupied,     // Đã được đặt
+        Maintenance  // Bảo trì
+    }
+
+    // Enum cho trạng thái booking
+    public enum BookingStatus
+    {
+        Pending,      // Chờ xác nhận
+        Confirmed,    // Đã xác nhận
+        Cancelled,    // Đã hủy
+        Completed,    // Hoàn thành
+        Refunded      // Đã hoàn tiền
+    }
 }

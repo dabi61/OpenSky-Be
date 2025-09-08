@@ -33,6 +33,7 @@ namespace BE_OPENSKY.Models
         public string? Notes { get; set; } // Ghi chú bổ sung
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
         // Thuộc tính điều hướng
         public virtual Bill Bill { get; set; } = null!;

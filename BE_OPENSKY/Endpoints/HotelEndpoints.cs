@@ -1,3 +1,8 @@
+using BE_OPENSKY.DTOs;
+using BE_OPENSKY.Services;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 namespace BE_OPENSKY.Endpoints;
 
 public static class HotelEndpoints
@@ -9,7 +14,7 @@ public static class HotelEndpoints
             .WithOpenApi();
 
         // 1. Cập nhật thông tin khách sạn
-        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, UpdateHotelDTO updateDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, [FromBody] UpdateHotelDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -52,7 +57,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 2. Thêm nhiều ảnh cho khách sạn - Smart endpoint (giống profile avatar)
-        hotelGroup.MapPost("/{hotelId:guid}/images", async (Guid hotelId, HttpContext context, IHotelService hotelService, ICloudinaryService cloudinaryService) =>
+        hotelGroup.MapPost("/{hotelId:guid}/images", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -232,7 +237,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 3. Thêm phòng mới cho khách sạn
-        hotelGroup.MapPost("/{hotelId:guid}/rooms", async (Guid hotelId, CreateRoomDTO createRoomDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPost("/{hotelId:guid}/rooms", async (Guid hotelId, [FromBody] CreateRoomDTO createRoomDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -297,7 +302,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 4. Thêm nhiều ảnh cho phòng - Smart endpoint (giống profile avatar)
-        hotelGroup.MapPost("/rooms/{roomId:guid}/images", async (Guid roomId, HttpContext context, IHotelService hotelService, ICloudinaryService cloudinaryService) =>
+        hotelGroup.MapPost("/rooms/{roomId:guid}/images", async (Guid roomId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -477,7 +482,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 5. Xem chi tiết khách sạn (với phân trang phòng)
-        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, IHotelService hotelService, int page = 1, int limit = 10) =>
+        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
         {
             try
             {
@@ -506,7 +511,7 @@ public static class HotelEndpoints
         .Produces(404);
 
         // 6. Xem chi tiết phòng
-        hotelGroup.MapGet("/rooms/{roomId:guid}", async (Guid roomId, IHotelService hotelService) =>
+        hotelGroup.MapGet("/rooms/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService) =>
         {
             try
             {
@@ -532,7 +537,7 @@ public static class HotelEndpoints
         .Produces(404);
 
         // 7. Danh sách phòng có phân trang (endpoint riêng)
-        hotelGroup.MapGet("/{hotelId:guid}/rooms", async (Guid hotelId, IHotelService hotelService, int page = 1, int limit = 10) =>
+        hotelGroup.MapGet("/{hotelId:guid}/rooms", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
         {
             try
             {
@@ -558,7 +563,7 @@ public static class HotelEndpoints
         .Produces<PaginatedRoomsResponseDTO>(200);
 
         // Bonus: Cập nhật thông tin phòng
-        hotelGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, UpdateRoomDTO updateDto, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, [FromBody] UpdateRoomDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -601,7 +606,7 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
         // Bonus: Xóa phòng
-        hotelGroup.MapDelete("/rooms/{roomId:guid}", async (Guid roomId, IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapDelete("/rooms/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -728,14 +733,136 @@ public static class HotelEndpoints
         .Produces(500)
         .AllowAnonymous(); // Public endpoint - không cần authentication
 
-    }
+        // 9. Cập nhật trạng thái phòng
+        hotelGroup.MapPut("/rooms/{roomId:guid}/status", async (Guid roomId, [FromBody] UpdateRoomStatusDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
 
-    private static bool IsImageContentType(string? contentType)
-    {
-        if (string.IsNullOrEmpty(contentType))
-            return false;
-            
-        return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-    }
+                // Kiểm tra quyền Hotel
+                if (!context.User.IsInRole(RoleConstants.Hotel))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
 
+                // Cập nhật trạng thái phòng
+                var success = await hotelService.UpdateRoomStatusAsync(roomId, userId, updateDto);
+                
+                return success 
+                    ? Results.Ok(new { message = "Cập nhật trạng thái phòng thành công" })
+                    : Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi cập nhật trạng thái phòng",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateRoomStatus")
+        .WithSummary("Cập nhật trạng thái phòng")
+        .WithDescription("Chủ khách sạn có thể cập nhật trạng thái phòng (Available, Occupied, Maintenance)")
+        .Produces(200)
+        .Produces(401)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("HotelOnly");
+
+        // 10. Xem danh sách phòng theo trạng thái
+        hotelGroup.MapGet("/{hotelId:guid}/rooms/status", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, string? status = null) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                // Kiểm tra quyền Hotel
+                if (!context.User.IsInRole(RoleConstants.Hotel))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Kiểm tra quyền sở hữu khách sạn
+                var isOwner = await hotelService.IsHotelOwnerAsync(hotelId, userId);
+                if (!isOwner)
+                {
+                    return Results.Json(new { message = "Bạn không có quyền xem phòng của khách sạn này" }, statusCode: 403);
+                }
+
+                var roomStatusList = await hotelService.GetRoomStatusListAsync(hotelId, status);
+                return Results.Ok(roomStatusList);
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi lấy danh sách trạng thái phòng",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetRoomStatusList")
+        .WithSummary("Xem danh sách phòng theo trạng thái")
+        .WithDescription("Chủ khách sạn có thể xem danh sách phòng theo trạng thái (có thể lọc theo status)")
+        .Produces<RoomStatusListDTO>(200)
+        .Produces(401)
+        .Produces(403)
+        .RequireAuthorization("HotelOnly");
+
+            // 11. Hotel xem danh sách booking
+            hotelGroup.MapGet("/{hotelId:guid}/bookings", async (Guid hotelId, [FromServices] IBookingService bookingService, HttpContext context) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    var bookings = await bookingService.GetHotelBookingsAsync(hotelId, userIdGuid);
+                    return Results.Ok(bookings);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    return Results.Json(new { message = ex.Message }, statusCode: 403);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetHotelBookings")
+            .WithSummary("Xem danh sách booking của khách sạn")
+            .WithDescription("Hotel xem danh sách booking của khách sạn mình")
+            .Produces<BookingListDTO>(200)
+            .Produces(401)
+            .Produces(403)
+            .RequireAuthorization("HotelOnly");
+        }
+
+        private static bool IsImageContentType(string? contentType)
+        {
+            if (string.IsNullOrEmpty(contentType))
+                return false;
+                
+            return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+    
 }

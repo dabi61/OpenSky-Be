@@ -23,6 +23,7 @@ global using BE_OPENSKY.Endpoints;
 global using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Http.Features;
+global using Microsoft.AspNetCore.Mvc.ModelBinding;
 global using Microsoft.OpenApi.Models;
 global using Npgsql;
 global using StackExchange.Redis;

@@ -9,7 +9,7 @@ public static class AuthEndpoints
             .WithOpenApi();
 
         // Đăng ký người dùng
-        authGroup.MapPost("/register", async (UserRegisterDTO userDto, IUserService userService) =>
+        authGroup.MapPost("/register", async ([FromBody] UserRegisterDTO userDto, [FromServices] IUserService userService) =>
         {
             try
             {
@@ -56,7 +56,7 @@ public static class AuthEndpoints
         .Produces(400);
 
         // Đăng nhập người dùng với hỗ trợ phiên
-        authGroup.MapPost("/login", async (LoginRequestDTO loginDto, IUserService userService, ISessionService sessionService, JwtHelper jwtHelper, HttpContext context) =>
+        authGroup.MapPost("/login", async ([FromBody] LoginRequestDTO loginDto, [FromServices] IUserService userService, [FromServices] ISessionService sessionService, [FromServices] JwtHelper jwtHelper, HttpContext context) =>
         {
             try
             {
@@ -115,7 +115,7 @@ public static class AuthEndpoints
         .Produces(401);
 
         // Đổi mật khẩu
-        authGroup.MapPost("/change-password", async (ChangePasswordDTO changePasswordDto, IUserService userService, HttpContext context) =>
+        authGroup.MapPost("/change-password", async ([FromBody] ChangePasswordDTO changePasswordDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {
@@ -162,7 +162,7 @@ public static class AuthEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
         // Endpoint làm mới token
-        authGroup.MapPost("/refresh", async (RefreshTokenRequestDTO request, ISessionService sessionService, JwtHelper jwtHelper) =>
+        authGroup.MapPost("/refresh", async ([FromBody] RefreshTokenRequestDTO request, [FromServices] ISessionService sessionService, [FromServices] JwtHelper jwtHelper) =>
         {
             try
             {
@@ -210,7 +210,7 @@ public static class AuthEndpoints
         AddPasswordResetEndpoints(authGroup);
 
         // Endpoint đăng xuất
-        authGroup.MapPost("/logout", async (LogoutRequestDTO request, ISessionService sessionService) =>
+        authGroup.MapPost("/logout", async ([FromBody] LogoutRequestDTO request, [FromServices] ISessionService sessionService) =>
         {
             try
             {
@@ -265,7 +265,7 @@ public static class AuthEndpoints
     private static void AddPasswordResetEndpoints(RouteGroupBuilder authGroup)
     {
         // Quên mật khẩu
-        authGroup.MapPost("/forgot-password", async (ForgotPasswordDTO forgotPasswordDto, IPasswordResetService passwordResetService, IEmailService emailService) =>
+        authGroup.MapPost("/forgot-password", async ([FromBody] ForgotPasswordDTO forgotPasswordDto, [FromServices] IPasswordResetService passwordResetService, [FromServices] IEmailService emailService) =>
         {
             try
             {
@@ -317,7 +317,7 @@ public static class AuthEndpoints
         .Produces(500);
 
         // Reset mật khẩu
-        authGroup.MapPost("/reset-password", async (ResetPasswordDTO resetPasswordDto, IPasswordResetService passwordResetService) =>
+        authGroup.MapPost("/reset-password", async ([FromBody] ResetPasswordDTO resetPasswordDto, [FromServices] IPasswordResetService passwordResetService) =>
         {
             try
             {
@@ -368,7 +368,7 @@ public static class AuthEndpoints
         .Produces(500);
 
         // Validate reset token
-        authGroup.MapGet("/validate-reset-token/{token}", async (string token, IPasswordResetService passwordResetService) =>
+        authGroup.MapGet("/validate-reset-token/{token}", async (string token, [FromServices] IPasswordResetService passwordResetService) =>
         {
             try
             {
@@ -399,35 +399,6 @@ public static class AuthEndpoints
         .Produces(200)
         .Produces(400)
         .Produces(500);
-
-        // Test email service
-        authGroup.MapPost("/test-email", async (IEmailService emailService) =>
-        {
-            try
-            {
-                var testSent = await emailService.SendEmailAsync(
-                    "cuongngba7@gmail.com", 
-                    "Test Email from Railway", 
-                    "<h1>Test thành công!</h1><p>Email service hoạt động trên Railway.</p>"
-                );
-                
-                return Results.Ok(new { 
-                    message = testSent ? "Email test thành công" : "Email test thất bại",
-                    sent = testSent 
-                });
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    title: "Email test failed",
-                    detail: ex.Message,
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("TestEmail")
-        .WithSummary("Test email service")
-        .WithDescription("Test email service trên Railway");
     }
 
     // Phương thức hỗ trợ để kiểm tra email hợp lệ

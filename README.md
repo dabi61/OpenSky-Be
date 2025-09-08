@@ -60,9 +60,11 @@ erDiagram
         Guid RoomID PK
         Guid HotelID FK
         string RoomName
-        int RoomType
+        string RoomType
         string Address
         decimal Price
+        int MaxPeople
+        string Status
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -76,15 +78,41 @@ erDiagram
         DateTime CreatedAt
     }
 
+    Booking {
+        Guid BookingID PK
+        Guid UserID FK
+        string BookingType
+        Guid HotelID FK
+        Guid RoomID FK
+        Guid TourID FK
+        Guid ScheduleID FK
+        DateTime CheckInDate
+        DateTime CheckOutDate
+        decimal TotalPrice
+        string Status
+        string Notes
+        string GuestName
+        string GuestPhone
+        string GuestEmail
+        string PaymentMethod
+        string PaymentStatus
+        Guid BillID FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+    }
+
     Bill {
         Guid BillID PK
         Guid UserID FK
         Guid UserVoucherID FK
         string TableType
-        string Status
+        Guid TypeID
         decimal Deposit
         decimal RefundPrice
         decimal TotalPrice
+        string Status
+        string PaymentMethod
+        string TransactionId
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -92,13 +120,15 @@ erDiagram
     BillDetail {
         Guid BillDetailID PK
         Guid BillID FK
-        Guid ItemID
         string ItemType
+        Guid ItemID
         string ItemName
         int Quantity
         decimal UnitPrice
         decimal TotalPrice
         string Notes
+        DateTime CreatedAt
+        DateTime UpdatedAt
     }
 
     Schedule {
@@ -185,14 +215,21 @@ erDiagram
     User ||--o{ Message : "sends"
     User ||--o{ Message : "receives"
     User ||--o{ Bill : "makes"
+    User ||--o{ Booking : "creates"
     User ||--o{ Schedule : "books"
     User ||--o{ FeedBack : "gives"
     User ||--o{ UserVoucher : "saves"
 
     Hotel ||--o{ HotelRoom : "contains"
+    Hotel ||--o{ Booking : "has bookings"
+
+    HotelRoom ||--o{ Booking : "booked in"
+
+    Booking ||--o{ Bill : "generates bill"
 
     Tour ||--o{ Schedule : "scheduled for"
     Tour ||--o{ TourItinerary : "has itinerary"
+    Tour ||--o{ Booking : "booked for"
 
     Bill ||--o{ BillDetail : "contains"
     Bill ||--o{ Refund : "may have"
@@ -200,6 +237,7 @@ erDiagram
     Bill }o--|| UserVoucher : "uses voucher"
 
     Schedule ||--o{ ScheduleItinerary : "has detailed itinerary"
+    Schedule ||--o{ Booking : "booked for"
 
     TourItinerary ||--o{ ScheduleItinerary : "scheduled in"
 
@@ -207,6 +245,27 @@ erDiagram
 ```
 
 Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
+
+## 📊 Các bảng mới được thêm
+
+### Booking Table
+
+- **Mục đích**: Quản lý đặt phòng khách sạn và tour
+- **Tính năng**: Hỗ trợ cả hotel booking và tour booking
+- **Trạng thái**: Pending → Confirmed → Completed
+- **Payment**: Liên kết với Bill để quản lý thanh toán
+
+### Bill & BillDetail Tables (Cập nhật)
+
+- **Bill**: Quản lý hóa đơn với payment method và transaction ID
+- **BillDetail**: Chi tiết hóa đơn với item type (Hotel/Tour)
+- **Tính năng**: Hỗ trợ voucher, refund, và payment tracking
+
+### HotelRoom Table (Cập nhật)
+
+- **RoomType**: Chuyển từ int sang string (Deluxe, Standard, Suite...)
+- **MaxPeople**: Số người tối đa cho phòng
+- **Status**: Trạng thái phòng (Available, Occupied, Maintenance)
 
 ## Authentication (/api/auth)
 

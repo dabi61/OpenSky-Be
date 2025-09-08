@@ -35,7 +35,7 @@ namespace BE_OPENSKY.Services
         Task<PaginatedBookingsResponseDTO> SearchBookingsAsync(BookingSearchDTO searchDto);
         
         // Hotel xem booking của khách sạn với phân trang
-        Task<PaginatedBookingsResponseDTO> GetHotelBookingsPaginatedAsync(Guid hotelId, Guid userId, int page = 1, int limit = 10, string? status = null);
+        Task<PaginatedHotelBookingsResponseDTO> GetHotelBookingsPaginatedAsync(Guid hotelId, Guid userId, int page = 1, int limit = 10, string? status = null);
         
         // Kiểm tra phòng có sẵn nâng cao
         Task<RoomAvailabilityResponseDTO> CheckRoomAvailabilityAsync(RoomAvailabilityCheckDTO checkDto);

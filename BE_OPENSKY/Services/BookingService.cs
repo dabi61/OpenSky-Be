@@ -51,7 +51,7 @@ namespace BE_OPENSKY.Services
                 CheckOutDate = createBookingDto.CheckOutDate,
                 TotalPrice = totalPrice,
                 Status = BookingStatus.Pending,
-                Notes = createBookingDto.Notes,
+                Notes = null, // Notes đã được bỏ khỏi DTO
                 GuestName = createBookingDto.GuestName,
                 GuestPhone = createBookingDto.GuestPhone,
                 GuestEmail = createBookingDto.GuestEmail,
@@ -632,7 +632,7 @@ namespace BE_OPENSKY.Services
             };
         }
 
-        public async Task<PaginatedBookingsResponseDTO> GetHotelBookingsPaginatedAsync(Guid hotelId, Guid userId, int page = 1, int limit = 10, string? status = null)
+        public async Task<PaginatedHotelBookingsResponseDTO> GetHotelBookingsPaginatedAsync(Guid hotelId, Guid userId, int page = 1, int limit = 10, string? status = null)
         {
             // Kiểm tra quyền sở hữu khách sạn
             var hotel = await _context.Hotels
@@ -641,7 +641,70 @@ namespace BE_OPENSKY.Services
             if (hotel == null)
                 throw new UnauthorizedAccessException("Bạn không có quyền truy cập khách sạn này");
 
-            return await GetBookingsPaginatedAsync(page, limit, status, null, hotelId);
+            // Lấy booking của hotel với phân trang
+            var query = _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Hotel)
+                .Include(b => b.Room)
+                .Where(b => b.HotelID == hotelId);
+
+            // Lọc theo trạng thái nếu có
+            if (!string.IsNullOrEmpty(status))
+            {
+                // Parse string status to enum for comparison
+                if (Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+                {
+                    query = query.Where(b => b.Status == statusEnum);
+                }
+            }
+
+            // Đếm tổng số booking
+            var totalBookings = await query.CountAsync();
+
+            // Tính phân trang
+            var totalPages = (int)Math.Ceiling((double)totalBookings / limit);
+            var skip = (page - 1) * limit;
+
+            // Lấy booking với phân trang
+            var bookings = await query
+                .OrderByDescending(b => b.CreatedAt)
+                .Skip(skip)
+                .Take(limit)
+                .Select(b => new HotelBookingResponseDTO
+                {
+                    BookingID = b.BookingID,
+                    UserID = b.UserID,
+                    UserName = b.User.FullName,
+                    HotelID = b.HotelID ?? Guid.Empty,
+                    HotelName = b.Hotel.HotelName ?? string.Empty,
+                    RoomID = b.RoomID ?? Guid.Empty,
+                    RoomName = b.Room.RoomName ?? string.Empty,
+                    RoomType = b.Room.RoomType ?? string.Empty,
+                    CheckInDate = b.CheckInDate,
+                    CheckOutDate = b.CheckOutDate,
+                    NumberOfGuests = 1, // Default value since NumberOfGuests doesn't exist in Booking model
+                    TotalPrice = b.TotalPrice,
+                    Status = b.Status.ToString(),
+                    GuestName = b.GuestName ?? string.Empty,
+                    GuestPhone = b.GuestPhone ?? string.Empty,
+                    GuestEmail = b.GuestEmail ?? string.Empty,
+                    PaymentMethod = b.PaymentMethod,
+                    PaymentStatus = b.PaymentStatus,
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt
+                })
+                .ToListAsync();
+
+            return new PaginatedHotelBookingsResponseDTO
+            {
+                Bookings = bookings,
+                CurrentPage = page,
+                PageSize = limit,
+                TotalBookings = totalBookings,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
         }
 
         public async Task<RoomAvailabilityResponseDTO> CheckRoomAvailabilityAsync(RoomAvailabilityCheckDTO checkDto)

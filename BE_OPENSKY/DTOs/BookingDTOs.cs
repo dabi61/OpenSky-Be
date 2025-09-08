@@ -2,7 +2,24 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BE_OPENSKY.DTOs
 {
-    // DTO cho tạo booking hotel
+    // DTO cho request đặt phòng (chỉ những field user cần nhập)
+    public class CreateHotelBookingRequestDTO
+    {
+        [Required]
+        public Guid RoomID { get; set; }
+        
+        [Required]
+        public DateTime CheckInDate { get; set; }
+        
+        [Required]
+        public DateTime CheckOutDate { get; set; }
+        
+        [Required]
+        [Range(1, 10)]
+        public int NumberOfGuests { get; set; }
+    }
+
+    // DTO cho internal use (có đầy đủ thông tin guest)
     public class CreateHotelBookingDTO
     {
         [Required]
@@ -14,6 +31,11 @@ namespace BE_OPENSKY.DTOs
         [Required]
         public DateTime CheckOutDate { get; set; }
         
+        [Required]
+        [Range(1, 10)]
+        public int NumberOfGuests { get; set; }
+        
+        // Các field này sẽ được tự động điền từ user đã đăng nhập
         [StringLength(100)]
         public string? GuestName { get; set; }
         
@@ -22,9 +44,6 @@ namespace BE_OPENSKY.DTOs
         
         [StringLength(100)]
         public string? GuestEmail { get; set; }
-        
-        [StringLength(500)]
-        public string? Notes { get; set; }
     }
 
     // DTO cho tạo booking tour (sẽ dùng sau)
@@ -60,6 +79,42 @@ namespace BE_OPENSKY.DTOs
     }
 
     // DTO cho phản hồi booking
+    // DTO cho response booking hotel (chỉ thông tin cần thiết)
+    public class HotelBookingResponseDTO
+    {
+        public Guid BookingID { get; set; }
+        public Guid UserID { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        
+        // Hotel info
+        public Guid HotelID { get; set; }
+        public string HotelName { get; set; } = string.Empty;
+        public Guid RoomID { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+        public string RoomType { get; set; } = string.Empty;
+        
+        // Booking info
+        public DateTime CheckInDate { get; set; }
+        public DateTime CheckOutDate { get; set; }
+        public int NumberOfGuests { get; set; }
+        public decimal TotalPrice { get; set; }
+        public string Status { get; set; } = string.Empty;
+        
+        // Guest info
+        public string GuestName { get; set; } = string.Empty;
+        public string GuestPhone { get; set; } = string.Empty;
+        public string GuestEmail { get; set; } = string.Empty;
+        
+        // Payment info
+        public string? PaymentMethod { get; set; }
+        public string? PaymentStatus { get; set; }
+        
+        // Timestamps
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    // DTO cho response booking (tổng quát - có cả tour và hotel)
     public class BookingResponseDTO
     {
         public Guid BookingID { get; set; }
@@ -123,7 +178,19 @@ namespace BE_OPENSKY.DTOs
         public string? PaymentStatus { get; set; }
     }
 
-    // DTO cho phân trang danh sách booking
+    // DTO cho phân trang danh sách booking hotel (chỉ thông tin cần thiết)
+    public class PaginatedHotelBookingsResponseDTO
+    {
+        public List<HotelBookingResponseDTO> Bookings { get; set; } = new();
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public int TotalBookings { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+    }
+
+    // DTO cho phân trang danh sách booking (tổng quát)
     public class PaginatedBookingsResponseDTO
     {
         public List<BookingResponseDTO> Bookings { get; set; } = new();

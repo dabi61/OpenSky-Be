@@ -14,7 +14,7 @@ namespace BE_OPENSKY.Endpoints
                 .WithOpenApi();
 
             // 1. Customer đặt phòng
-            bookingGroup.MapPost("/", async ([FromBody] CreateHotelBookingDTO createDto, [FromServices] IBookingService bookingService, HttpContext context) =>
+            bookingGroup.MapPost("/", async ([FromBody] CreateHotelBookingRequestDTO requestDto, [FromServices] IBookingService bookingService, [FromServices] IUserService userService, HttpContext context) =>
             {
                 try
                 {
@@ -23,6 +23,25 @@ namespace BE_OPENSKY.Endpoints
                     {
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
                     }
+
+                    // Lấy thông tin user để tự động điền guest info
+                    var userProfile = await userService.GetProfileAsync(userIdGuid);
+                    if (userProfile == null)
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 404);
+                    }
+
+                    // Tạo DTO đầy đủ với thông tin guest
+                    var createDto = new CreateHotelBookingDTO
+                    {
+                        RoomID = requestDto.RoomID,
+                        CheckInDate = requestDto.CheckInDate,
+                        CheckOutDate = requestDto.CheckOutDate,
+                        NumberOfGuests = requestDto.NumberOfGuests,
+                        GuestName = userProfile.FullName,
+                        GuestPhone = userProfile.PhoneNumber ?? string.Empty,
+                        GuestEmail = userProfile.Email
+                    };
 
                     var bookingId = await bookingService.CreateHotelBookingAsync(userIdGuid, createDto);
                     return Results.Ok(new { message = "Đặt phòng thành công", bookingId });
@@ -301,7 +320,7 @@ namespace BE_OPENSKY.Endpoints
             .WithName("GetHotelBookingsPaginated")
             .WithSummary("Hotel xem booking của khách sạn với phân trang")
             .WithDescription("Hotel xem danh sách booking của khách sạn với phân trang và lọc theo trạng thái")
-            .Produces<PaginatedBookingsResponseDTO>(200)
+            .Produces<PaginatedHotelBookingsResponseDTO>(200)
             .Produces(401)
             .Produces(403)
             .RequireAuthorization("HotelOnly");

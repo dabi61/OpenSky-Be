@@ -37,6 +37,7 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Password).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Role).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.PhoneNumber).HasMaxLength(20);
                 entity.Property(e => e.CitizenId).HasMaxLength(20);
                 entity.Property(e => e.AvatarURL).HasMaxLength(500);
@@ -318,9 +319,6 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.GuestName).HasMaxLength(100);
-                entity.Property(e => e.GuestPhone).HasMaxLength(20);
-                entity.Property(e => e.GuestEmail).HasMaxLength(100);
                 entity.Property(e => e.PaymentMethod).HasMaxLength(50);
                 entity.Property(e => e.PaymentStatus).HasMaxLength(100);
 

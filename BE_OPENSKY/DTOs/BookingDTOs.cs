@@ -27,15 +27,6 @@ namespace BE_OPENSKY.DTOs
         [Required]
         public DateTime CheckOutDate { get; set; }
         
-        // Các field này sẽ được tự động điền từ user đã đăng nhập
-        [StringLength(100)]
-        public string? GuestName { get; set; }
-        
-        [StringLength(20)]
-        public string? GuestPhone { get; set; }
-        
-        [StringLength(100)]
-        public string? GuestEmail { get; set; }
     }
 
     // DTO cho tạo booking tour (sẽ dùng sau)
@@ -56,15 +47,6 @@ namespace BE_OPENSKY.DTOs
         [Required]
         [Range(1, 10)]
         public int NumberOfPeople { get; set; }
-        
-        [StringLength(100)]
-        public string? GuestName { get; set; }
-        
-        [StringLength(20)]
-        public string? GuestPhone { get; set; }
-        
-        [StringLength(100)]
-        public string? GuestEmail { get; set; }
         
         [StringLength(500)]
         public string? Notes { get; set; }
@@ -91,10 +73,6 @@ namespace BE_OPENSKY.DTOs
         public decimal TotalPrice { get; set; }
         public string Status { get; set; } = string.Empty;
         
-        // Guest info
-        public string GuestName { get; set; } = string.Empty;
-        public string GuestPhone { get; set; } = string.Empty;
-        public string GuestEmail { get; set; } = string.Empty;
         
         // Payment info
         public string? PaymentMethod { get; set; }
@@ -133,9 +111,6 @@ namespace BE_OPENSKY.DTOs
         public decimal TotalPrice { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
-        public string? GuestName { get; set; }
-        public string? GuestPhone { get; set; }
-        public string? GuestEmail { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
         public Guid? BillID { get; set; } // Thêm BillID
@@ -154,7 +129,6 @@ namespace BE_OPENSKY.DTOs
         public DateTime CheckOutDate { get; set; }
         public decimal TotalPrice { get; set; }
         public string Status { get; set; } = string.Empty;
-        public string GuestName { get; set; } = string.Empty;
         public string PaymentStatus { get; set; } = string.Empty;
         public Guid? BillID { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -259,7 +233,6 @@ namespace BE_OPENSKY.DTOs
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
         public string Status { get; set; } = string.Empty;
-        public string GuestName { get; set; } = string.Empty;
     }
 
     // DTO cho thống kê booking

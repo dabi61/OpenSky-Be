@@ -49,6 +49,7 @@ public class UserService : IUserService
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role,
+            Status = user.Status,
             PhoneNumber = user.PhoneNumber,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
@@ -86,6 +87,7 @@ public class UserService : IUserService
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role,
+            Status = user.Status,
             PhoneNumber = user.PhoneNumber,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
@@ -318,6 +320,51 @@ public class UserService : IUserService
         {
             throw new InvalidOperationException($"Lỗi khi reset mật khẩu: {ex.Message}", ex);
         }
+    }
+
+    // Admin methods
+    public async Task<UserResponseDTO?> GetUserByIdAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return null;
+
+        return new UserResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Status = user.Status,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            DoB = user.DoB,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public async Task<bool> UpdateUserStatusAsync(Guid userId, UserStatus status, Guid adminId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return false;
+
+        // Không cho phép Admin tự thay đổi status của mình
+        if (userId == adminId)
+        {
+            throw new ArgumentException("Không thể thay đổi trạng thái của chính mình");
+        }
+
+        // Không cho phép thay đổi status của Admin khác
+        if (user.Role == RoleConstants.Admin)
+        {
+            throw new ArgumentException("Không thể thay đổi trạng thái của Admin khác");
+        }
+
+        user.Status = status;
+        await _context.SaveChangesAsync();
+        return true;
     }
 }
 

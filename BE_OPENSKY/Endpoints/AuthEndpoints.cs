@@ -4,7 +4,7 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var authGroup = app.MapGroup("/api/auth")
+        var authGroup = app.MapGroup("/auth")
             .WithTags("Authentication")
             .WithOpenApi();
 
@@ -30,7 +30,7 @@ public static class AuthEndpoints
                     return Results.BadRequest(new { message = "Email không hợp lệ" });
 
                 var user = await userService.CreateAsync(userDto);
-                return Results.Created($"/api/users/{user.UserID}", user);
+                return Results.Created($"/users/{user.UserID}", user);
             }
             catch (InvalidOperationException ex)
             {

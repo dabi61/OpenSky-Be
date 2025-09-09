@@ -9,7 +9,7 @@ namespace BE_OPENSKY.Endpoints
     {
         public static void MapBookingEndpoints(this WebApplication app)
         {
-            var bookingGroup = app.MapGroup("/api/bookings")
+            var bookingGroup = app.MapGroup("/bookings")
                 .WithTags("Booking Management")
                 .WithOpenApi();
 
@@ -37,9 +37,6 @@ namespace BE_OPENSKY.Endpoints
                         RoomID = requestDto.RoomID,
                         CheckInDate = requestDto.CheckInDate.Date, // Chỉ lấy ngày, bỏ thời gian
                         CheckOutDate = requestDto.CheckOutDate.Date, // Chỉ lấy ngày, bỏ thời gian
-                        GuestName = userProfile.FullName,
-                        GuestPhone = userProfile.PhoneNumber ?? string.Empty,
-                        GuestEmail = userProfile.Email
                     };
 
                     var bookingId = await bookingService.CreateHotelBookingAsync(userIdGuid, createDto);
@@ -556,28 +553,28 @@ namespace BE_OPENSKY.Endpoints
                         Message = "Luồng Booking hoàn chỉnh với QR Payment đã sẵn sàng",
                         CompleteFlow = new[]
                         {
-                            "1. Customer đặt phòng → POST /api/bookings → Status: Pending",
-                            "2. Hotel xác nhận → PUT /api/bookings/{id}/confirm → Status: Confirmed + Tạo Bill",
-                            "3. Customer tạo QR code → POST /api/payments/qr/create → Tạo QR code",
-                            "4. Quét QR code → GET /api/payments/qr/scan → Thanh toán thành công",
-                            "5. Hoàn thành → PUT /api/bookings/{id}/status → Status: Completed"
+                            "1. Customer đặt phòng → POST /bookings → Status: Pending",
+                            "2. Hotel xác nhận → PUT /bookings/{id}/confirm → Status: Confirmed + Tạo Bill",
+                            "3. Customer tạo QR code → POST /payments/qr/create → Tạo QR code",
+                            "4. Quét QR code → GET /payments/qr/scan → Thanh toán thành công",
+                            "5. Hoàn thành → PUT /bookings/{id}/status → Status: Completed"
                         },
                         Endpoints = new
                         {
                             Booking = new[]
                             {
-                                "POST /api/bookings - Đặt phòng",
-                                "GET /api/bookings/my-bookings - Xem booking của mình",
-                                "PUT /api/bookings/{id}/confirm - Hotel xác nhận",
-                                "PUT /api/bookings/{id}/cancel - Hủy booking",
-                                "GET /api/bookings/{id} - Chi tiết booking"
+                                "POST /bookings - Đặt phòng",
+                                "GET /bookings/my-bookings - Xem booking của mình",
+                                "PUT /bookings/{id}/confirm - Hotel xác nhận",
+                                "PUT /bookings/{id}/cancel - Hủy booking",
+                                "GET /bookings/{id} - Chi tiết booking"
                             },
                             Payment = new[]
                             {
-                                "POST /api/payments/qr/create - Tạo QR code thanh toán",
-                                "GET /api/payments/qr/scan - Quét QR code thanh toán",
-                                "GET /api/payments/qr/status/{billId} - Kiểm tra trạng thái",
-                                "GET /api/payments/bills/{id} - Chi tiết hóa đơn"
+                                "POST /payments/qr/create - Tạo QR code thanh toán",
+                                "GET /payments/qr/scan - Quét QR code thanh toán",
+                                "GET /payments/qr/status/{billId} - Kiểm tra trạng thái",
+                                "GET /payments/bills/{id} - Chi tiết hóa đơn"
                             }
                         },
                         QRPaymentFeatures = new

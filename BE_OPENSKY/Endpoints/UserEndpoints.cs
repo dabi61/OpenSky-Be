@@ -15,7 +15,7 @@ public static class UserEndpoints
     }
     public static void MapUserEndpoints(this WebApplication app)
     {
-        var userGroup = app.MapGroup("/api/users")
+        var userGroup = app.MapGroup("/users")
             .WithTags("User Management")
             .WithOpenApi();
 
@@ -49,7 +49,7 @@ public static class UserEndpoints
                 };
 
                 var user = await userService.CreateWithRoleAsync(registerDto, RoleConstants.Supervisor);
-                return Results.Created($"/api/users/{user.UserID}", user);
+                return Results.Created($"/users/{user.UserID}", user);
             }
             catch (InvalidOperationException ex)
             {
@@ -102,7 +102,7 @@ public static class UserEndpoints
                 };
 
                 var user = await userService.CreateWithRoleAsync(registerDto, RoleConstants.TourGuide);
-                return Results.Created($"/api/users/{user.UserID}", user);
+                return Results.Created($"/users/{user.UserID}", user);
             }
             catch (InvalidOperationException ex)
             {
@@ -554,6 +554,158 @@ public static class UserEndpoints
         .Produces(401)
         .Produces(404)
         .RequireAuthorization("AuthenticatedOnly");
+
+        // Admin endpoints
+        // 1. Admin xem thông tin user theo ID
+        userGroup.MapGet("/{userId:guid}", async (Guid userId, [FromServices] IUserService userService, HttpContext context) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin
+                if (!context.User.IsInRole(RoleConstants.Admin))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                var user = await userService.GetUserByIdAsync(userId);
+                return user != null 
+                    ? Results.Ok(user)
+                    : Results.NotFound(new { message = "Không tìm thấy người dùng" });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy thông tin người dùng: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetUserById")
+        .WithSummary("Admin xem thông tin user theo ID")
+        .WithDescription("Admin có thể xem thông tin chi tiết của bất kỳ user nào theo ID")
+        .Produces<UserResponseDTO>(200)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("AdminOnly");
+
+        // 2. Admin tạo người dùng với role tùy chỉnh
+        userGroup.MapPost("/create", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin
+                if (!context.User.IsInRole(RoleConstants.Admin))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Validate input
+                if (string.IsNullOrWhiteSpace(createUserDto.Email))
+                    return Results.BadRequest(new { message = "Email không được để trống" });
+                
+                if (string.IsNullOrWhiteSpace(createUserDto.Password))
+                    return Results.BadRequest(new { message = "Mật khẩu không được để trống" });
+                
+                if (string.IsNullOrWhiteSpace(createUserDto.FullName))
+                    return Results.BadRequest(new { message = "Họ tên không được để trống" });
+
+                if (string.IsNullOrWhiteSpace(createUserDto.Role))
+                    return Results.BadRequest(new { message = "Role không được để trống" });
+
+                // Validate role
+                var validRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
+                if (!validRoles.Contains(createUserDto.Role))
+                    return Results.BadRequest(new { message = "Role không hợp lệ" });
+
+                // Tạo tài khoản với role được chỉ định
+                var registerDto = new UserRegisterDTO
+                {
+                    Email = createUserDto.Email,
+                    Password = createUserDto.Password,
+                    FullName = createUserDto.FullName
+                };
+
+                var user = await userService.CreateWithRoleAsync(registerDto, createUserDto.Role);
+                return Results.Created($"/users/{user.UserID}", user);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi tạo người dùng: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("AdminCreateUser")
+        .WithSummary("Admin tạo người dùng với role tùy chỉnh")
+        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào (Admin, Supervisor, TourGuide, Customer, Hotel)")
+        .Produces<UserResponseDTO>(201)
+        .Produces(400)
+        .Produces(403)
+        .RequireAuthorization("AdminOnly");
+
+        // 3. Admin quản lý status người dùng
+        userGroup.MapPut("/{userId:guid}/status", async (Guid userId, [FromBody] UpdateUserStatusDTO updateStatusDto, [FromServices] IUserService userService, HttpContext context) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin
+                if (!context.User.IsInRole(RoleConstants.Admin))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Validate input
+                if (!Enum.IsDefined(typeof(UserStatus), updateStatusDto.Status))
+                    return Results.BadRequest(new { message = "Status không hợp lệ" });
+
+                // Lấy Admin ID từ JWT token
+                var adminIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (adminIdClaim == null || !Guid.TryParse(adminIdClaim.Value, out var adminId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                // Không cho phép Admin tự thay đổi status của mình
+                if (userId == adminId)
+                {
+                    return Results.BadRequest(new { message = "Bạn không thể thay đổi trạng thái của chính mình" });
+                }
+
+                var success = await userService.UpdateUserStatusAsync(userId, updateStatusDto.Status, adminId);
+                
+                return success 
+                    ? Results.Ok(new { message = "Cập nhật trạng thái người dùng thành công" })
+                    : Results.NotFound(new { message = "Không tìm thấy người dùng" });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi cập nhật trạng thái người dùng: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateUserStatus")
+        .WithSummary("Admin quản lý status người dùng")
+        .WithDescription("Admin có thể thay đổi trạng thái người dùng (Active, Banned)")
+        .Produces(200)
+        .Produces(400)
+        .Produces(401)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("AdminOnly");
 
     }
 }

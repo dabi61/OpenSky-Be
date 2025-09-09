@@ -8,7 +8,7 @@ public static class HotelReviewEndpoints
 {
     public static void MapHotelReviewEndpoints(this WebApplication app)
     {
-        var reviewGroup = app.MapGroup("/api/hotels")
+        var reviewGroup = app.MapGroup("/hotels")
             .WithTags("Hotel Reviews")
             .WithOpenApi();
 

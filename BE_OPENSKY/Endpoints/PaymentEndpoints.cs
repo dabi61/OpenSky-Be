@@ -9,7 +9,7 @@ namespace BE_OPENSKY.Endpoints
     {
         public static void MapPaymentEndpoints(this IEndpointRouteBuilder app)
         {
-            var paymentGroup = app.MapGroup("/api/payments")
+            var paymentGroup = app.MapGroup("/payments")
                 .WithTags("Payments")
                 .WithOpenApi();
 

@@ -38,16 +38,6 @@ namespace BE_OPENSKY.Models
         [StringLength(500)]
         public string? Notes { get; set; }
         
-        // Guest information
-        [StringLength(100)]
-        public string? GuestName { get; set; }
-        
-        [StringLength(20)]
-        public string? GuestPhone { get; set; }
-        
-        [StringLength(100)]
-        public string? GuestEmail { get; set; }
-        
         // Payment information
         [StringLength(50)]
         public string? PaymentMethod { get; set; }

@@ -52,9 +52,6 @@ namespace BE_OPENSKY.Services
                 TotalPrice = totalPrice,
                 Status = BookingStatus.Pending,
                 Notes = null, // Notes đã được bỏ khỏi DTO
-                GuestName = createBookingDto.GuestName,
-                GuestPhone = createBookingDto.GuestPhone,
-                GuestEmail = createBookingDto.GuestEmail,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -92,9 +89,6 @@ namespace BE_OPENSKY.Services
                 TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
                 Notes = b.Notes,
-                GuestName = b.GuestName,
-                GuestPhone = b.GuestPhone,
-                GuestEmail = b.GuestEmail,
                 PaymentMethod = b.PaymentMethod,
                 PaymentStatus = b.PaymentStatus,
                 CreatedAt = b.CreatedAt,
@@ -151,9 +145,6 @@ namespace BE_OPENSKY.Services
                 TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
                 Notes = b.Notes,
-                GuestName = b.GuestName,
-                GuestPhone = b.GuestPhone,
-                GuestEmail = b.GuestEmail,
                 PaymentMethod = b.PaymentMethod,
                 PaymentStatus = b.PaymentStatus,
                 CreatedAt = b.CreatedAt,
@@ -380,9 +371,6 @@ namespace BE_OPENSKY.Services
                 TotalPrice = booking.TotalPrice,
                 Status = booking.Status.ToString(),
                 Notes = booking.Notes,
-                GuestName = booking.GuestName,
-                GuestPhone = booking.GuestPhone,
-                GuestEmail = booking.GuestEmail,
                 PaymentMethod = booking.PaymentMethod,
                 PaymentStatus = booking.PaymentStatus,
                 CreatedAt = booking.CreatedAt,
@@ -479,7 +467,6 @@ namespace BE_OPENSKY.Services
                     CheckOutDate = b.CheckOutDate,
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
-                    GuestName = b.GuestName ?? "",
                     PaymentStatus = b.PaymentStatus ?? "",
                     BillID = b.BillID,
                     CreatedAt = b.CreatedAt
@@ -516,11 +503,9 @@ namespace BE_OPENSKY.Services
             {
                 var searchTerm = searchDto.Query.ToLower();
                 query = query.Where(b => 
-                    (b.GuestName != null && b.GuestName.ToLower().Contains(searchTerm)) ||
-                    (b.GuestEmail != null && b.GuestEmail.ToLower().Contains(searchTerm)) ||
-                    (b.GuestPhone != null && b.GuestPhone.Contains(searchTerm)) ||
                     (b.User.FullName != null && b.User.FullName.ToLower().Contains(searchTerm)) ||
-                    (b.User.Email != null && b.User.Email.ToLower().Contains(searchTerm))
+                    (b.User.Email != null && b.User.Email.ToLower().Contains(searchTerm)) ||
+                    (b.User.PhoneNumber != null && b.User.PhoneNumber.Contains(searchTerm))
                 );
             }
 
@@ -592,7 +577,6 @@ namespace BE_OPENSKY.Services
                     CheckOutDate = b.CheckOutDate,
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
-                    GuestName = b.GuestName ?? "",
                     PaymentStatus = b.PaymentStatus ?? "",
                     BillID = b.BillID,
                     CreatedAt = b.CreatedAt
@@ -663,9 +647,6 @@ namespace BE_OPENSKY.Services
                     CheckOutDate = b.CheckOutDate,
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
-                    GuestName = b.GuestName ?? string.Empty,
-                    GuestPhone = b.GuestPhone ?? string.Empty,
-                    GuestEmail = b.GuestEmail ?? string.Empty,
                     PaymentMethod = b.PaymentMethod,
                     PaymentStatus = b.PaymentStatus,
                     BillID = b.BillID,
@@ -744,7 +725,6 @@ namespace BE_OPENSKY.Services
                     CheckInDate = b.CheckInDate,
                     CheckOutDate = b.CheckOutDate,
                     Status = b.Status.ToString(),
-                    GuestName = b.GuestName ?? b.User.FullName
                 })
                 .ToListAsync();
 

@@ -22,6 +22,8 @@ namespace BE_OPENSKY.Models
         [Required]
         public string Role { get; set; } = RoleConstants.Customer; // Vai trò: Supervisor, TourGuide, Admin, Customer, Hotel
         
+        public UserStatus Status { get; set; } = UserStatus.Active; // Trạng thái người dùng
+        
         public string? PhoneNumber { get; set; } // Số điện thoại
         
         public string? CitizenId { get; set; } // Số CMND/CCCD

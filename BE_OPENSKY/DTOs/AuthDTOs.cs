@@ -17,12 +17,13 @@ namespace BE_OPENSKY.DTOs
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public UserStatus Status { get; set; }
         public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
         public DateOnly? DoB { get; set; }
-            public string? AvatarURL { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
+        public string? AvatarURL { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 
 // DTO cho phân trang danh sách users
 public class PaginatedUsersResponseDTO
@@ -43,6 +44,21 @@ public class CreateUserDTO
     public string Password { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+}
+
+// DTO cho Admin tạo user với role tùy chỉnh
+public class AdminCreateUserDTO
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+}
+
+// DTO cho việc cập nhật status user
+public class UpdateUserStatusDTO
+{
+    public UserStatus Status { get; set; }
 }
 
 // DTO cho đơn đăng ký mở khách sạn

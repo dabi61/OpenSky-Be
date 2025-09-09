@@ -6,7 +6,7 @@ public static class GoogleAuthEndpoints
 {
     public static void MapGoogleAuthEndpoints(this WebApplication app)
     {
-        var googleAuthGroup = app.MapGroup("/api/auth/google")
+        var googleAuthGroup = app.MapGroup("/auth/google")
             .WithTags("Google OAuth")
             .WithOpenApi();
 

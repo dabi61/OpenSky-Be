@@ -9,7 +9,7 @@ public static class HotelEndpoints
 {
     public static void MapHotelEndpoints(this WebApplication app)
     {
-        var hotelGroup = app.MapGroup("/api/hotels")
+        var hotelGroup = app.MapGroup("/hotels")
             .WithTags("Hotel Management")
             .WithOpenApi();
 
@@ -270,7 +270,7 @@ public static class HotelEndpoints
                 // Tạo phòng mới
                 var roomId = await hotelService.CreateRoomAsync(hotelId, userId, createRoomDto);
                 
-                return Results.Created($"/api/hotels/{hotelId}/rooms/{roomId}", new { 
+                return Results.Created($"/hotels/{hotelId}/rooms/{roomId}", new { 
                     message = "Tạo phòng thành công",
                     roomId = roomId
                 });

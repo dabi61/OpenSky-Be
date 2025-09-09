@@ -58,4 +58,19 @@ namespace BE_OPENSKY.Models
         Completed,    // Hoàn thành
         Refunded      // Đã hoàn tiền
     }
+
+    // Enum cho trạng thái người dùng
+    public enum UserStatus
+    {
+        Active,       
+        Banned        // Bị cấm
+    }
+
+    // Enum cho trạng thái refund
+    public enum RefundStatus
+    {
+        Pending,      // Chờ xử lý
+        Approve,      // Đã duyệt
+        Deny          // Từ chối
+    }
 }

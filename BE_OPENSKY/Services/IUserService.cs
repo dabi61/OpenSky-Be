@@ -19,6 +19,10 @@ public interface IUserService
     
     // Password reset methods
     Task<bool> ResetPasswordAsync(Guid userId, string newPassword);
+    
+    // Admin methods
+    Task<UserResponseDTO?> GetUserByIdAsync(Guid userId);
+    Task<bool> UpdateUserStatusAsync(Guid userId, UserStatus status, Guid adminId);
 }
 
 

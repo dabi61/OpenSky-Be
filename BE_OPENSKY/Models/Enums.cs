@@ -62,7 +62,7 @@ namespace BE_OPENSKY.Models
     // Enum cho trạng thái người dùng
     public enum UserStatus
     {
-        Active,       // Hoạt động
+        Active,       
         Banned        // Bị cấm
     }
 

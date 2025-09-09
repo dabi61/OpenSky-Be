@@ -65,4 +65,12 @@ namespace BE_OPENSKY.Models
         Active,       // Hoạt động
         Banned        // Bị cấm
     }
+
+    // Enum cho trạng thái refund
+    public enum RefundStatus
+    {
+        Pending,      // Chờ xử lý
+        Approve,      // Đã duyệt
+        Deny          // Từ chối
+    }
 }

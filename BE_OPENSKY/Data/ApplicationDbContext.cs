@@ -244,6 +244,7 @@ namespace BE_OPENSKY.Data
             {
                 entity.HasKey(e => e.RefundID);
                 entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
 
                 entity.HasOne(e => e.Bill)
                     .WithMany(e => e.Refunds)

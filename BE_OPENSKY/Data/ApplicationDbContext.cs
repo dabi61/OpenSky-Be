@@ -136,7 +136,6 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Bill>(entity =>
             {
                 entity.HasKey(e => e.BillID);
-                entity.Property(e => e.TableType).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Deposit).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.RefundPrice).HasColumnType("decimal(18,2)");
@@ -153,6 +152,14 @@ namespace BE_OPENSKY.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserVoucherID)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                // One-to-one with Booking via BookingID
+                entity.HasOne(e => e.Booking)
+                    .WithOne(b => b.Bill)
+                    .HasForeignKey<Bill>(e => e.BookingID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.BookingID).IsUnique().HasFilter("\"BookingID\" IS NOT NULL");
             });
 
             // BillDetail
@@ -172,6 +179,8 @@ namespace BE_OPENSKY.Data
                     .WithMany(e => e.BillDetails)
                     .HasForeignKey(e => e.BillID)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.RoomID, e.ScheduleID });
             });
 
             // Schedule
@@ -316,8 +325,6 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(e => e.BookingID);
-                entity.Property(e => e.BookingType).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.TotalPrice).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.PaymentMethod).HasMaxLength(50);
@@ -335,23 +342,11 @@ namespace BE_OPENSKY.Data
                     .HasForeignKey(e => e.HotelID)
                     .OnDelete(DeleteBehavior.SetNull);
 
-                // Quan hệ với bảng HotelRoom (optional)
-                entity.HasOne(e => e.Room)
-                    .WithMany()
-                    .HasForeignKey(e => e.RoomID)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                // Quan hệ với bảng Bill (optional)
-                entity.HasOne(e => e.Bill)
-                    .WithMany()
-                    .HasForeignKey(e => e.BillID)
-                    .OnDelete(DeleteBehavior.SetNull);
+                // One-to-one Booking - Bill is configured in Bill entity
 
                 // Indexes for performance
-                entity.HasIndex(e => e.BookingType);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CreatedAt);
-                entity.HasIndex(e => e.BillID);
             });
         }
     }

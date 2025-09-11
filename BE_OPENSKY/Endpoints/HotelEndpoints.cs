@@ -821,40 +821,6 @@ public static class HotelEndpoints
         .Produces(403)
         .RequireAuthorization("HotelOnly");
 
-            // 11. Hotel xem danh sách booking
-            hotelGroup.MapGet("/{hotelId:guid}/bookings", async (Guid hotelId, [FromServices] IBookingService bookingService, HttpContext context) =>
-            {
-                try
-                {
-                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
-                    {
-                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
-                    }
-
-                    var bookings = await bookingService.GetHotelBookingsAsync(hotelId, userIdGuid);
-                    return Results.Ok(bookings);
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    return Results.Json(new { message = ex.Message }, statusCode: 403);
-                }
-                catch (Exception ex)
-                {
-                    return Results.Problem(
-                        title: "Lỗi hệ thống",
-                        detail: ex.Message,
-                        statusCode: 500
-                    );
-                }
-            })
-            .WithName("GetHotelBookings")
-            .WithSummary("Xem danh sách booking của khách sạn")
-            .WithDescription("Hotel xem danh sách booking của khách sạn mình")
-            .Produces<BookingListDTO>(200)
-            .Produces(401)
-            .Produces(403)
-            .RequireAuthorization("HotelOnly");
         }
 
         private static bool IsImageContentType(string? contentType)

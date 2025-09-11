@@ -16,6 +16,9 @@ namespace BE_OPENSKY.Models
         [Required]
         public Guid ItemID { get; set; } // ID của Tour hoặc HotelRoom
         
+        public Guid? RoomID { get; set; }
+        public Guid? ScheduleID { get; set; }
+        
         [Required]
         [StringLength(200)]
         public string ItemName { get; set; } = string.Empty; // Tên Tour hoặc Room để lưu trữ

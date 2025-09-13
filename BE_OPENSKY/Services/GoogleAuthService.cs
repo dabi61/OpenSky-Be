@@ -1,8 +1,4 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Helpers;
-using BE_OPENSKY.Models;
 // Đã loại bỏ repositories layer - sử dụng IUserService thay thế
-using System.Text.Json;
 
 namespace BE_OPENSKY.Services;
 

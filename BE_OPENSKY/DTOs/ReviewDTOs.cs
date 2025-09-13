@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using BE_OPENSKY.Models;
-
 namespace BE_OPENSKY.DTOs;
 
 // DTO cho tạo đánh giá Hotel
@@ -49,6 +46,17 @@ public class HotelReviewStatsDTO
     public int Rating3Count { get; set; }
     public int Rating4Count { get; set; }
     public int Rating5Count { get; set; }
+}
+
+// DTO cho kiểm tra điều kiện đánh giá
+public class ReviewEligibilityDTO
+{
+    public bool CanReview { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public bool HasExistingReview { get; set; }
+    public bool HasValidBooking { get; set; }
+    public bool HasPaidBill { get; set; }
+    public DateTime? LastBookingDate { get; set; }
 }
 
 // DTO cho danh sách đánh giá Hotel có phân trang

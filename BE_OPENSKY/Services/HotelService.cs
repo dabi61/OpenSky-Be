@@ -37,7 +37,8 @@ public class HotelService : IHotelService
             HotelName = applicationDto.HotelName,
             Address = applicationDto.Address,
             Province = applicationDto.Province,
-            Coordinates = applicationDto.Coordinates,
+            Latitude = applicationDto.Latitude,
+            Longitude = applicationDto.Longitude,
             Description = applicationDto.Description,
             Star = applicationDto.Star,
             Status = HotelStatus.Inactive, // Chờ duyệt
@@ -65,7 +66,8 @@ public class HotelService : IHotelService
                 HotelName = h.HotelName,
                 Address = h.Address,
                 Province = h.Province,
-                Coordinates = h.Coordinates,
+                Latitude = h.Latitude,
+                Longitude = h.Longitude,
                 Description = h.Description,
                 Star = h.Star,
                 Status = h.Status.ToString(),
@@ -93,7 +95,8 @@ public class HotelService : IHotelService
             HotelName = hotel.HotelName,
             Address = hotel.Address,
             Province = hotel.Province,
-            Coordinates = hotel.Coordinates,
+            Latitude = hotel.Latitude,
+            Longitude = hotel.Longitude,
             Description = hotel.Description,
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
@@ -149,7 +152,8 @@ public class HotelService : IHotelService
                 HotelName = h.HotelName,
                 Address = h.Address,
                 Province = h.Province,
-                Coordinates = h.Coordinates,
+                Latitude = h.Latitude,
+                Longitude = h.Longitude,
                 Description = h.Description,
                 Star = h.Star,
                 Status = h.Status.ToString(),
@@ -207,7 +211,8 @@ public class HotelService : IHotelService
             Description = hotel.Description,
             Address = hotel.Address,
             Province = hotel.Province,
-            Coordinates = hotel.Coordinates,
+            Latitude = hotel.Latitude,
+            Longitude = hotel.Longitude,
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
             CreatedAt = hotel.CreatedAt,
@@ -237,8 +242,11 @@ public class HotelService : IHotelService
         if (!string.IsNullOrWhiteSpace(updateDto.Province))
             hotel.Province = updateDto.Province;
         
-        if (updateDto.Coordinates != null)
-            hotel.Coordinates = updateDto.Coordinates;
+        if (updateDto.Latitude.HasValue)
+            hotel.Latitude = updateDto.Latitude.Value;
+        
+        if (updateDto.Longitude.HasValue)
+            hotel.Longitude = updateDto.Longitude.Value;
         
         if (updateDto.Star.HasValue)
             hotel.Star = updateDto.Star.Value;
@@ -516,7 +524,8 @@ public class HotelService : IHotelService
                 HotelName = hotel.HotelName,
                 Address = hotel.Address,
                 Province = hotel.Province,
-                Coordinates = hotel.Coordinates,
+                Latitude = hotel.Latitude,
+                Longitude = hotel.Longitude,
                 Description = hotel.Description,
                 Star = hotel.Star,
                 Status = hotel.Status.ToString(),

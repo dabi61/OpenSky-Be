@@ -67,7 +67,12 @@ public class HotelApplicationDTO
     public string HotelName { get; set; } = string.Empty; // Tên khách sạn
     public string Address { get; set; } = string.Empty; // Địa chỉ
     public string Province { get; set; } = string.Empty; // Tỉnh/Thành phố
-    public string? Coordinates { get; set; } // Tọa độ
+    [Required]
+    [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
+    public decimal Latitude { get; set; } // Vĩ độ
+    [Required]
+    [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
+    public decimal Longitude { get; set; } // Kinh độ
     public string? Description { get; set; } // Mô tả
     public int Star { get; set; } = 3; // Số sao (1-5)
 }
@@ -82,10 +87,11 @@ public class PendingHotelResponseDTO
     public string HotelName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string Province { get; set; } = string.Empty;
-    public string? Coordinates { get; set; }
+    public decimal Latitude { get; set; } // Vĩ độ
+    public decimal Longitude { get; set; } // Kinh độ
     public string? Description { get; set; }
     public int Star { get; set; }
-    public string Status { get; set; } = string.Empty; // Inactive, Active
+    public string Status { get; set; } = string.Empty; // Inactive, Active, Suspend, Removed
     public DateTime CreatedAt { get; set; }
 }
 

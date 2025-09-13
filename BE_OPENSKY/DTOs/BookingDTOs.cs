@@ -1,121 +1,90 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BE_OPENSKY.DTOs
 {
-    // DTO cho request đặt phòng (chỉ những field user cần nhập)
-    public class CreateHotelBookingRequestDTO
+    // DTO cho request đặt phòng (1 hoặc nhiều phòng)
+    public class CreateMultipleRoomBookingRequestDTO
+    {
+        [Required]
+        [MinLength(1, ErrorMessage = "Phải chọn ít nhất 1 phòng")]
+        public List<RoomBookingItemDTO> Rooms { get; set; } = new();
+        
+        [Required]
+        public DateTime CheckInDate { get; set; }
+        
+        [Required]
+        public DateTime CheckOutDate { get; set; }
+    }
+
+    // DTO cho từng phòng trong đặt nhiều phòng
+    public class RoomBookingItemDTO
     {
         [Required]
         public Guid RoomID { get; set; }
         
         [Required]
-        public DateTime CheckInDate { get; set; }
-        
-        [Required]
-        public DateTime CheckOutDate { get; set; }
+        [Range(1, 10, ErrorMessage = "Số phòng phải từ 1 đến 10")]
+        public int Quantity { get; set; } = 1; // Số phòng cùng loại
     }
 
-    // DTO cho internal use (có đầy đủ thông tin guest)
-    public class CreateHotelBookingDTO
+    // DTO cho internal use đặt phòng (1 hoặc nhiều phòng)
+    public class CreateMultipleRoomBookingDTO
     {
         [Required]
-        public Guid RoomID { get; set; }
+        [MinLength(1)]
+        public List<RoomBookingItemDTO> Rooms { get; set; } = new();
         
         [Required]
         public DateTime CheckInDate { get; set; }
         
         [Required]
         public DateTime CheckOutDate { get; set; }
-        
     }
 
-    // DTO cho tạo booking tour (sẽ dùng sau)
-    public class CreateTourBookingDTO
-    {
-        [Required]
-        public Guid TourID { get; set; }
-        
-        [Required]
-        public Guid ScheduleID { get; set; }
-        
-        [Required]
-        public DateTime CheckInDate { get; set; }
-        
-        [Required]
-        public DateTime CheckOutDate { get; set; }
-        
-        [Required]
-        [Range(1, 10)]
-        public int NumberOfPeople { get; set; }
-        
-        [StringLength(500)]
-        public string? Notes { get; set; }
-    }
 
-    // DTO cho phản hồi booking
-    // DTO cho response booking hotel (chỉ thông tin cần thiết)
-    public class HotelBookingResponseDTO
+    // DTO cho chi tiết booking với BillDetail
+    public class BookingDetailResponseDTO
     {
         public Guid BookingID { get; set; }
         public Guid UserID { get; set; }
         public string UserName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
         
         // Hotel info
-        public Guid HotelID { get; set; }
-        public string HotelName { get; set; } = string.Empty;
-        public Guid RoomID { get; set; }
-        public string RoomName { get; set; } = string.Empty;
-        public string RoomType { get; set; } = string.Empty;
+        public Guid? HotelID { get; set; }
+        public string? HotelName { get; set; }
+        public string? HotelAddress { get; set; }
         
         // Booking info
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
-        public decimal TotalPrice { get; set; }
-        public string Status { get; set; } = string.Empty;
-        
-        
-        // Payment info
-        public string? PaymentMethod { get; set; }
-        public string? PaymentStatus { get; set; }
-        public Guid? BillID { get; set; } // Thêm BillID
-        
-        // Timestamps
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-    }
-
-    // DTO cho response booking (tổng quát - có cả tour và hotel)
-    public class BookingResponseDTO
-    {
-        public Guid BookingID { get; set; }
-        public Guid UserID { get; set; }
-        public string UserName { get; set; } = string.Empty;
-        public string BookingType { get; set; } = string.Empty;
-        
-        // Hotel booking info
-        public Guid? HotelID { get; set; }
-        public string? HotelName { get; set; }
-        public Guid? RoomID { get; set; }
-        public string? RoomName { get; set; }
-        public string? RoomType { get; set; }
-        
-        // Tour booking info (sẽ dùng sau)
-        public Guid? TourID { get; set; }
-        public string? TourName { get; set; }
-        public Guid? ScheduleID { get; set; }
-        public string? ScheduleName { get; set; }
-        
-        // Common info
-        public DateTime CheckInDate { get; set; }
-        public DateTime CheckOutDate { get; set; }
-        public decimal TotalPrice { get; set; }
+        public int NumberOfNights { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
-        public Guid? BillID { get; set; } // Thêm BillID
+        
+        // Bill info
+        public Guid? BillID { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal Deposit { get; set; }
+        public string BillStatus { get; set; } = string.Empty;
+        
+        // Room details
+        public List<BookingRoomDetailDTO> RoomDetails { get; set; } = new();
+        
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+    }
+
+    // DTO cho chi tiết từng phòng trong booking
+    public class BookingRoomDetailDTO
+    {
+        public Guid RoomID { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+        public string RoomType { get; set; } = string.Empty;
+        public int Quantity { get; set; } // Số phòng
+        public decimal UnitPrice { get; set; } // Giá 1 đêm
+        public decimal TotalPrice { get; set; } // Tổng tiền cho loại phòng này
+        public string? Notes { get; set; }
     }
 
     // DTO cho danh sách booking (chỉ các trường cơ bản)
@@ -123,27 +92,12 @@ namespace BE_OPENSKY.DTOs
     {
         public Guid BookingID { get; set; }
         public string HotelName { get; set; } = string.Empty;
-        public string RoomName { get; set; } = string.Empty;
-        public string RoomType { get; set; } = string.Empty;
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
-        public decimal TotalPrice { get; set; }
         public string Status { get; set; } = string.Empty;
         public string PaymentStatus { get; set; } = string.Empty;
         public Guid? BillID { get; set; }
         public DateTime CreatedAt { get; set; }
-    }
-
-    // DTO cho danh sách booking (chi tiết đầy đủ)
-    public class BookingListDTO
-    {
-        public List<BookingResponseDTO> Bookings { get; set; } = new();
-        public int TotalBookings { get; set; }
-        public int PendingBookings { get; set; }
-        public int ConfirmedBookings { get; set; }
-        public int CancelledBookings { get; set; }
-        public int CompletedBookings { get; set; }
-        public int RefundedBookings { get; set; }
     }
 
     // DTO cho cập nhật trạng thái booking
@@ -160,18 +114,6 @@ namespace BE_OPENSKY.DTOs
         
         [StringLength(100)]
         public string? PaymentStatus { get; set; }
-    }
-
-    // DTO cho phân trang danh sách booking hotel (chỉ thông tin cần thiết)
-    public class PaginatedHotelBookingsResponseDTO
-    {
-        public List<HotelBookingResponseDTO> Bookings { get; set; } = new();
-        public int CurrentPage { get; set; }
-        public int PageSize { get; set; }
-        public int TotalBookings { get; set; }
-        public int TotalPages { get; set; }
-        public bool HasNextPage { get; set; }
-        public bool HasPreviousPage { get; set; }
     }
 
     // DTO cho phân trang danh sách booking (tổng quát)
@@ -194,11 +136,9 @@ namespace BE_OPENSKY.DTOs
         public DateTime? FromDate { get; set; } // Từ ngày check-in
         public DateTime? ToDate { get; set; } // Đến ngày check-out
         public Guid? HotelId { get; set; } // Lọc theo khách sạn
-        public Guid? RoomId { get; set; } // Lọc theo phòng
-        public string? BookingType { get; set; } // Hotel, Tour
         public int Page { get; set; } = 1;
         public int Limit { get; set; } = 10;
-        public string? SortBy { get; set; } = "CreatedAt"; // CreatedAt, CheckInDate, TotalPrice
+        public string? SortBy { get; set; } = "CreatedAt"; // CreatedAt, CheckInDate
         public string? SortOrder { get; set; } = "desc"; // asc, desc
     }
 

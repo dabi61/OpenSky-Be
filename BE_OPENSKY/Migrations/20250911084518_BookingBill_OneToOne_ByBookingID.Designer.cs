@@ -3,6 +3,7 @@ using System;
 using BE_OPENSKY.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BE_OPENSKY.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250911084518_BookingBill_OneToOne_ByBookingID")]
+    partial class BookingBill_OneToOne_ByBookingID
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,8 +62,7 @@ namespace BE_OPENSKY.Migrations
                     b.HasKey("BillID");
 
                     b.HasIndex("BookingID")
-                        .IsUnique()
-                        .HasFilter("\"BookingID\" IS NOT NULL");
+                        .IsUnique();
 
                     b.HasIndex("UserID");
 
@@ -225,6 +227,10 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("Coordinates")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -241,12 +247,6 @@ namespace BE_OPENSKY.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("Latitude")
-                        .HasColumnType("decimal(18,15)");
-
-                    b.Property<decimal>("Longitude")
-                        .HasColumnType("decimal(18,15)");
 
                     b.Property<string>("Province")
                         .IsRequired()

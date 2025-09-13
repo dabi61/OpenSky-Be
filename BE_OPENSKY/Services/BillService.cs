@@ -1,8 +1,3 @@
-using BE_OPENSKY.Data;
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Models;
-using Microsoft.EntityFrameworkCore;
-
 namespace BE_OPENSKY.Services
 {
     public class BillService : IBillService
@@ -29,8 +24,7 @@ namespace BE_OPENSKY.Services
                 BillID = bill.BillID,
                 UserID = bill.UserID,
                 UserName = bill.User.FullName,
-                TableType = bill.TableType.ToString(),
-                TypeID = bill.TypeID,
+                BookingID = bill.BookingID,
                 Deposit = bill.Deposit,
                 TotalPrice = bill.TotalPrice,
                 Status = bill.Status.ToString(),
@@ -65,8 +59,7 @@ namespace BE_OPENSKY.Services
                 BillID = b.BillID,
                 UserID = b.UserID,
                 UserName = b.User.FullName,
-                TableType = b.TableType.ToString(),
-                TypeID = b.TypeID,
+                BookingID = b.BookingID,
                 Deposit = b.Deposit,
                 TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
@@ -125,8 +118,7 @@ namespace BE_OPENSKY.Services
                 BillID = bill.BillID,
                 UserID = bill.UserID,
                 UserName = bill.User.FullName,
-                TableType = bill.TableType.ToString(),
-                TypeID = bill.TypeID,
+                BookingID = bill.BookingID,
                 Deposit = bill.Deposit,
                 TotalPrice = bill.TotalPrice,
                 Status = bill.Status.ToString(),

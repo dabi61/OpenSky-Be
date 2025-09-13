@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace BE_OPENSKY.Models
 {
     public class Hotel
@@ -18,7 +21,13 @@ namespace BE_OPENSKY.Models
         [Required]
         public string Province { get; set; } = string.Empty;
         
-        public string? Coordinates { get; set; }
+        [Required]
+        [Column(TypeName = "decimal(18,15)")]
+        public decimal Latitude { get; set; }
+        
+        [Required]
+        [Column(TypeName = "decimal(18,15)")]
+        public decimal Longitude { get; set; }
         
         [Required]
         public string HotelName { get; set; } = string.Empty;

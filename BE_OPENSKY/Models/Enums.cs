@@ -20,7 +20,9 @@ namespace BE_OPENSKY.Models
     public enum HotelStatus
     {
         Active,   // Hoạt động
-        Inactive  // Không hoạt động
+        Inactive, // Không hoạt động
+        Suspend,  // Tạm ngưng
+        Removed   // Đã xóa
     }
 
     // Enum cho trạng thái hóa đơn

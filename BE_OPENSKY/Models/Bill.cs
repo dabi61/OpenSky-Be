@@ -11,10 +11,7 @@ namespace BE_OPENSKY.Models
         public Guid UserID { get; set; }
         
         [Required]
-        public TableType TableType { get; set; } // Loại dịch vụ: Tour, Hotel
-        
-        [Required]
-        public Guid TypeID { get; set; }
+        public Guid BookingID { get; set; }
         
         [Required]
         public decimal Deposit { get; set; }
@@ -35,6 +32,7 @@ namespace BE_OPENSKY.Models
         
         // Thuộc tính điều hướng
         public virtual User User { get; set; } = null!;
+        public virtual Booking Booking { get; set; } = null!;
         public virtual UserVoucher? UserVoucher { get; set; } // Voucher được sử dụng cho hóa đơn này
         public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
         public virtual ICollection<Refund> Refunds { get; set; } = new List<Refund>();

@@ -1,7 +1,3 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Services;
-using System.Security.Claims;
-
 namespace BE_OPENSKY.Endpoints;
 
 public static class HotelReviewEndpoints
@@ -30,6 +26,10 @@ public static class HotelReviewEndpoints
                     ? Results.Ok(review)
                     : Results.BadRequest(new { message = "Không thể tạo đánh giá. Có thể bạn đã đánh giá rồi hoặc khách sạn không tồn tại." });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return Results.Problem(
@@ -41,13 +41,44 @@ public static class HotelReviewEndpoints
         })
         .WithName("CreateHotelReview")
         .WithSummary("Đánh giá khách sạn")
-        .WithDescription("Tạo đánh giá cho khách sạn (1-5 sao)")
+        .WithDescription("Tạo đánh giá cho khách sạn (1-5 sao). Chỉ có thể đánh giá sau khi đã đặt phòng và thanh toán thành công.")
         .Produces<HotelReviewResponseDTO>(200)
         .Produces(400)
         .Produces(401)
         .RequireAuthorization("AuthenticatedOnly");
 
-        // 2. Cập nhật đánh giá Hotel
+        // 2. Kiểm tra user có thể đánh giá hotel không
+        reviewGroup.MapGet("/{hotelId:guid}/reviews/eligibility", async (Guid hotelId, [FromServices] IHotelReviewService reviewService, HttpContext context) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                var eligibility = await reviewService.CheckReviewEligibilityAsync(hotelId, userId);
+                return Results.Ok(eligibility);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi kiểm tra điều kiện đánh giá: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("CheckReviewEligibility")
+        .WithSummary("Kiểm tra điều kiện đánh giá")
+        .WithDescription("Kiểm tra xem user có thể đánh giá hotel hay không (đã đặt phòng và thanh toán)")
+        .Produces<ReviewEligibilityDTO>(200)
+        .Produces(401)
+        .RequireAuthorization("AuthenticatedOnly");
+
+        // 3. Cập nhật đánh giá Hotel
         reviewGroup.MapPut("/{hotelId:guid}/reviews/{reviewId:guid}", async (Guid hotelId, Guid reviewId, [FromBody] UpdateHotelReviewDTO updateDto, [FromServices] IHotelReviewService reviewService, HttpContext context) =>
         {
             try

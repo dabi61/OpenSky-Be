@@ -8,8 +8,7 @@ namespace BE_OPENSKY.DTOs
         public Guid BillID { get; set; }
         public Guid UserID { get; set; }
         public string UserName { get; set; } = string.Empty;
-        public string TableType { get; set; } = string.Empty;
-        public Guid TypeID { get; set; }
+        public Guid BookingID { get; set; }
         public decimal Deposit { get; set; }
         public decimal TotalPrice { get; set; }
         public string Status { get; set; } = string.Empty;

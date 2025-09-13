@@ -131,6 +131,31 @@ namespace BE_OPENSKY.DTOs
         public int? MaxPeople { get; set; }
     }
 
+    // DTO cho cập nhật thông tin phòng với ảnh (multipart/form-data)
+    public class UpdateRoomWithImagesDTO
+    {
+        public string? RoomName { get; set; }
+        public string? RoomType { get; set; }
+        public string? Address { get; set; }
+        public decimal? Price { get; set; }
+        public int? MaxPeople { get; set; }
+        public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
+        // Files sẽ được xử lý từ form.Files
+    }
+
+    // DTO phản hồi khi cập nhật phòng với ảnh
+    public class UpdateRoomWithImagesResponseDTO
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<string> UploadedImageUrls { get; set; } = new();
+        public List<string> FailedUploads { get; set; } = new();
+        public List<string> DeletedImageUrls { get; set; } = new(); // Ảnh đã xóa
+        public int SuccessImageCount { get; set; }
+        public int FailedImageCount { get; set; }
+        public int DeletedImageCount { get; set; }
+        public string ImageAction { get; set; } = "keep"; // Hành động đã thực hiện
+    }
+
     // DTO cho phản hồi chi tiết phòng
     public class RoomDetailResponseDTO
     {

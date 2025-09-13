@@ -1,5 +1,3 @@
-using BE_OPENSKY.Data;
-
 namespace BE_OPENSKY.Services;
 
 public class UserService : IUserService

@@ -1,6 +1,3 @@
-using BE_OPENSKY.Data;
-using Microsoft.EntityFrameworkCore;
-
 namespace BE_OPENSKY.Services
 {
     public class SessionService : ISessionService

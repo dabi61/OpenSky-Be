@@ -1,8 +1,3 @@
-using BE_OPENSKY.Data;
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Models;
-using Microsoft.EntityFrameworkCore;
-
 namespace BE_OPENSKY.Services
 {
     public class BillService : IBillService

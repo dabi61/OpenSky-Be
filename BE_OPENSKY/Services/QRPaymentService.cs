@@ -1,7 +1,3 @@
-using BE_OPENSKY.Data;
-using BE_OPENSKY.DTOs;
-using Microsoft.EntityFrameworkCore;
-
 namespace BE_OPENSKY.Services
 {
     public class QRPaymentService : IQRPaymentService

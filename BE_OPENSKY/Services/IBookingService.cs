@@ -1,5 +1,3 @@
-using BE_OPENSKY.DTOs;
-
 namespace BE_OPENSKY.Services
 {
     public interface IBookingService
@@ -10,8 +8,8 @@ namespace BE_OPENSKY.Services
         // Customer hủy booking
         Task<bool> CustomerCancelBookingAsync(Guid bookingId, Guid userId, string? reason = null);
         
-        // Lấy thông tin booking theo ID
-        Task<BookingResponseDTO?> GetBookingByIdAsync(Guid bookingId, Guid userId);
+        // Lấy chi tiết booking với BillDetail
+        Task<BookingDetailResponseDTO?> GetBookingDetailByIdAsync(Guid bookingId, Guid userId);
         
         // Phân trang booking
         Task<PaginatedBookingsResponseDTO> GetBookingsPaginatedAsync(int page = 1, int limit = 10, string? status = null, Guid? userId = null, Guid? hotelId = null);

@@ -1,7 +1,4 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace BE_OPENSKY.Endpoints;
 
@@ -10,7 +7,7 @@ public static class HotelEndpoints
     public static void MapHotelEndpoints(this WebApplication app)
     {
         var hotelGroup = app.MapGroup("/hotels")
-            .WithTags("Hotel Management")
+            .WithTags("Hotel")
             .WithOpenApi();
 
         // 1. Cập nhật thông tin khách sạn

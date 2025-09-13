@@ -1,7 +1,3 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Services;
-using System.Security.Claims;
-
 namespace BE_OPENSKY.Endpoints;
 
 public static class HotelReviewEndpoints

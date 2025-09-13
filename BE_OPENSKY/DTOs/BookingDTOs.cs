@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BE_OPENSKY.DTOs
 {
     // DTO cho request đặt phòng (1 hoặc nhiều phòng)
@@ -41,27 +39,52 @@ namespace BE_OPENSKY.DTOs
         public DateTime CheckOutDate { get; set; }
     }
 
-    // DTO cho response booking (tổng quát)
-    public class BookingResponseDTO
+
+    // DTO cho chi tiết booking với BillDetail
+    public class BookingDetailResponseDTO
     {
         public Guid BookingID { get; set; }
         public Guid UserID { get; set; }
         public string UserName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
         
-        // Hotel booking info
+        // Hotel info
         public Guid? HotelID { get; set; }
         public string? HotelName { get; set; }
+        public string? HotelAddress { get; set; }
         
-        // Common info
+        // Booking info
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
+        public int NumberOfNights { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
+        
+        // Bill info
         public Guid? BillID { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal Deposit { get; set; }
+        public string BillStatus { get; set; } = string.Empty;
+        
+        // Room details
+        public List<BookingRoomDetailDTO> RoomDetails { get; set; } = new();
+        
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+    }
+
+    // DTO cho chi tiết từng phòng trong booking
+    public class BookingRoomDetailDTO
+    {
+        public Guid RoomID { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+        public string RoomType { get; set; } = string.Empty;
+        public int Quantity { get; set; } // Số phòng
+        public decimal UnitPrice { get; set; } // Giá 1 đêm
+        public decimal TotalPrice { get; set; } // Tổng tiền cho loại phòng này
+        public string? Notes { get; set; }
     }
 
     // DTO cho danh sách booking (chỉ các trường cơ bản)

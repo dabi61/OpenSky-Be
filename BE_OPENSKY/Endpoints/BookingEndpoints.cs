@@ -1,7 +1,4 @@
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace BE_OPENSKY.Endpoints
 {
@@ -10,7 +7,7 @@ namespace BE_OPENSKY.Endpoints
         public static void MapBookingEndpoints(this WebApplication app)
         {
             var bookingGroup = app.MapGroup("/bookings")
-                .WithTags("Booking Management")
+                .WithTags("Booking")
                 .WithOpenApi();
 
             // 1. Customer đặt phòng (1 hoặc nhiều phòng)
@@ -62,6 +59,39 @@ namespace BE_OPENSKY.Endpoints
             .Produces(200)
             .Produces(400)
             .Produces(401)
+            .RequireAuthorization();
+
+            // 2. Customer xem chi tiết booking với BillDetail
+            bookingGroup.MapGet("/{bookingId:guid}/detail", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context) =>
+            {
+                try
+                {
+                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
+                    {
+                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                    }
+
+                    var booking = await bookingService.GetBookingDetailByIdAsync(bookingId, userIdGuid);
+                    return booking != null 
+                        ? Results.Ok(booking)
+                        : Results.NotFound(new { message = "Không tìm thấy booking" });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetBookingDetail")
+            .WithSummary("Xem chi tiết booking với BillDetail")
+            .WithDescription("Xem thông tin chi tiết booking bao gồm thông tin phòng từ BillDetail")
+            .Produces<BookingDetailResponseDTO>(200)
+            .Produces(401)
+            .Produces(404)
             .RequireAuthorization();
 
             // 3. Customer xem booking của mình với phân trang
@@ -133,38 +163,6 @@ namespace BE_OPENSKY.Endpoints
             .Produces(404)
             .RequireAuthorization();
 
-            // 6. Lấy thông tin booking theo ID
-            bookingGroup.MapGet("/{bookingId:guid}", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context) =>
-            {
-                try
-                {
-                    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
-                    {
-                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
-                    }
-
-                    var booking = await bookingService.GetBookingByIdAsync(bookingId, userIdGuid);
-                    return booking != null 
-                        ? Results.Ok(booking)
-                        : Results.NotFound(new { message = "Không tìm thấy booking" });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Problem(
-                        title: "Lỗi hệ thống",
-                        detail: ex.Message,
-                        statusCode: 500
-                    );
-                }
-            })
-            .WithName("GetBookingById")
-            .WithSummary("Xem chi tiết booking")
-            .WithDescription("Xem thông tin chi tiết booking")
-            .Produces<BookingResponseDTO>(200)
-            .Produces(401)
-            .Produces(404)
-            .RequireAuthorization();
 
             // Bỏ endpoint cập nhật trạng thái thủ công
 

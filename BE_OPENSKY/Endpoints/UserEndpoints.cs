@@ -16,7 +16,7 @@ public static class UserEndpoints
     public static void MapUserEndpoints(this WebApplication app)
     {
         var userGroup = app.MapGroup("/users")
-            .WithTags("User Management")
+            .WithTags("User")
             .WithOpenApi();
 
         // Admin có thể tạo tài khoản Supervisor

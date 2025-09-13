@@ -1,8 +1,3 @@
-using BE_OPENSKY.Data;
-using BE_OPENSKY.DTOs;
-using BE_OPENSKY.Models;
-using Microsoft.EntityFrameworkCore;
-
 namespace BE_OPENSKY.Services
 {
     public class BookingService : IBookingService
@@ -203,31 +198,73 @@ namespace BE_OPENSKY.Services
             }
         }
 
-        public async Task<BookingResponseDTO?> GetBookingByIdAsync(Guid bookingId, Guid userId)
+
+        public async Task<BookingDetailResponseDTO?> GetBookingDetailByIdAsync(Guid bookingId, Guid userId)
         {
             var booking = await _context.Bookings
                 .Include(b => b.Hotel)
                 .Include(b => b.User)
                 .Include(b => b.Bill)
+                    .ThenInclude(bill => bill.BillDetails)
                 .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId);
 
             if (booking == null)
                 return null;
 
-            return new BookingResponseDTO
+            // Tính số đêm
+            var numberOfNights = (int)(booking.CheckOutDate - booking.CheckInDate).TotalDays;
+
+            // Lấy thông tin phòng từ BillDetails
+            var roomDetails = new List<BookingRoomDetailDTO>();
+            if (booking.Bill?.BillDetails != null)
+            {
+                foreach (var billDetail in booking.Bill.BillDetails)
+                {
+                    // Lấy thông tin phòng
+                    var room = await _context.HotelRooms
+                        .FirstOrDefaultAsync(r => r.RoomID == billDetail.RoomID);
+
+                    if (room != null)
+                    {
+                        roomDetails.Add(new BookingRoomDetailDTO
+                        {
+                            RoomID = room.RoomID,
+                            RoomName = room.RoomName,
+                            RoomType = room.RoomType,
+                            Quantity = billDetail.Quantity / numberOfNights, // Số phòng (chia cho số đêm)
+                            UnitPrice = billDetail.UnitPrice,
+                            TotalPrice = billDetail.TotalPrice,
+                            Notes = billDetail.Notes
+                        });
+                    }
+                }
+            }
+
+            return new BookingDetailResponseDTO
             {
                 BookingID = booking.BookingID,
                 UserID = booking.UserID,
-                UserName = booking.User.FullName,
+                UserName = booking.User.FullName ?? booking.User.Email,
+                UserEmail = booking.User.Email,
+                
                 HotelID = booking.HotelID,
                 HotelName = booking.Hotel?.HotelName ?? "",
+                HotelAddress = booking.Hotel?.Address ?? "",
+                
                 CheckInDate = booking.CheckInDate,
                 CheckOutDate = booking.CheckOutDate,
+                NumberOfNights = numberOfNights,
                 Status = booking.Status.ToString(),
                 Notes = booking.Notes,
                 PaymentMethod = booking.PaymentMethod,
                 PaymentStatus = booking.PaymentStatus,
-                BillID = booking.Bill != null ? booking.Bill.BillID : (Guid?)null,
+                
+                BillID = booking.Bill?.BillID,
+                TotalPrice = booking.Bill?.TotalPrice ?? 0,
+                Deposit = booking.Bill?.Deposit ?? 0,
+                BillStatus = booking.Bill?.Status.ToString() ?? "",
+                
+                RoomDetails = roomDetails,
                 CreatedAt = booking.CreatedAt,
                 UpdatedAt = booking.UpdatedAt
             };

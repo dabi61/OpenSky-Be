@@ -15,6 +15,7 @@ erDiagram
         string PhoneNumber
         string CitizenId
         string AvatarURL
+        string UserStatus
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -47,7 +48,8 @@ erDiagram
         string Email
         string Address
         string Province
-        string Coordinates
+        decimal Latitude
+        decimal Longitude
         string HotelName
         string Description
         string Status
@@ -65,6 +67,7 @@ erDiagram
         decimal Price
         int MaxPeople
         string Status
+        string RoomStatus
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -234,6 +237,27 @@ erDiagram
 
 Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 
+### 🔄 Cập nhật Schema gần đây
+
+#### Hotel Table Changes:
+
+- **Coordinates** → **Latitude** & **Longitude** (decimal type với precision cao)
+- **HotelStatus** thêm: `Suspend` (tạm ngưng), `Removed` (đã xóa)
+
+#### HotelRoom Table Changes:
+
+- Thêm field **RoomStatus** để quản lý trạng thái phòng chi tiết
+
+#### User Table Changes:
+
+- Thêm field **UserStatus** để quản lý trạng thái tài khoản
+
+#### Booking System Changes:
+
+- **BillDetail** hỗ trợ multiple rooms trong 1 booking
+- **Quantity** field = (số phòng) × (số đêm)
+- API endpoint `/detail` cung cấp thông tin đầy đủ với BillDetail
+
 ## 📊 Các bảng mới được thêm
 
 ### Booking Table
@@ -243,17 +267,25 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 - **Trạng thái**: Pending → Confirmed → Completed
 - **Payment**: Liên kết với Bill để quản lý thanh toán
 
+### Hotel Table (Cập nhật)
+
+- **Coordinates** → **Latitude & Longitude**: Chuyển từ string sang decimal với precision cao (18,15)
+- **HotelStatus**: Thêm `Suspend` (tạm ngưng) và `Removed` (đã xóa)
+- **Tính năng**: Hỗ trợ định vị chính xác với lat/lon
+
 ### Bill & BillDetail Tables (Cập nhật)
 
 - **Bill**: Quản lý hóa đơn với payment method và transaction ID
 - **BillDetail**: Chi tiết hóa đơn với item type (Hotel/Tour)
 - **Tính năng**: Hỗ trợ voucher, refund, và payment tracking
+- **Multiple Rooms**: Hỗ trợ đặt nhiều phòng trong 1 booking
 
 ### HotelRoom Table (Cập nhật)
 
 - **RoomType**: Chuyển từ int sang string (Deluxe, Standard, Suite...)
 - **MaxPeople**: Số người tối đa cho phòng
 - **Status**: Trạng thái phòng (Available, Occupied, Maintenance)
+- **RoomStatus**: Trạng thái chi tiết của phòng (Available, Occupied, Maintenance, OutOfOrder)
 
 ## Authentication (/api/auth)
 
@@ -308,14 +340,68 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 
 ### Room Management (Chủ khách sạn)
 
-- POST /hotels/{hotelId}/rooms: Thêm phòng mới cho khách sạn
-- POST /hotels/rooms/{roomId}/images: Thêm nhiều ảnh cho phòng
+- POST /hotels/{hotelId}/rooms: Thêm phòng mới cho khách sạn (hỗ trợ upload ảnh cùng lúc)
 - GET /hotels/rooms/{roomId}: Xem chi tiết phòng
 - GET /hotels/{hotelId}/rooms: Danh sách phòng có phân trang
 - PUT /hotels/rooms/{roomId}: Cập nhật thông tin phòng
 - DELETE /hotels/rooms/{roomId}: Xóa phòng
 - PUT /hotels/rooms/{roomId}/status: Cập nhật trạng thái phòng
 - GET /hotels/{hotelId}/rooms/status: Xem danh sách phòng theo trạng thái
+
+### Tạo phòng mới với ảnh
+
+**Endpoint:** `POST /api/hotels/{hotelId}/rooms`
+
+**Mô tả:** Tạo phòng mới cho khách sạn và upload ảnh cùng lúc trong 1 request.
+
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+
+- `roomName` (string, required): Tên phòng
+- `roomType` (string, required): Loại phòng (Deluxe, Standard, Suite...)
+- `address` (string, required): Địa chỉ phòng
+- `price` (decimal, required): Giá phòng/đêm
+- `maxPeople` (int, required): Số người tối đa (1-20)
+- `files` (file[], optional): Danh sách ảnh (JPEG, PNG, GIF, WebP, max 5MB/file)
+
+**Request Example:**
+
+```http
+POST /api/hotels/123e4567-e89b-12d3-a456-426614174000/rooms
+Content-Type: multipart/form-data
+
+roomName: Deluxe Ocean View
+roomType: Deluxe
+address: Tầng 5, Phòng 501
+price: 1500000
+maxPeople: 4
+files: [room1.jpg, room2.jpg, room3.jpg]
+```
+
+**Response Example:**
+
+```json
+{
+  "roomID": "456e7890-e89b-12d3-a456-426614174001",
+  "message": "Tạo phòng thành công với 3 ảnh",
+  "uploadedImageUrls": [
+    "https://res.cloudinary.com/example/image/upload/v1234567890/rooms/room1.jpg",
+    "https://res.cloudinary.com/example/image/upload/v1234567890/rooms/room2.jpg",
+    "https://res.cloudinary.com/example/image/upload/v1234567890/rooms/room3.jpg"
+  ],
+  "failedUploads": [],
+  "successImageCount": 3,
+  "failedImageCount": 0
+}
+```
+
+**Lưu ý:**
+
+- Nếu không upload ảnh, phòng vẫn được tạo thành công
+- Ảnh được upload lên Cloudinary và lưu vào database tự động
+- Hỗ trợ upload nhiều ảnh cùng lúc
+- Nếu có lỗi upload ảnh, phòng vẫn được tạo và thông báo lỗi chi tiết
 
 ## Hotel Reviews (/api/hotels)
 
@@ -332,6 +418,13 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 - GET /hotels/{hotelId}/reviews/stats: Thống kê đánh giá
 - GET /hotels/my-reviews: Đánh giá của user hiện tại
 
+## Bill Management (/api/bills)
+
+### Bill & Payment Endpoints
+
+- POST /bills/qr/create: Tạo QR code thanh toán cho hóa đơn
+- GET /bills/{billId}: Lấy thông tin hóa đơn theo ID
+
 ## Booking Management (/api/bookings)
 
 ### Booking Endpoints
@@ -340,7 +433,7 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 
 - POST /bookings: Đặt phòng khách sạn (hỗ trợ cả 1 phòng và nhiều phòng)
 - GET /bookings/my-bookings: Xem booking của tôi (có phân trang)
-- GET /bookings/{bookingId}: Xem chi tiết booking
+- GET /bookings/{bookingId}/detail: Xem chi tiết booking với BillDetail
 - PUT /bookings/{bookingId}/cancel: Hủy booking
 
 **Quản lý:**
@@ -403,6 +496,61 @@ POST /api/bookings
   "bookingId": "guid",
   "totalRooms": 3,
   "roomCount": 2
+}
+```
+
+### Chi tiết Booking với BillDetail
+
+**Request:**
+
+```http
+GET /api/bookings/{bookingId}/detail
+```
+
+**Response Example:**
+
+```json
+{
+  "bookingID": "guid",
+  "userID": "guid",
+  "userName": "Nguyễn Văn A",
+  "userEmail": "user@example.com",
+  "hotelID": "guid",
+  "hotelName": "Hotel ABC",
+  "hotelAddress": "123 Đường ABC, Quận 1, TP.HCM",
+  "checkInDate": "2024-01-15T00:00:00Z",
+  "checkOutDate": "2024-01-17T00:00:00Z",
+  "numberOfNights": 2,
+  "status": "Confirmed",
+  "notes": null,
+  "paymentMethod": null,
+  "paymentStatus": null,
+  "billID": "guid",
+  "totalPrice": 1500000,
+  "deposit": 0,
+  "billStatus": "Pending",
+  "roomDetails": [
+    {
+      "roomID": "guid-1",
+      "roomName": "Deluxe Room",
+      "roomType": "Deluxe",
+      "quantity": 2,
+      "unitPrice": 500000,
+      "totalPrice": 2000000,
+      "notes": "Booking 2 phòng từ 15/01/2024 đến 17/01/2024"
+    },
+    {
+      "roomID": "guid-2",
+      "roomName": "Suite Room",
+      "roomType": "Suite",
+      "quantity": 1,
+      "unitPrice": 800000,
+      "totalPrice": 1600000,
+      "notes": "Booking 1 phòng từ 15/01/2024 đến 17/01/2024"
+    }
+  ],
+  "createdAt": "2024-01-10T10:30:00Z",
+  "updatedAt": "2024-01-10T10:30:00Z"
 }
 ```
 

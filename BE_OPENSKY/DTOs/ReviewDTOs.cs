@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using BE_OPENSKY.Models;
-
 namespace BE_OPENSKY.DTOs;
 
 // DTO cho tạo đánh giá Hotel

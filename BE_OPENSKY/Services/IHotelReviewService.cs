@@ -1,5 +1,3 @@
-using BE_OPENSKY.DTOs;
-
 namespace BE_OPENSKY.Services;
 
 public interface IHotelReviewService

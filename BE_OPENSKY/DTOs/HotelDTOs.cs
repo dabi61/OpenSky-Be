@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace BE_OPENSKY.DTOs
 {
     // DTO cho cập nhật thông tin khách sạn
@@ -65,6 +67,29 @@ namespace BE_OPENSKY.DTOs
         [Required]
         [Range(1, 20, ErrorMessage = "Số lượng người phải từ 1 đến 20")]
         public int MaxPeople { get; set; }
+    }
+
+    // DTO cho tạo phòng mới với ảnh (multipart form data)
+    public class CreateRoomWithImagesDTO
+    {
+        [Required]
+        public string RoomName { get; set; } = string.Empty;
+        
+        [Required]
+        public string RoomType { get; set; } = string.Empty;
+        
+        [Required]
+        public string Address { get; set; } = string.Empty;
+        
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Giá phòng phải lớn hơn 0")]
+        public decimal Price { get; set; }
+        
+        [Required]
+        [Range(1, 20, ErrorMessage = "Số lượng người phải từ 1 đến 20")]
+        public int MaxPeople { get; set; }
+        
+        // Ảnh sẽ được xử lý riêng từ form files
     }
 
     // DTO cho cập nhật thông tin phòng
@@ -172,5 +197,16 @@ namespace BE_OPENSKY.DTOs
         public int TotalPages { get; set; }
         public bool HasNextPage { get; set; }
         public bool HasPreviousPage { get; set; }
+    }
+
+    // DTO cho response tạo phòng với ảnh
+    public class CreateRoomWithImagesResponseDTO
+    {
+        public Guid RoomID { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<string> UploadedImageUrls { get; set; } = new();
+        public List<string> FailedUploads { get; set; } = new();
+        public int SuccessImageCount { get; set; }
+        public int FailedImageCount { get; set; }
     }
 }

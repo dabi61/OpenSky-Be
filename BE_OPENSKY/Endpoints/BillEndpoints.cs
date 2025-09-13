@@ -39,7 +39,54 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization();
 
-            // 2. Lấy thông tin hóa đơn theo ID
+            // 2. Scan QR code để thanh toán
+            billGroup.MapPost("/qr/scan", async ([FromBody] QRScanRequestDTO request, [FromServices] IQRPaymentService qrPaymentService, HttpContext context) =>
+            {
+                try
+                {
+                    var result = await qrPaymentService.ScanQRPaymentAsync(request.QRCode);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("ScanQRPayment")
+            .WithSummary("Scan QR code để thanh toán")
+            .WithDescription("Quét QR code để thực hiện thanh toán hóa đơn")
+            .Produces<QRPaymentStatusDTO>(200)
+            .Produces(400)
+            .Produces(500);
+
+            // 3. Kiểm tra trạng thái thanh toán
+            billGroup.MapGet("/qr/status/{billId:guid}", async (Guid billId, [FromServices] IQRPaymentService qrPaymentService, HttpContext context) =>
+            {
+                try
+                {
+                    var result = await qrPaymentService.GetPaymentStatusAsync(billId);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetPaymentStatus")
+            .WithSummary("Kiểm tra trạng thái thanh toán")
+            .WithDescription("Kiểm tra trạng thái thanh toán của hóa đơn")
+            .Produces<QRPaymentStatusDTO>(200)
+            .Produces(500);
+
+            // 4. Lấy thông tin hóa đơn theo ID
             billGroup.MapGet("/{billId:guid}", async (Guid billId, [FromServices] IBillService billService, HttpContext context) =>
             {
                 try

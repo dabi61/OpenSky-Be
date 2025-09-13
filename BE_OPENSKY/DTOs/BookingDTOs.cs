@@ -234,4 +234,11 @@ namespace BE_OPENSKY.DTOs
         public string Message { get; set; } = string.Empty;
         public DateTime? PaidAt { get; set; }
     }
+
+    // DTO cho scan QR code
+    public class QRScanRequestDTO
+    {
+        [Required]
+        public string QRCode { get; set; } = string.Empty;
+    }
 }

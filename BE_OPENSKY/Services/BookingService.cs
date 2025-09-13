@@ -14,18 +14,12 @@ namespace BE_OPENSKY.Services
             _context = context;
         }
 
-        public async Task<Guid> CreateHotelBookingAsync(Guid userId, CreateHotelBookingDTO createBookingDto)
+
+        public async Task<Guid> CreateMultipleRoomBookingAsync(Guid userId, CreateMultipleRoomBookingDTO createBookingDto)
         {
-            // Kiểm tra phòng có tồn tại và available không
-            var room = await _context.HotelRooms
-                .Include(r => r.Hotel)
-                .FirstOrDefaultAsync(r => r.RoomID == createBookingDto.RoomID);
-
-            if (room == null)
-                throw new InvalidOperationException("Không tìm thấy phòng");
-
-            if (room.Status != RoomStatus.Available)
-                throw new InvalidOperationException("Phòng không có sẵn để đặt");
+            // Validate input
+            if (createBookingDto.Rooms == null || !createBookingDto.Rooms.Any())
+                throw new InvalidOperationException("Phải chọn ít nhất 1 phòng");
 
             // Kiểm tra ngày check-in phải sau ngày hiện tại
             if (createBookingDto.CheckInDate <= DateTime.UtcNow.Date)
@@ -38,52 +32,97 @@ namespace BE_OPENSKY.Services
             // Tính số đêm
             var numberOfNights = (int)(createBookingDto.CheckOutDate - createBookingDto.CheckInDate).TotalDays;
 
-            // Kiểm tra xung đột đặt phòng dựa trên BillDetail (RoomID) và Booking thời gian
-            var hasConflict = await (
-                from d in _context.BillDetails
-                join b in _context.Bills on d.BillID equals b.BillID
-                join bk in _context.Bookings on b.BookingID equals bk.BookingID
-                where d.RoomID == createBookingDto.RoomID
-                    && bk.Status != BookingStatus.Cancelled
-                    && bk.Status != BookingStatus.Refunded
-                    && (bk.CheckInDate < createBookingDto.CheckOutDate && bk.CheckOutDate > createBookingDto.CheckInDate)
-                select d.BillDetailID
-            ).AnyAsync();
+            // Lấy thông tin tất cả phòng
+            var roomIds = createBookingDto.Rooms.Select(r => r.RoomID).ToList();
+            var rooms = await _context.HotelRooms
+                .Include(r => r.Hotel)
+                .Where(r => roomIds.Contains(r.RoomID))
+                .ToListAsync();
+
+            if (rooms.Count != roomIds.Count)
+                throw new InvalidOperationException("Một hoặc nhiều phòng không tồn tại");
+
+            // Kiểm tra tất cả phòng có available không
+            var unavailableRooms = rooms.Where(r => r.Status != RoomStatus.Available).ToList();
+            if (unavailableRooms.Any())
+                throw new InvalidOperationException($"Các phòng sau không có sẵn: {string.Join(", ", unavailableRooms.Select(r => r.RoomName))}");
+
+            // Kiểm tra tất cả phòng cùng khách sạn
+            var hotelIds = rooms.Select(r => r.HotelID).Distinct().ToList();
+            if (hotelIds.Count > 1)
+                throw new InvalidOperationException("Tất cả phòng phải cùng một khách sạn");
+
+            var hotelId = hotelIds.First();
+
+            // Kiểm tra xung đột cho từng phòng
+            var conflictingRooms = new List<string>();
+            foreach (var roomItem in createBookingDto.Rooms)
+            {
+                var room = rooms.First(r => r.RoomID == roomItem.RoomID);
+                
+                // Kiểm tra xung đột cho từng phòng (với quantity)
+                var hasConflict = await (
+                    from d in _context.BillDetails
+                    join b in _context.Bills on d.BillID equals b.BillID
+                    join bk in _context.Bookings on b.BookingID equals bk.BookingID
+                    where d.RoomID == roomItem.RoomID
+                        && bk.Status != BookingStatus.Cancelled
+                        && bk.Status != BookingStatus.Refunded
+                        && (bk.CheckInDate < createBookingDto.CheckOutDate && bk.CheckOutDate > createBookingDto.CheckInDate)
+                    select d.BillDetailID
+                ).AnyAsync();
+
+                if (hasConflict)
+                {
+                    conflictingRooms.Add(room.RoomName);
+                }
+            }
 
             // Tạo booking
             var booking = new Booking
             {
                 BookingID = Guid.NewGuid(),
                 UserID = userId,
-                HotelID = room.HotelID,
+                HotelID = hotelId,
                 CheckInDate = createBookingDto.CheckInDate,
                 CheckOutDate = createBookingDto.CheckOutDate,
-                Status = hasConflict ? BookingStatus.Pending : BookingStatus.Confirmed,
-                Notes = null,
+                Status = conflictingRooms.Any() ? BookingStatus.Pending : BookingStatus.Confirmed,
+                Notes = conflictingRooms.Any() ? $"Có xung đột với phòng: {string.Join(", ", conflictingRooms)}" : null,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
             _context.Bookings.Add(booking);
 
-            // Nếu không có xung đột, tự động tạo Bill + BillDetail (auto-approve)
-            if (!hasConflict)
+            // Tính tổng tiền
+            decimal totalPrice = 0;
+            foreach (var roomItem in createBookingDto.Rooms)
             {
-                var totalPrice = room.Price * numberOfNights;
+                var room = rooms.First(r => r.RoomID == roomItem.RoomID);
+                var roomTotalPrice = room.Price * roomItem.Quantity * numberOfNights;
+                totalPrice += roomTotalPrice;
+            }
 
-                var bill = new Bill
-                {
-                    BillID = Guid.NewGuid(),
-                    UserID = booking.UserID,
-                    BookingID = booking.BookingID,
-                    Deposit = 0,
-                    TotalPrice = totalPrice,
-                    Status = BillStatus.Pending,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+            // Tạo Bill
+            var bill = new Bill
+            {
+                BillID = Guid.NewGuid(),
+                UserID = booking.UserID,
+                BookingID = booking.BookingID,
+                Deposit = 0,
+                TotalPrice = totalPrice,
+                Status = BillStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-                _context.Bills.Add(bill);
+            _context.Bills.Add(bill);
+
+            // Tạo BillDetails cho từng phòng
+            foreach (var roomItem in createBookingDto.Rooms)
+            {
+                var room = rooms.First(r => r.RoomID == roomItem.RoomID);
+                var roomTotalPrice = room.Price * roomItem.Quantity * numberOfNights;
 
                 var billDetail = new BillDetail
                 {
@@ -93,10 +132,10 @@ namespace BE_OPENSKY.Services
                     ItemID = room.RoomID,
                     RoomID = room.RoomID,
                     ItemName = room.RoomName,
-                    Quantity = numberOfNights,
+                    Quantity = roomItem.Quantity * numberOfNights, // Số phòng × số đêm
                     UnitPrice = room.Price,
-                    TotalPrice = totalPrice,
-                    Notes = $"Booking phòng từ {booking.CheckInDate:dd/MM/yyyy} đến {booking.CheckOutDate:dd/MM/yyyy}",
+                    TotalPrice = roomTotalPrice,
+                    Notes = $"Booking {roomItem.Quantity} phòng từ {booking.CheckInDate:dd/MM/yyyy} đến {booking.CheckOutDate:dd/MM/yyyy}",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };

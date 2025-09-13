@@ -332,6 +332,87 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 - GET /hotels/{hotelId}/reviews/stats: Thống kê đánh giá
 - GET /hotels/my-reviews: Đánh giá của user hiện tại
 
+## Booking Management (/api/bookings)
+
+### Booking Endpoints
+
+**Đặt phòng:**
+
+- POST /bookings: Đặt phòng khách sạn (hỗ trợ cả 1 phòng và nhiều phòng)
+- GET /bookings/my-bookings: Xem booking của tôi (có phân trang)
+- GET /bookings/{bookingId}: Xem chi tiết booking
+- PUT /bookings/{bookingId}/cancel: Hủy booking
+
+**Quản lý:**
+
+- GET /bookings/check-availability: Kiểm tra phòng có sẵn
+- GET /bookings/stats: Thống kê booking (Admin/Hotel)
+- PUT /bookings/{bookingId}/payment-status: Cập nhật trạng thái thanh toán
+- PUT /bookings/{bookingId}/status: Cập nhật trạng thái booking
+- POST /bookings/{bookingId}/check-in: Check-in booking
+- POST /bookings/{bookingId}/check-out: Check-out booking
+
+**Thanh toán:**
+
+- POST /bookings/{billId}/qr-payment: Tạo QR code thanh toán
+- GET /bookings/{billId}/payment-status: Kiểm tra trạng thái thanh toán QR
+
+### Room Booking (1 hoặc nhiều phòng)
+
+**Request Example - 1 phòng:**
+
+```json
+POST /api/bookings
+{
+  "rooms": [
+    {
+      "roomID": "guid-1",
+      "quantity": 1
+    }
+  ],
+  "checkInDate": "2024-01-15",
+  "checkOutDate": "2024-01-17"
+}
+```
+
+**Request Example - Nhiều phòng:**
+
+```json
+POST /api/bookings
+{
+  "rooms": [
+    {
+      "roomID": "guid-1",
+      "quantity": 2
+    },
+    {
+      "roomID": "guid-2",
+      "quantity": 1
+    }
+  ],
+  "checkInDate": "2024-01-15",
+  "checkOutDate": "2024-01-17"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "message": "Đặt 3 phòng thành công",
+  "bookingId": "guid",
+  "totalRooms": 3,
+  "roomCount": 2
+}
+```
+
+**Điều kiện:**
+
+- Tất cả phòng phải cùng 1 khách sạn
+- Tất cả phòng phải available
+- Kiểm tra xung đột thời gian cho từng phòng
+- Tạo 1 Booking với nhiều BillDetail
+
 ## API Chưa Implement
 
 **Các API sau chưa được phát triển:**

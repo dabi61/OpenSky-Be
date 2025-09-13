@@ -2,11 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BE_OPENSKY.DTOs
 {
-    // DTO cho request đặt phòng (chỉ những field user cần nhập)
-    public class CreateHotelBookingRequestDTO
+    // DTO cho request đặt phòng (1 hoặc nhiều phòng)
+    public class CreateMultipleRoomBookingRequestDTO
     {
         [Required]
-        public Guid RoomID { get; set; }
+        [MinLength(1, ErrorMessage = "Phải chọn ít nhất 1 phòng")]
+        public List<RoomBookingItemDTO> Rooms { get; set; } = new();
         
         [Required]
         public DateTime CheckInDate { get; set; }
@@ -15,18 +16,29 @@ namespace BE_OPENSKY.DTOs
         public DateTime CheckOutDate { get; set; }
     }
 
-    // DTO cho internal use (có đầy đủ thông tin guest)
-    public class CreateHotelBookingDTO
+    // DTO cho từng phòng trong đặt nhiều phòng
+    public class RoomBookingItemDTO
     {
         [Required]
         public Guid RoomID { get; set; }
+        
+        [Required]
+        [Range(1, 10, ErrorMessage = "Số phòng phải từ 1 đến 10")]
+        public int Quantity { get; set; } = 1; // Số phòng cùng loại
+    }
+
+    // DTO cho internal use đặt phòng (1 hoặc nhiều phòng)
+    public class CreateMultipleRoomBookingDTO
+    {
+        [Required]
+        [MinLength(1)]
+        public List<RoomBookingItemDTO> Rooms { get; set; } = new();
         
         [Required]
         public DateTime CheckInDate { get; set; }
         
         [Required]
         public DateTime CheckOutDate { get; set; }
-        
     }
 
     // DTO cho response booking (tổng quát)

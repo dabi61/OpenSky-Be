@@ -13,8 +13,8 @@ namespace BE_OPENSKY.Endpoints
                 .WithTags("Booking Management")
                 .WithOpenApi();
 
-            // 1. Customer đặt phòng
-            bookingGroup.MapPost("/", async ([FromBody] CreateHotelBookingRequestDTO requestDto, [FromServices] IBookingService bookingService, [FromServices] IUserService userService, HttpContext context) =>
+            // 1. Customer đặt phòng (1 hoặc nhiều phòng)
+            bookingGroup.MapPost("/", async ([FromBody] CreateMultipleRoomBookingRequestDTO requestDto, [FromServices] IBookingService bookingService, HttpContext context) =>
             {
                 try
                 {
@@ -24,23 +24,24 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
                     }
 
-                    // Lấy thông tin user để tự động điền guest info
-                    var userProfile = await userService.GetProfileAsync(userIdGuid);
-                    if (userProfile == null)
+                    // Tạo DTO đầy đủ
+                    var createDto = new CreateMultipleRoomBookingDTO
                     {
-                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 404);
-                    }
-
-                    // Tạo DTO đầy đủ với thông tin guest (chỉ lấy phần ngày)
-                    var createDto = new CreateHotelBookingDTO
-                    {
-                        RoomID = requestDto.RoomID,
+                        Rooms = requestDto.Rooms,
                         CheckInDate = requestDto.CheckInDate.Date, // Chỉ lấy ngày, bỏ thời gian
                         CheckOutDate = requestDto.CheckOutDate.Date, // Chỉ lấy ngày, bỏ thời gian
                     };
 
-                    var bookingId = await bookingService.CreateHotelBookingAsync(userIdGuid, createDto);
-                    return Results.Ok(new { message = "Đặt phòng thành công", bookingId });
+                    var bookingId = await bookingService.CreateMultipleRoomBookingAsync(userIdGuid, createDto);
+                    var totalRooms = requestDto.Rooms.Sum(r => r.Quantity);
+                    var message = totalRooms == 1 ? "Đặt phòng thành công" : $"Đặt {totalRooms} phòng thành công";
+                    
+                    return Results.Ok(new { 
+                        message = message, 
+                        bookingId,
+                        totalRooms = totalRooms,
+                        roomCount = requestDto.Rooms.Count
+                    });
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -57,13 +58,13 @@ namespace BE_OPENSKY.Endpoints
             })
             .WithName("CreateHotelBooking")
             .WithSummary("Đặt phòng khách sạn")
-            .WithDescription("Customer đặt phòng khách sạn")
+            .WithDescription("Customer đặt phòng khách sạn (hỗ trợ cả 1 phòng và nhiều phòng cùng lúc)")
             .Produces(200)
             .Produces(400)
             .Produces(401)
             .RequireAuthorization();
 
-            // 2. Customer xem booking của mình với phân trang
+            // 3. Customer xem booking của mình với phân trang
             bookingGroup.MapGet("/my-bookings", async ([FromServices] IBookingService bookingService, HttpContext context, int page = 1, int limit = 10, string? status = null) =>
             {
                 try

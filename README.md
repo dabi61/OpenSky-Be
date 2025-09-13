@@ -81,22 +81,14 @@ erDiagram
     Booking {
         Guid BookingID PK
         Guid UserID FK
-        string BookingType
         Guid HotelID FK
-        Guid RoomID FK
         Guid TourID FK
-        Guid ScheduleID FK
         DateTime CheckInDate
         DateTime CheckOutDate
-        decimal TotalPrice
         string Status
         string Notes
-        string GuestName
-        string GuestPhone
-        string GuestEmail
         string PaymentMethod
         string PaymentStatus
-        Guid BillID FK
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -104,15 +96,12 @@ erDiagram
     Bill {
         Guid BillID PK
         Guid UserID FK
+        Guid BookingID FK UK
         Guid UserVoucherID FK
-        string TableType
-        Guid TypeID
         decimal Deposit
         decimal RefundPrice
         decimal TotalPrice
         string Status
-        string PaymentMethod
-        string TransactionId
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -122,6 +111,8 @@ erDiagram
         Guid BillID FK
         string ItemType
         Guid ItemID
+        Guid RoomID
+        Guid ScheduleID
         string ItemName
         int Quantity
         decimal UnitPrice
@@ -223,9 +214,7 @@ erDiagram
     Hotel ||--o{ HotelRoom : "contains"
     Hotel ||--o{ Booking : "has bookings"
 
-    HotelRoom ||--o{ Booking : "booked in"
-
-    Booking ||--o{ Bill : "generates bill"
+    Booking ||--|| Bill : "one-to-one"
 
     Tour ||--o{ Schedule : "scheduled for"
     Tour ||--o{ TourItinerary : "has itinerary"
@@ -237,7 +226,6 @@ erDiagram
     Bill }o--|| UserVoucher : "uses voucher"
 
     Schedule ||--o{ ScheduleItinerary : "has detailed itinerary"
-    Schedule ||--o{ Booking : "booked for"
 
     TourItinerary ||--o{ ScheduleItinerary : "scheduled in"
 
@@ -296,28 +284,53 @@ Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key
 - PUT /profile: Cập nhật thông tin cá nhân (đăng nhập)
 - POST /profile/avatar: Upload ảnh đại diện (đăng nhập)
 
-### Hotel Application System
-
-- POST /apply-hotel: Customer đăng ký mở khách sạn
-- GET /pending-hotels: Admin xem tất cả đơn đăng ký khách sạn chờ duyệt
-- GET /pending-hotels/{hotelId}: Admin xem chi tiết đơn đăng ký
-- POST /approve-hotel/{hotelId}: Admin duyệt đơn đăng ký khách sạn
-- DELETE /reject-hotel/{hotelId}: Admin từ chối đơn đăng ký khách sạn
-- GET /my-hotels: Customer xem khách sạn của mình
-
 ## Hotels (/api/hotels)
 
-### Hotel Management (Chủ khách sạn)
+### Hotel Application & Management
+
+**Customer & Admin Functions:**
+
+- POST /hotels/apply: Customer đăng ký mở khách sạn
+- GET /hotels/pending: Admin xem tất cả đơn đăng ký khách sạn chờ duyệt
+- GET /hotels/pending/{hotelId}: Admin xem chi tiết đơn đăng ký
+- POST /hotels/approve/{hotelId}: Admin duyệt đơn đăng ký khách sạn
+- DELETE /hotels/reject/{hotelId}: Admin từ chối đơn đăng ký khách sạn
+- GET /hotels/my-hotels: Customer xem khách sạn của mình
+
+**Hotel Owner Functions:**
 
 - PUT /hotels/{hotelId}: Cập nhật thông tin khách sạn
 - POST /hotels/{hotelId}/images: Thêm nhiều ảnh cho khách sạn
+- GET /hotels/{hotelId}: Xem chi tiết khách sạn (có phân trang phòng)
+- GET /hotels/search: Tìm kiếm và lọc khách sạn (Public - không cần auth)
+
+## Hotel Rooms (/api/hotels)
+
+### Room Management (Chủ khách sạn)
+
 - POST /hotels/{hotelId}/rooms: Thêm phòng mới cho khách sạn
 - POST /hotels/rooms/{roomId}/images: Thêm nhiều ảnh cho phòng
-- GET /hotels/{hotelId}: Xem chi tiết khách sạn (có phân trang phòng)
 - GET /hotels/rooms/{roomId}: Xem chi tiết phòng
 - GET /hotels/{hotelId}/rooms: Danh sách phòng có phân trang
 - PUT /hotels/rooms/{roomId}: Cập nhật thông tin phòng
 - DELETE /hotels/rooms/{roomId}: Xóa phòng
+- PUT /hotels/rooms/{roomId}/status: Cập nhật trạng thái phòng
+- GET /hotels/{hotelId}/rooms/status: Xem danh sách phòng theo trạng thái
+
+## Hotel Reviews (/api/hotels)
+
+### Review Management (Đánh giá khách sạn)
+
+**Điều kiện:** Chỉ có thể đánh giá sau khi đã đặt phòng và thanh toán thành công
+
+- POST /hotels/{hotelId}/reviews: Tạo đánh giá khách sạn (1-5 sao)
+- GET /hotels/{hotelId}/reviews/eligibility: Kiểm tra điều kiện đánh giá
+- PUT /hotels/{hotelId}/reviews/{reviewId}: Cập nhật đánh giá
+- DELETE /hotels/{hotelId}/reviews/{reviewId}: Xóa đánh giá
+- GET /hotels/{hotelId}/reviews/{reviewId}: Xem đánh giá theo ID
+- GET /hotels/{hotelId}/reviews: Danh sách đánh giá (có phân trang)
+- GET /hotels/{hotelId}/reviews/stats: Thống kê đánh giá
+- GET /hotels/my-reviews: Đánh giá của user hiện tại
 
 ## API Chưa Implement
 

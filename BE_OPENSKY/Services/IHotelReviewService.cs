@@ -24,4 +24,7 @@ public interface IHotelReviewService
     
     // Lấy đánh giá Hotel của user
     Task<List<HotelReviewResponseDTO>> GetUserHotelReviewsAsync(Guid userId);
+    
+    // Kiểm tra điều kiện đánh giá
+    Task<ReviewEligibilityDTO> CheckReviewEligibilityAsync(Guid hotelId, Guid userId);
 }

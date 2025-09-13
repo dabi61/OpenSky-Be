@@ -87,7 +87,8 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Province).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Coordinates).HasMaxLength(100);
+                entity.Property(e => e.Latitude).HasColumnType("decimal(18,15)").IsRequired();
+                entity.Property(e => e.Longitude).HasColumnType("decimal(18,15)").IsRequired();
                 entity.Property(e => e.HotelName).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();

@@ -26,6 +26,19 @@ public class HotelReviewService : IHotelReviewService
         
         if (existingReview != null) return null; // User đã đánh giá rồi
 
+        // Kiểm tra user đã đặt phòng và thanh toán thành công cho hotel này chưa
+        var validBooking = await _context.Bookings
+            .Include(b => b.Bill)
+            .Where(b => b.UserID == userId 
+                     && b.HotelID == hotelId 
+                     && b.Status == BookingStatus.Completed
+                     && b.Bill != null 
+                     && b.Bill.Status == BillStatus.Paid)
+            .FirstOrDefaultAsync();
+
+        if (validBooking == null) 
+            throw new InvalidOperationException("Bạn chỉ có thể đánh giá sau khi đã đặt phòng và thanh toán thành công cho khách sạn này.");
+
         // Tạo review mới
         var feedback = new FeedBack
         {
@@ -194,5 +207,71 @@ public class HotelReviewService : IHotelReviewService
             Description = f.Description,
             CreatedAt = f.CreatedAt
         }).ToList();
+    }
+
+    public async Task<ReviewEligibilityDTO> CheckReviewEligibilityAsync(Guid hotelId, Guid userId)
+    {
+        // Kiểm tra Hotel có tồn tại không
+        var hotel = await _context.Hotels.FindAsync(hotelId);
+        if (hotel == null)
+        {
+            return new ReviewEligibilityDTO
+            {
+                CanReview = false,
+                Reason = "Khách sạn không tồn tại",
+                HasExistingReview = false,
+                HasValidBooking = false,
+                HasPaidBill = false
+            };
+        }
+
+        // Kiểm tra user đã đánh giá Hotel này chưa
+        var existingReview = await _context.FeedBacks
+            .FirstOrDefaultAsync(f => f.TableType == TableType.Hotel && f.TableID == hotelId && f.UserID == userId);
+
+        if (existingReview != null)
+        {
+            return new ReviewEligibilityDTO
+            {
+                CanReview = false,
+                Reason = "Bạn đã đánh giá khách sạn này rồi",
+                HasExistingReview = true,
+                HasValidBooking = false,
+                HasPaidBill = false
+            };
+        }
+
+        // Kiểm tra user có booking hợp lệ không
+        var validBooking = await _context.Bookings
+            .Include(b => b.Bill)
+            .Where(b => b.UserID == userId 
+                     && b.HotelID == hotelId 
+                     && b.Status == BookingStatus.Completed
+                     && b.Bill != null 
+                     && b.Bill.Status == BillStatus.Paid)
+            .OrderByDescending(b => b.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (validBooking == null)
+        {
+            return new ReviewEligibilityDTO
+            {
+                CanReview = false,
+                Reason = "Bạn chỉ có thể đánh giá sau khi đã đặt phòng và thanh toán thành công cho khách sạn này",
+                HasExistingReview = false,
+                HasValidBooking = false,
+                HasPaidBill = false
+            };
+        }
+
+        return new ReviewEligibilityDTO
+        {
+            CanReview = true,
+            Reason = "Bạn có thể đánh giá khách sạn này",
+            HasExistingReview = false,
+            HasValidBooking = true,
+            HasPaidBill = true,
+            LastBookingDate = validBooking.CreatedAt
+        };
     }
 }

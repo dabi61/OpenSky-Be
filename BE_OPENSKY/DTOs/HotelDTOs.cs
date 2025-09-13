@@ -7,7 +7,10 @@ namespace BE_OPENSKY.DTOs
         public string? Description { get; set; }
         public string? Address { get; set; }
         public string? Province { get; set; }
-        public string? Coordinates { get; set; }
+        [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
+        public decimal? Latitude { get; set; }
+        [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
+        public decimal? Longitude { get; set; }
         [Range(1, 5)]
         public int? Star { get; set; }
     }
@@ -22,7 +25,8 @@ namespace BE_OPENSKY.DTOs
         public string? Description { get; set; }
         public string Address { get; set; } = string.Empty;
         public string Province { get; set; } = string.Empty;
-        public string? Coordinates { get; set; }
+        public decimal Latitude { get; set; } // Vĩ độ
+        public decimal Longitude { get; set; } // Kinh độ
         public int Star { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
@@ -146,7 +150,8 @@ namespace BE_OPENSKY.DTOs
         public string HotelName { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string Province { get; set; } = string.Empty;
-        public string? Coordinates { get; set; }
+        public decimal Latitude { get; set; } // Vĩ độ
+        public decimal Longitude { get; set; } // Kinh độ
         public string? Description { get; set; }
         public int Star { get; set; }
         public string Status { get; set; } = string.Empty;

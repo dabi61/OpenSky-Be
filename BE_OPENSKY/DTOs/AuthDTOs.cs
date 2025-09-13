@@ -61,7 +61,7 @@ public class UpdateUserStatusDTO
     public UserStatus Status { get; set; }
 }
 
-// DTO cho đơn đăng ký mở khách sạn
+// DTO cho đơn đăng ký mở khách sạn (JSON)
 public class HotelApplicationDTO
 {
     public string HotelName { get; set; } = string.Empty; // Tên khách sạn
@@ -75,6 +75,44 @@ public class HotelApplicationDTO
     public decimal Longitude { get; set; } // Kinh độ
     public string? Description { get; set; } // Mô tả
     public int Star { get; set; } = 3; // Số sao (1-5)
+}
+
+// DTO cho đăng ký khách sạn với ảnh (multipart/form-data)
+public class HotelApplicationWithImagesDTO
+{
+    [Required]
+    public string HotelName { get; set; } = string.Empty;
+    
+    [Required]
+    public string Address { get; set; } = string.Empty;
+    
+    [Required]
+    public string Province { get; set; } = string.Empty;
+    
+    [Required]
+    public decimal Latitude { get; set; }
+    
+    [Required]
+    public decimal Longitude { get; set; }
+    
+    public string? Description { get; set; }
+    
+    [Required]
+    public int Star { get; set; }
+    
+    // Files sẽ được xử lý từ form.Files
+}
+
+// DTO phản hồi khi đăng ký khách sạn với ảnh
+public class HotelApplicationWithImagesResponseDTO
+{
+    public Guid HotelID { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public List<string> UploadedImageUrls { get; set; } = new();
+    public List<string> FailedUploads { get; set; } = new();
+    public int SuccessImageCount { get; set; }
+    public int FailedImageCount { get; set; }
+    public string Status { get; set; } = "Inactive";
 }
 
 // DTO trả về thông tin khách sạn chờ duyệt

@@ -265,8 +265,8 @@ public static class HotelRoomEndpoints
         .WithDescription("Lấy danh sách phòng của khách sạn với phân trang")
         .Produces<PaginatedRoomsResponseDTO>(200);
 
-        // 4. Cập nhật thông tin phòng
-        roomGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, [FromBody] UpdateRoomDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
+        // 4. Cập nhật thông tin phòng với ảnh
+        roomGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -283,26 +283,299 @@ public static class HotelRoomEndpoints
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
 
-                // Cập nhật thông tin phòng
-                var success = await hotelService.UpdateRoomAsync(roomId, userId, updateDto);
-                
-                return success 
-                    ? Results.Ok(new { message = "Cập nhật thông tin phòng thành công" })
-                    : Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
+                // Khởi tạo UpdateRoomDTO
+                var updateDto = new UpdateRoomDTO();
+
+                // Xử lý multipart form data
+                if (context.Request.HasFormContentType)
+                {
+                    try
+                    {
+                        var form = await context.Request.ReadFormAsync();
+                        
+                        // Lấy thông tin text từ form
+                        if (form.ContainsKey("roomName") && !string.IsNullOrWhiteSpace(form["roomName"].FirstOrDefault()))
+                            updateDto.RoomName = form["roomName"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("roomType") && !string.IsNullOrWhiteSpace(form["roomType"].FirstOrDefault()))
+                            updateDto.RoomType = form["roomType"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
+                            updateDto.Address = form["address"].FirstOrDefault();
+
+                        if (form.ContainsKey("price") && decimal.TryParse(form["price"].FirstOrDefault(), out var price))
+                        {
+                            if (price > 0)
+                                updateDto.Price = price;
+                            else
+                                return Results.BadRequest(new { message = "Giá phòng phải lớn hơn 0" });
+                        }
+
+                        if (form.ContainsKey("maxPeople") && int.TryParse(form["maxPeople"].FirstOrDefault(), out var maxPeople))
+                        {
+                            if (maxPeople >= 1 && maxPeople <= 20)
+                                updateDto.MaxPeople = maxPeople;
+                            else
+                                return Results.BadRequest(new { message = "Số lượng người phải từ 1 đến 20" });
+                        }
+
+                        // Lấy image action
+                        var imageAction = form["imageAction"].FirstOrDefault() ?? "keep";
+                        if (imageAction != "keep" && imageAction != "replace")
+                        {
+                            return Results.BadRequest(new { message = "ImageAction phải là: keep hoặc replace" });
+                        }
+
+                        // Xử lý ảnh cũ trước khi upload ảnh mới
+                        var deletedImageUrls = new List<string>();
+                        if (imageAction == "replace")
+                        {
+                            deletedImageUrls = await hotelService.DeleteRoomImagesAsync(roomId, userId, imageAction);
+                        }
+
+                        // Cập nhật thông tin phòng
+                        var success = await hotelService.UpdateRoomAsync(roomId, userId, updateDto);
+                        if (!success)
+                        {
+                            return Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
+                        }
+
+                        // Xử lý upload ảnh mới nếu có
+                        var uploadedImageUrls = new List<string>();
+                        var failedUploads = new List<string>();
+
+                        if (form.Files.Count > 0)
+                        {
+                            foreach (var file in form.Files)
+                            {
+                                try
+                                {
+                                    if (!IsImageContentType(file.ContentType))
+                                    {
+                                        failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                                        continue;
+                                    }
+
+                                    if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                                    {
+                                        failedUploads.Add($"{file.FileName} (quá lớn)");
+                                        continue;
+                                    }
+
+                                    // Upload lên Cloudinary
+                                    var imageUrl = await cloudinaryService.UploadImageAsync(file, "rooms");
+                                    
+                                    // Lưu vào database
+                                    var image = new Image
+                                    {
+                                        TableType = TableTypeImage.RoomHotel,
+                                        TypeID = roomId,
+                                        URL = imageUrl,
+                                        CreatedAt = DateTime.UtcNow
+                                    };
+
+                                    using var scope = context.RequestServices.CreateScope();
+                                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                                    dbContext.Images.Add(image);
+                                    await dbContext.SaveChangesAsync();
+
+                                    uploadedImageUrls.Add(imageUrl);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                                    failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                                }
+                            }
+                        }
+
+                        // Tạo message dựa trên action
+                        string message;
+                        if (imageAction == "replace")
+                        {
+                            message = $"Cập nhật thông tin phòng thành công. Thay thế {deletedImageUrls.Count} ảnh cũ với {uploadedImageUrls.Count} ảnh mới.";
+                        }
+                        else // keep
+                        {
+                            message = uploadedImageUrls.Count > 0 
+                                ? $"Cập nhật thông tin phòng thành công. Thêm {uploadedImageUrls.Count} ảnh mới (giữ nguyên ảnh cũ)."
+                                : "Cập nhật thông tin phòng thành công (không có ảnh mới).";
+                        }
+
+                        var response = new UpdateRoomWithImagesResponseDTO
+                        {
+                            Message = message,
+                            UploadedImageUrls = uploadedImageUrls,
+                            FailedUploads = failedUploads,
+                            DeletedImageUrls = deletedImageUrls,
+                            SuccessImageCount = uploadedImageUrls.Count,
+                            FailedImageCount = failedUploads.Count,
+                            DeletedImageCount = deletedImageUrls.Count,
+                            ImageAction = imageAction
+                        };
+
+                        return Results.Ok(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Multipart parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
+                    }
+                }
+                else
+                {
+                    // Nếu không phải multipart, thử parse JSON
+                    try
+                    {
+                        context.Request.EnableBuffering();
+                        context.Request.Body.Position = 0;
+                        
+                        using var reader = new StreamReader(context.Request.Body);
+                        var jsonString = await reader.ReadToEndAsync();
+                        
+                        if (!string.IsNullOrEmpty(jsonString))
+                        {
+                            updateDto = System.Text.Json.JsonSerializer.Deserialize<UpdateRoomDTO>(jsonString) ?? new UpdateRoomDTO();
+                        }
+
+                        // Cập nhật thông tin phòng
+                        var success = await hotelService.UpdateRoomAsync(roomId, userId, updateDto);
+                        
+                        return success 
+                            ? Results.Ok(new { message = "Cập nhật thông tin phòng thành công" })
+                            : Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"JSON parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu JSON" });
+                    }
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error updating room with images: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
                 return Results.Problem(
                     title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi cập nhật thông tin phòng",
+                    detail: $"Có lỗi xảy ra khi cập nhật thông tin phòng: {ex.Message}",
                     statusCode: 500
                 );
             }
         })
-        .WithName("UpdateRoom")
-        .WithSummary("Cập nhật thông tin phòng")
-        .WithDescription("Chủ khách sạn có thể cập nhật thông tin phòng")
-        .Produces(200)
+        .WithName("UpdateRoomWithImages")
+        .WithSummary("Cập nhật thông tin phòng với ảnh")
+        .WithDescription("keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
+        .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
+        {
+            RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
+            {
+                Content = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
+                {
+                    ["multipart/form-data"] = new Microsoft.OpenApi.Models.OpenApiMediaType
+                    {
+                        Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                            {
+                                ["roomName"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Tên phòng"
+                                },
+                                ["roomType"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Loại phòng (Deluxe, Standard, Suite...)"
+                                },
+                                ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Địa chỉ phòng"
+                                },
+                                ["price"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "number",
+                                    Format = "decimal",
+                                    Description = "Giá phòng/đêm"
+                                },
+                                ["maxPeople"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "integer",
+                                    Format = "int32",
+                                    Description = "Số người tối đa (1-20)"
+                                },
+                                ["imageAction"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Hành động với ảnh cũ (BẮT BUỘC khi upload files):\n" +
+                                                 "• keep: Giữ ảnh cũ + thêm ảnh mới\n" +
+                                                 "• replace: Xóa ảnh cũ + thay thế bằng ảnh mới",
+                                    Default = new Microsoft.OpenApi.Any.OpenApiString("keep"),
+                                    Example = new Microsoft.OpenApi.Any.OpenApiString("replace"),
+                                    Enum = new List<Microsoft.OpenApi.Any.IOpenApiAny>
+                                    {
+                                        new Microsoft.OpenApi.Any.OpenApiString("keep"),
+                                        new Microsoft.OpenApi.Any.OpenApiString("replace")
+                                    }
+                                },
+                                ["files"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "array",
+                                    Items = new Microsoft.OpenApi.Models.OpenApiSchema
+                                    {
+                                        Type = "string",
+                                        Format = "binary"
+                                    },
+                                    Description = "Danh sách ảnh phòng mới (JPEG, PNG, GIF, WebP, max 5MB/file)"
+                                }
+                            }
+                        }
+                    },
+                    ["application/json"] = new Microsoft.OpenApi.Models.OpenApiMediaType
+                    {
+                        Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                            {
+                                ["roomName"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Tên phòng"
+                                },
+                                ["roomType"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Loại phòng (Deluxe, Standard, Suite...)"
+                                },
+                                ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Địa chỉ phòng"
+                                },
+                                ["price"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "number",
+                                    Format = "decimal",
+                                    Description = "Giá phòng/đêm"
+                                },
+                                ["maxPeople"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "integer",
+                                    Format = "int32",
+                                    Description = "Số người tối đa (1-20)"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        .Produces<UpdateRoomWithImagesResponseDTO>(200)
+        .Produces(400)
         .Produces(401)
         .Produces(403)
         .Produces(404)

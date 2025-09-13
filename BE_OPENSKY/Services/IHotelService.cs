@@ -14,6 +14,8 @@ public interface IHotelService
     Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId, int page = 1, int limit = 10);
     Task<bool> UpdateHotelAsync(Guid hotelId, Guid userId, UpdateHotelDTO updateDto);
     Task<bool> IsHotelOwnerAsync(Guid hotelId, Guid userId);
+    Task<List<string>> DeleteHotelImagesAsync(Guid hotelId, Guid userId, string action = "keep");
+    Task<List<string>> DeleteRoomImagesAsync(Guid roomId, Guid userId, string action = "keep");
     
     // Room management methods
     Task<Guid> CreateRoomAsync(Guid hotelId, Guid userId, CreateRoomDTO createRoomDto);

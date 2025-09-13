@@ -18,119 +18,6 @@ public static class UserEndpoints
         var userGroup = app.MapGroup("/users")
             .WithTags("User")
             .WithOpenApi();
-
-        // Admin có thể tạo tài khoản Supervisor
-        userGroup.MapPost("/create-supervisor", async ([FromBody] CreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
-        {
-            try
-            {
-                // Kiểm tra quyền Admin
-                if (!context.User.IsInRole(RoleConstants.Admin))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
-
-                // Validate input
-                if (string.IsNullOrWhiteSpace(createUserDto.Email))
-                    return Results.BadRequest(new { message = "Email không được để trống" });
-                
-                if (string.IsNullOrWhiteSpace(createUserDto.Password))
-                    return Results.BadRequest(new { message = "Mật khẩu không được để trống" });
-                
-                if (string.IsNullOrWhiteSpace(createUserDto.FullName))
-                    return Results.BadRequest(new { message = "Họ tên không được để trống" });
-
-                // Tạo tài khoản Supervisor
-                var registerDto = new UserRegisterDTO
-                {
-                    Email = createUserDto.Email,
-                    Password = createUserDto.Password,
-                    FullName = createUserDto.FullName
-                };
-
-                var user = await userService.CreateWithRoleAsync(registerDto, RoleConstants.Supervisor);
-                return Results.Created($"/users/{user.UserID}", user);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.Conflict(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return Results.Problem(
-                    title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi tạo tài khoản Supervisor",
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("CreateSupervisor")
-        .WithSummary("Admin tạo tài khoản Supervisor")
-        .WithDescription("Chỉ Admin có thể tạo tài khoản cho Supervisor")
-        .Produces<UserResponseDTO>(201)
-        .Produces(400)
-        .Produces(403)
-        .RequireAuthorization("AdminOnly");
-
-        // Supervisor có thể tạo tài khoản TourGuide
-        userGroup.MapPost("/create-tourguide", async ([FromBody] CreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
-        {
-            try
-            {
-                // Kiểm tra quyền Supervisor hoặc Admin
-                if (!context.User.IsInRole(RoleConstants.Supervisor) && !context.User.IsInRole(RoleConstants.Admin))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
-
-                // Validate input
-                if (string.IsNullOrWhiteSpace(createUserDto.Email))
-                    return Results.BadRequest(new { message = "Email không được để trống" });
-                
-                if (string.IsNullOrWhiteSpace(createUserDto.Password))
-                    return Results.BadRequest(new { message = "Mật khẩu không được để trống" });
-                
-                if (string.IsNullOrWhiteSpace(createUserDto.FullName))
-                    return Results.BadRequest(new { message = "Họ tên không được để trống" });
-
-                // Tạo tài khoản TourGuide
-                var registerDto = new UserRegisterDTO
-                {
-                    Email = createUserDto.Email,
-                    Password = createUserDto.Password,
-                    FullName = createUserDto.FullName
-                };
-
-                var user = await userService.CreateWithRoleAsync(registerDto, RoleConstants.TourGuide);
-                return Results.Created($"/users/{user.UserID}", user);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.Conflict(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return Results.Problem(
-                    title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi tạo tài khoản Tour Guide",
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("CreateTourGuide")
-        .WithSummary("Supervisor tạo tài khoản Tour Guide")
-        .WithDescription("Supervisor hoặc Admin có thể tạo tài khoản cho Tour Guide")
-        .Produces<UserResponseDTO>(201)
-        .Produces(400)
-        .Produces(403)
-        .RequireAuthorization("SupervisorOrAdmin");
-
-
-
-
-
-
-
         // Lấy danh sách người dùng với phân trang (phân quyền theo role)
         userGroup.MapGet("/", async ([FromServices] IUserService userService, HttpContext context, int page = 1, int limit = 10, string? role = null) =>
         {
@@ -358,13 +245,13 @@ public static class UserEndpoints
         .Produces(404)
         .RequireAuthorization("AdminOnly");
 
-        // 2. Admin tạo người dùng với role tùy chỉnh
+        // 1. Admin, Supervisor tạo người dùng với role tùy chỉnh
         userGroup.MapPost("/create", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {
-                // Kiểm tra quyền Admin
-                if (!context.User.IsInRole(RoleConstants.Admin))
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
@@ -382,10 +269,26 @@ public static class UserEndpoints
                 if (string.IsNullOrWhiteSpace(createUserDto.Role))
                     return Results.BadRequest(new { message = "Role không được để trống" });
 
-                // Validate role
-                var validRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
-                if (!validRoles.Contains(createUserDto.Role))
-                    return Results.BadRequest(new { message = "Role không hợp lệ" });
+                // Phân quyền theo role của người tạo
+                var isAdmin = context.User.IsInRole(RoleConstants.Admin);
+                var isSupervisor = context.User.IsInRole(RoleConstants.Supervisor);
+
+                // Admin có thể tạo tất cả role
+                var adminAllowedRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
+                
+                // Supervisor chỉ có thể tạo TourGuide
+                var supervisorAllowedRoles = new[] { RoleConstants.TourGuide };
+
+                // Kiểm tra quyền tạo role
+                if (isAdmin && !adminAllowedRoles.Contains(createUserDto.Role))
+                {
+                    return Results.BadRequest(new { message = $"Admin không thể tạo role: {createUserDto.Role}" });
+                }
+                
+                if (isSupervisor && !supervisorAllowedRoles.Contains(createUserDto.Role))
+                {
+                    return Results.BadRequest(new { message = "Supervisor chỉ có thể tạo tài khoản TourGuide" });
+                }
 
                 // Tạo tài khoản với role được chỉ định
                 var registerDto = new UserRegisterDTO
@@ -411,15 +314,15 @@ public static class UserEndpoints
                 );
             }
         })
-        .WithName("AdminCreateUser")
-        .WithSummary("Admin tạo người dùng với role tùy chỉnh")
-        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào (Admin, Supervisor, TourGuide, Customer, Hotel)")
+        .WithName("CreateUserWithRole")
+        .WithSummary("Admin, Supervisor tạo người dùng với role tùy chỉnh")
+        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào. Supervisor chỉ có thể tạo tài khoản TourGuide.")
         .Produces<UserResponseDTO>(201)
         .Produces(400)
         .Produces(403)
-        .RequireAuthorization("AdminOnly");
+        .RequireAuthorization("SupervisorOrAdmin");
 
-        // 3. Admin quản lý status người dùng
+        // 2. Admin quản lý status người dùng
         userGroup.MapPut("/{userId:guid}/status", async (Guid userId, [FromBody] UpdateUserStatusDTO updateStatusDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try

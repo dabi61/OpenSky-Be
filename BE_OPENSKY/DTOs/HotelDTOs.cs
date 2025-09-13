@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace BE_OPENSKY.DTOs
 {
-    // DTO cho cập nhật thông tin khách sạn
+    // DTO cho cập nhật thông tin khách sạn (JSON)
     public class UpdateHotelDTO
     {
         public string? HotelName { get; set; }
@@ -15,6 +15,33 @@ namespace BE_OPENSKY.DTOs
         public decimal? Longitude { get; set; }
         [Range(1, 5)]
         public int? Star { get; set; }
+    }
+
+    // DTO cho cập nhật thông tin khách sạn với ảnh (multipart/form-data)
+    public class UpdateHotelWithImagesDTO
+    {
+        public string? HotelName { get; set; }
+        public string? Description { get; set; }
+        public string? Address { get; set; }
+        public string? Province { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public int? Star { get; set; }
+        public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
+        // Files sẽ được xử lý từ form.Files
+    }
+
+    // DTO phản hồi khi cập nhật khách sạn với ảnh
+    public class UpdateHotelWithImagesResponseDTO
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<string> UploadedImageUrls { get; set; } = new();
+        public List<string> FailedUploads { get; set; } = new();
+        public List<string> DeletedImageUrls { get; set; } = new(); // Ảnh đã xóa
+        public int SuccessImageCount { get; set; }
+        public int FailedImageCount { get; set; }
+        public int DeletedImageCount { get; set; }
+        public string ImageAction { get; set; } = "keep"; // Hành động đã thực hiện
     }
 
     // DTO cho phản hồi chi tiết khách sạn

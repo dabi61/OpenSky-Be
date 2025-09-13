@@ -637,4 +637,57 @@ public class HotelService : IHotelService
 
         return roomStatusList;
     }
+
+    public async Task<List<string>> DeleteHotelImagesAsync(Guid hotelId, Guid userId, string action = "keep")
+    {
+        // Verify hotel ownership
+        var hotel = await _context.Hotels
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status == HotelStatus.Active);
+
+        if (hotel == null)
+            throw new UnauthorizedAccessException("Bạn không có quyền xóa ảnh của khách sạn này");
+
+        var deletedUrls = new List<string>();
+
+        if (action == "replace")
+        {
+            // Get current images
+            var currentImages = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotelId)
+                .ToListAsync();
+
+            // Store URLs before deletion for response
+            deletedUrls = currentImages.Select(i => i.URL).ToList();
+
+            // Delete from Cloudinary first, then from database
+            foreach (var image in currentImages)
+            {
+                try
+                {
+                    // Extract public ID from Cloudinary URL
+                    // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
+                    var uri = new Uri(image.URL);
+                    var pathSegments = uri.AbsolutePath.Split('/');
+                    var publicIdWithExtension = pathSegments[pathSegments.Length - 1];
+                    var publicId = System.IO.Path.GetFileNameWithoutExtension(publicIdWithExtension);
+
+                    // Delete from Cloudinary
+                    using var scope = _context.GetService<IServiceScopeFactory>().CreateScope();
+                    var cloudinaryService = scope.ServiceProvider.GetRequiredService<ICloudinaryService>();
+                    await cloudinaryService.DeleteImageAsync(publicId);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to delete image from Cloudinary: {image.URL}, Error: {ex.Message}");
+                    // Continue with database deletion even if Cloudinary deletion fails
+                }
+            }
+
+            // Delete from database
+            _context.Images.RemoveRange(currentImages);
+            await _context.SaveChangesAsync();
+        }
+
+        return deletedUrls;
+    }
 }

@@ -94,7 +94,7 @@ namespace BE_OPENSKY.Services
             foreach (var roomItem in createBookingDto.Rooms)
             {
                 var room = rooms.First(r => r.RoomID == roomItem.RoomID);
-                var roomTotalPrice = room.Price * roomItem.Quantity * numberOfNights;
+                var roomTotalPrice = room.Price * numberOfNights; // Mỗi RoomID = 1 phòng
                 totalPrice += roomTotalPrice;
             }
 
@@ -117,7 +117,7 @@ namespace BE_OPENSKY.Services
             foreach (var roomItem in createBookingDto.Rooms)
             {
                 var room = rooms.First(r => r.RoomID == roomItem.RoomID);
-                var roomTotalPrice = room.Price * roomItem.Quantity * numberOfNights;
+                var roomTotalPrice = room.Price * numberOfNights; // Mỗi RoomID = 1 phòng
 
                 var billDetail = new BillDetail
                 {
@@ -127,10 +127,10 @@ namespace BE_OPENSKY.Services
                     ItemID = room.RoomID,
                     RoomID = room.RoomID,
                     ItemName = room.RoomName,
-                    Quantity = roomItem.Quantity * numberOfNights, // Số phòng × số đêm
+                    Quantity = numberOfNights, // Chỉ lưu số đêm (mỗi RoomID = 1 phòng)
                     UnitPrice = room.Price,
                     TotalPrice = roomTotalPrice,
-                    Notes = $"Booking {roomItem.Quantity} phòng từ {booking.CheckInDate:dd/MM/yyyy} đến {booking.CheckOutDate:dd/MM/yyyy}",
+                    Notes = $"Booking 1 phòng từ {booking.CheckInDate:dd/MM/yyyy} đến {booking.CheckOutDate:dd/MM/yyyy}",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -231,7 +231,7 @@ namespace BE_OPENSKY.Services
                             RoomID = room.RoomID,
                             RoomName = room.RoomName,
                             RoomType = room.RoomType,
-                            Quantity = billDetail.Quantity / numberOfNights, // Số phòng (chia cho số đêm)
+                            Quantity = 1, // Mỗi RoomID = 1 phòng
                             UnitPrice = billDetail.UnitPrice,
                             TotalPrice = billDetail.TotalPrice,
                             Notes = billDetail.Notes

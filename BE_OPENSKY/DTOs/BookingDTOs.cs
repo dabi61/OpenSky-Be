@@ -20,9 +20,8 @@ namespace BE_OPENSKY.DTOs
         [Required]
         public Guid RoomID { get; set; }
         
-        [Required]
-        [Range(1, 10, ErrorMessage = "Số phòng phải từ 1 đến 10")]
-        public int Quantity { get; set; } = 1; // Số phòng cùng loại
+        // Mỗi RoomID chỉ đại diện cho 1 phòng cụ thể
+        // Nếu muốn đặt nhiều phòng cùng loại, phải có nhiều RoomID khác nhau
     }
 
     // DTO cho internal use đặt phòng (1 hoặc nhiều phòng)

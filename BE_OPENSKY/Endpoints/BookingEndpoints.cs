@@ -30,14 +30,13 @@ namespace BE_OPENSKY.Endpoints
                     };
 
                     var bookingId = await bookingService.CreateMultipleRoomBookingAsync(userIdGuid, createDto);
-                    var totalRooms = requestDto.Rooms.Sum(r => r.Quantity);
+                    var totalRooms = requestDto.Rooms.Count; // Số RoomID = số phòng
                     var message = totalRooms == 1 ? "Đặt phòng thành công" : $"Đặt {totalRooms} phòng thành công";
                     
                     return Results.Ok(new { 
                         message = message, 
                         bookingId,
-                        totalRooms = totalRooms,
-                        roomCount = requestDto.Rooms.Count
+                        totalRooms = totalRooms
                     });
                 }
                 catch (InvalidOperationException ex)

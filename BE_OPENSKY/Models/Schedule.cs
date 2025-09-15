@@ -21,6 +21,10 @@ namespace BE_OPENSKY.Models
         public int NumberPeople { get; set; }
         
         [Required]
+        [Range(0, 100)]
+        public int CurrentBookings { get; set; } = 0; // Số người đã đặt cho schedule này
+        
+        [Required]
         public ScheduleStatus Status { get; set; } = ScheduleStatus.Active;
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

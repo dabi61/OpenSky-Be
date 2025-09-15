@@ -73,10 +73,22 @@ namespace BE_OPENSKY.Services
                     bill.Status = BillStatus.Refunded;
                 }
 
-                // Cập nhật trạng thái booking thành Cancelled
+                // Cập nhật trạng thái booking và xử lý logic refund
                 if (bill.Booking != null)
                 {
                     bill.Booking.Status = BookingStatus.Cancelled;
+                    
+                    // Xử lý refund cho Hotel booking
+                    if (bill.Booking.HotelID != null)
+                    {
+                        await ProcessHotelRefundAsync(bill.Booking);
+                    }
+                    
+                    // Xử lý refund cho Tour booking (Schedule)
+                    if (bill.Booking.TourID != null)
+                    {
+                        await ProcessTourRefundAsync(bill.Booking);
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -317,6 +329,47 @@ namespace BE_OPENSKY.Services
                 PolicyDescription = "Không xác định",
                 DaysUntilDeparture = 0
             };
+        }
+
+        // Xử lý refund cho Hotel booking
+        private async Task ProcessHotelRefundAsync(Booking booking)
+        {
+            // Lấy BillDetails để tìm các phòng đã đặt
+            var billDetails = await _context.BillDetails
+                .Where(bd => bd.BillID == booking.BookingID && bd.ItemType == TableType.HotelRoom)
+                .ToListAsync();
+
+            foreach (var billDetail in billDetails)
+            {
+                // Cập nhật trạng thái phòng thành Available
+                var room = await _context.HotelRooms.FindAsync(billDetail.ItemID);
+                if (room != null)
+                {
+                    room.Status = RoomStatus.Available;
+                }
+            }
+        }
+
+        // Xử lý refund cho Tour booking (Schedule)
+        private async Task ProcessTourRefundAsync(Booking booking)
+        {
+            // Lấy BillDetails để tìm schedule và số người đã đặt
+            var billDetails = await _context.BillDetails
+                .Where(bd => bd.BillID == booking.BookingID && bd.ItemType == TableType.Schedule)
+                .ToListAsync();
+
+            foreach (var billDetail in billDetails)
+            {
+                // Giảm số người trong schedule
+                var schedule = await _context.Schedules.FindAsync(billDetail.ItemID);
+                if (schedule != null)
+                {
+                    // Giảm số người đã đặt
+                    schedule.CurrentBookings = Math.Max(0, schedule.CurrentBookings - billDetail.Quantity);
+                    
+                    Console.WriteLine($"Schedule {schedule.ScheduleID} refunded {billDetail.Quantity} guests. Current bookings: {schedule.CurrentBookings}/{schedule.NumberPeople}");
+                }
+            }
         }
     }
 

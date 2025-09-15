@@ -8,6 +8,7 @@ namespace BE_OPENSKY.DTOs
         public Guid TourID { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public int NumberOfGuests { get; set; }
         public string? Notes { get; set; }
     }
 
@@ -16,6 +17,7 @@ namespace BE_OPENSKY.DTOs
     {
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public int? NumberOfGuests { get; set; }
         public string? Notes { get; set; }
     }
 
@@ -29,6 +31,7 @@ namespace BE_OPENSKY.DTOs
         public string TourName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public int NumberOfGuests { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
         public string? PaymentMethod { get; set; }

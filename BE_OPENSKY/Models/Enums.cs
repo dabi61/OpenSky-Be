@@ -4,7 +4,9 @@ namespace BE_OPENSKY.Models
     public enum TableType
     {
         Tour,
-        Hotel
+        Hotel,
+        Schedule,
+        HotelRoom
     }
 
     // Enum cho các loại bảng được sử dụng trong Image

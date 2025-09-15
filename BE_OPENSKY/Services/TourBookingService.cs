@@ -32,6 +32,27 @@ namespace BE_OPENSKY.Services
                 if (createBookingDto.StartDate > createBookingDto.EndDate)
                     throw new ArgumentException("Ngày bắt đầu không thể sau ngày kết thúc");
 
+                // Kiểm tra số người hợp lệ
+                if (createBookingDto.NumberOfGuests <= 0)
+                    throw new ArgumentException("Số người phải lớn hơn 0");
+
+                // Tìm schedule phù hợp với tour và thời gian
+                var schedule = await _context.Schedules
+                    .Where(s => s.TourID == createBookingDto.TourID 
+                               && s.StartTime.Date == createBookingDto.StartDate.Date
+                               && s.Status == ScheduleStatus.Active)
+                    .FirstOrDefaultAsync();
+
+                if (schedule == null)
+                    throw new ArgumentException("Không tìm thấy schedule phù hợp cho tour này");
+
+                // Kiểm tra capacity của schedule
+                if (schedule.CurrentBookings + createBookingDto.NumberOfGuests > schedule.NumberPeople)
+                    throw new ArgumentException($"Schedule không còn đủ chỗ. Còn lại: {schedule.NumberPeople - schedule.CurrentBookings} chỗ");
+
+                // Cập nhật số người đã đặt trong schedule
+                schedule.CurrentBookings += createBookingDto.NumberOfGuests;
+
                 // Tạo booking
                 var booking = new Booking
                 {
@@ -69,7 +90,7 @@ namespace BE_OPENSKY.Services
             if (booking == null)
                 return null;
 
-            return MapToTourBookingResponseDTO(booking);
+            return await MapToTourBookingResponseDTO(booking);
         }
 
         public async Task<TourBookingListResponseDTO> GetUserTourBookingsAsync(Guid userId, int page = 1, int size = 10)
@@ -86,12 +107,17 @@ namespace BE_OPENSKY.Services
             var bookings = await query
                 .Skip((page - 1) * size)
                 .Take(size)
-                .Select(b => MapToTourBookingResponseDTO(b))
                 .ToListAsync();
+
+            var bookingDTOs = new List<TourBookingResponseDTO>();
+            foreach (var booking in bookings)
+            {
+                bookingDTOs.Add(await MapToTourBookingResponseDTO(booking));
+            }
 
             return new TourBookingListResponseDTO
             {
-                Bookings = bookings,
+                Bookings = bookingDTOs,
                 TotalCount = totalCount,
                 Page = page,
                 Size = size,
@@ -113,12 +139,17 @@ namespace BE_OPENSKY.Services
             var bookings = await query
                 .Skip((page - 1) * size)
                 .Take(size)
-                .Select(b => MapToTourBookingResponseDTO(b))
                 .ToListAsync();
+
+            var bookingDTOs = new List<TourBookingResponseDTO>();
+            foreach (var booking in bookings)
+            {
+                bookingDTOs.Add(await MapToTourBookingResponseDTO(booking));
+            }
 
             return new TourBookingListResponseDTO
             {
-                Bookings = bookings,
+                Bookings = bookingDTOs,
                 TotalCount = totalCount,
                 Page = page,
                 Size = size,
@@ -196,8 +227,14 @@ namespace BE_OPENSKY.Services
         }
 
 
-        private TourBookingResponseDTO MapToTourBookingResponseDTO(Booking booking)
+        private async Task<TourBookingResponseDTO> MapToTourBookingResponseDTO(Booking booking)
         {
+            // Lấy số người từ BillDetail (Schedule)
+            var billDetail = await _context.BillDetails
+                .FirstOrDefaultAsync(bd => bd.BillID == booking.BookingID && bd.ItemType == TableType.Schedule);
+            
+            var numberOfGuests = billDetail?.Quantity ?? 0;
+
             return new TourBookingResponseDTO
             {
                 BookingID = booking.BookingID,
@@ -207,6 +244,7 @@ namespace BE_OPENSKY.Services
                 TourName = booking.Tour?.TourName ?? "",
                 StartDate = booking.CheckInDate,
                 EndDate = booking.CheckOutDate,
+                NumberOfGuests = numberOfGuests,
                 Status = booking.Status.ToString(),
                 Notes = booking.Notes,
                 PaymentMethod = booking.PaymentMethod,

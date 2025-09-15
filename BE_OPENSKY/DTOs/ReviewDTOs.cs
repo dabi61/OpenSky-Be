@@ -4,6 +4,9 @@ namespace BE_OPENSKY.DTOs;
 public class CreateHotelReviewDTO
 {
     [Required]
+    public Guid HotelId { get; set; }
+
+    [Required]
     [Range(1, 5, ErrorMessage = "Đánh giá phải từ 1 đến 5 sao")]
     public int Rate { get; set; }
 
@@ -14,6 +17,9 @@ public class CreateHotelReviewDTO
 // DTO cho cập nhật đánh giá Hotel
 public class UpdateHotelReviewDTO
 {
+    [Required]
+    public Guid HotelId { get; set; }
+
     [Required]
     [Range(1, 5, ErrorMessage = "Đánh giá phải từ 1 đến 5 sao")]
     public int Rate { get; set; }

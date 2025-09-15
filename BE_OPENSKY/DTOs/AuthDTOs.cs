@@ -37,21 +37,35 @@ public class PaginatedUsersResponseDTO
     public bool HasPreviousPage { get; set; }
 }
 
-// DTO cho việc tạo tài khoản bởi Admin/Supervisor
-public class CreateUserDTO
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-}
+    // DTO cho việc tạo tài khoản bởi Admin/Supervisor
+    public class CreateUserDTO
+    {
+        [StringLength(100, ErrorMessage = "Email không được quá 100 ký tự")]
+        public string Email { get; set; } = string.Empty;
+        
+        [StringLength(100, ErrorMessage = "Mật khẩu không được quá 100 ký tự")]
+        public string Password { get; set; } = string.Empty;
+        
+        [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
+        public string FullName { get; set; } = string.Empty;
+        
+        [StringLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
+        public string? PhoneNumber { get; set; }
+    }
 
 // DTO cho Admin tạo user với role tùy chỉnh
 public class AdminCreateUserDTO
 {
+    [StringLength(100, ErrorMessage = "Email không được quá 100 ký tự")]
     public string Email { get; set; } = string.Empty;
+    
+    [StringLength(100, ErrorMessage = "Mật khẩu không được quá 100 ký tự")]
     public string Password { get; set; } = string.Empty;
+    
+    [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
     public string FullName { get; set; } = string.Empty;
+    
+    [StringLength(50, ErrorMessage = "Role không được quá 50 ký tự")]
     public string Role { get; set; } = string.Empty;
 }
 
@@ -64,15 +78,23 @@ public class UpdateUserStatusDTO
 // DTO cho đơn đăng ký mở khách sạn (JSON)
 public class HotelApplicationDTO
 {
+    [StringLength(200, ErrorMessage = "Tên khách sạn không được quá 200 ký tự")]
     public string HotelName { get; set; } = string.Empty; // Tên khách sạn
+    
+    [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
     public string Address { get; set; } = string.Empty; // Địa chỉ
+    
+    [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
     public string Province { get; set; } = string.Empty; // Tỉnh/Thành phố
+    
     [Required]
     [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
     public decimal Latitude { get; set; } // Vĩ độ
     [Required]
     [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
     public decimal Longitude { get; set; } // Kinh độ
+    
+    [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
     public string? Description { get; set; } // Mô tả
     public int Star { get; set; } = 3; // Số sao (1-5)
 }
@@ -81,12 +103,15 @@ public class HotelApplicationDTO
 public class HotelApplicationWithImagesDTO
 {
     [Required]
+    [StringLength(200, ErrorMessage = "Tên khách sạn không được quá 200 ký tự")]
     public string HotelName { get; set; } = string.Empty;
     
     [Required]
+    [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
     public string Address { get; set; } = string.Empty;
     
     [Required]
+    [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
     public string Province { get; set; } = string.Empty;
     
     [Required]
@@ -95,6 +120,7 @@ public class HotelApplicationWithImagesDTO
     [Required]
     public decimal Longitude { get; set; }
     
+    [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
     public string? Description { get; set; }
     
     [Required]
@@ -149,12 +175,15 @@ public class PendingHotelResponseDTO
     {
         [Required]
         [EmailAddress]
+        [StringLength(100, ErrorMessage = "Email không được quá 100 ký tự")]
         public string Email { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(100, ErrorMessage = "Mật khẩu không được quá 100 ký tự")]
         public string Password { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
         public string FullName { get; set; } = string.Empty;
     }
 
@@ -163,16 +192,24 @@ public class PendingHotelResponseDTO
     {
         [Required]
         [EmailAddress]
+        [StringLength(100, ErrorMessage = "Email không được quá 100 ký tự")]
         public string Email { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(100, ErrorMessage = "Mật khẩu không được quá 100 ký tự")]
         public string Password { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
         public string FullName { get; set; } = string.Empty;
 
+        [StringLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
         public string? PhoneNumber { get; set; }
+        
+        [StringLength(100, ErrorMessage = "ProviderId không được quá 100 ký tự")]
         public string? ProviderId { get; set; } // Chỉ dành cho Google OAuth
+        
+        [StringLength(500, ErrorMessage = "AvatarURL không được quá 500 ký tự")]
         public string? AvatarURL { get; set; }
     }
 
@@ -180,9 +217,11 @@ public class PendingHotelResponseDTO
     public class ChangePasswordDTO
     {
         [Required]
+        [StringLength(100, ErrorMessage = "Mật khẩu hiện tại không được quá 100 ký tự")]
         public string CurrentPassword { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(100, ErrorMessage = "Mật khẩu mới không được quá 100 ký tự")]
         public string NewPassword { get; set; } = string.Empty;
     }
 
@@ -214,18 +253,31 @@ public class PendingHotelResponseDTO
     // DTO cho cập nhật thông tin cá nhân
     public class UpdateProfileDTO
     {
+        [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
         public string? FullName { get; set; }
+        
+        [StringLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
         public string? PhoneNumber { get; set; }
+        
+        [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
         public string? CitizenId { get; set; }
+        
         public DateOnly? DoB { get; set; }
     }
 
     // DTO cho cập nhật profile với avatar (multipart form data)
     public class UpdateProfileWithAvatarDTO
     {
+        [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
         public string? FullName { get; set; }
+        
+        [StringLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
         public string? PhoneNumber { get; set; }
+        
+        [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
         public string? CitizenId { get; set; }
+        
+        [StringLength(20, ErrorMessage = "Ngày sinh không được quá 20 ký tự")]
         public string? DoB { get; set; } // String để dễ xử lý trong form
         public IFormFile? Avatar { get; set; }
     }

@@ -11,7 +11,7 @@ public static class HotelEndpoints
             .WithOpenApi();
 
         // 1. Cập nhật thông tin khách sạn với ảnh
-        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
+        hotelGroup.MapPut("/", async (HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -30,6 +30,7 @@ public static class HotelEndpoints
 
                 // Khởi tạo UpdateHotelDTO
                 var updateDto = new UpdateHotelDTO();
+                Guid hotelId;
 
                 // Xử lý multipart form data
                 if (context.Request.HasFormContentType)
@@ -37,6 +38,10 @@ public static class HotelEndpoints
                     try
                     {
                         var form = await context.Request.ReadFormAsync();
+                        
+                        // Lấy hotelId từ form
+                        if (!form.TryGetValue("hotelId", out var hotelIdValue) || !Guid.TryParse(hotelIdValue, out hotelId))
+                            return Results.BadRequest(new { message = "HotelId không hợp lệ" });
                         
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("hotelName") && !string.IsNullOrWhiteSpace(form["hotelName"].FirstOrDefault()))
@@ -191,7 +196,25 @@ public static class HotelEndpoints
                         
                         if (!string.IsNullOrEmpty(jsonString))
                         {
-                            updateDto = System.Text.Json.JsonSerializer.Deserialize<UpdateHotelDTO>(jsonString) ?? new UpdateHotelDTO();
+                            var updateWithImagesDto = System.Text.Json.JsonSerializer.Deserialize<UpdateHotelWithImagesDTO>(jsonString);
+                            if (updateWithImagesDto == null)
+                                return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
+                            
+                            hotelId = updateWithImagesDto.HotelId;
+                            updateDto = new UpdateHotelDTO
+                            {
+                                HotelName = updateWithImagesDto.HotelName,
+                                Description = updateWithImagesDto.Description,
+                                Address = updateWithImagesDto.Address,
+                                Province = updateWithImagesDto.Province,
+                                Latitude = updateWithImagesDto.Latitude,
+                                Longitude = updateWithImagesDto.Longitude,
+                                Star = updateWithImagesDto.Star
+                            };
+                        }
+                        else
+                        {
+                            return Results.BadRequest(new { message = "Request body không được để trống" });
                         }
 
                         // Cập nhật thông tin khách sạn
@@ -222,7 +245,7 @@ public static class HotelEndpoints
         })
         .WithName("UpdateHotelWithImages")
         .WithSummary("Cập nhật thông tin khách sạn với ảnh")
-        .WithDescription("keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
+        .WithDescription("Cập nhật thông tin khách sạn với ảnh. Sử dụng multipart/form-data với fields: hotelId, hotelName, description, address, province, latitude, longitude, star, imageAction, files. keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -236,6 +259,12 @@ public static class HotelEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
+                                ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Format = "uuid",
+                                    Description = "ID của khách sạn"
+                                },
                                 ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
@@ -308,6 +337,12 @@ public static class HotelEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
+                                ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Format = "uuid",
+                                    Description = "ID của khách sạn"
+                                },
                                 ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
@@ -641,6 +676,12 @@ public static class HotelEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
+                                ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Format = "uuid",
+                                    Description = "ID của khách sạn"
+                                },
                                 ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",

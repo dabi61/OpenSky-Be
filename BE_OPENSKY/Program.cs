@@ -115,6 +115,9 @@ public class Program
         app.MapBookingEndpoints();     // Booking management endpoints
         app.MapBillEndpoints();        // Bill management endpoints
         app.MapTourEndpoints();        // Tour management endpoints
+        app.MapScheduleEndpoints();    // Schedule management endpoints
+        app.MapScheduleItineraryEndpoints(); // Schedule itinerary management endpoints
+        app.MapTourItineraryEndpoints(); // Tour itinerary management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

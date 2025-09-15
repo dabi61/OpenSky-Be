@@ -3,6 +3,7 @@ using System;
 using BE_OPENSKY.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BE_OPENSKY.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250915032134_AddScheduleAndItineraryModels")]
+    partial class AddScheduleAndItineraryModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -453,7 +456,13 @@ namespace BE_OPENSKY.Migrations
                     b.Property<Guid>("TourID")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TourID1")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("UserID1")
                         .HasColumnType("uuid");
 
                     b.HasKey("ScheduleID");
@@ -464,7 +473,11 @@ namespace BE_OPENSKY.Migrations
 
                     b.HasIndex("TourID");
 
+                    b.HasIndex("TourID1");
+
                     b.HasIndex("UserID");
+
+                    b.HasIndex("UserID1");
 
                     b.ToTable("Schedules");
                 });
@@ -609,6 +622,9 @@ namespace BE_OPENSKY.Migrations
                     b.Property<Guid>("TourID")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TourID1")
+                        .HasColumnType("uuid");
+
                     b.HasKey("ItineraryID");
 
                     b.HasIndex("DayNumber");
@@ -616,6 +632,8 @@ namespace BE_OPENSKY.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("TourID");
+
+                    b.HasIndex("TourID1");
 
                     b.ToTable("TourItineraries");
                 });
@@ -877,16 +895,24 @@ namespace BE_OPENSKY.Migrations
             modelBuilder.Entity("BE_OPENSKY.Models.Schedule", b =>
                 {
                     b.HasOne("BE_OPENSKY.Models.Tour", "Tour")
-                        .WithMany("Schedules")
+                        .WithMany()
                         .HasForeignKey("TourID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BE_OPENSKY.Models.User", "User")
+                    b.HasOne("BE_OPENSKY.Models.Tour", null)
                         .WithMany("Schedules")
+                        .HasForeignKey("TourID1");
+
+                    b.HasOne("BE_OPENSKY.Models.User", "User")
+                        .WithMany()
                         .HasForeignKey("UserID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("BE_OPENSKY.Models.User", null)
+                        .WithMany("Schedules")
+                        .HasForeignKey("UserID1");
 
                     b.Navigation("Tour");
 
@@ -937,10 +963,14 @@ namespace BE_OPENSKY.Migrations
             modelBuilder.Entity("BE_OPENSKY.Models.TourItinerary", b =>
                 {
                     b.HasOne("BE_OPENSKY.Models.Tour", "Tour")
-                        .WithMany("TourItineraries")
+                        .WithMany()
                         .HasForeignKey("TourID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("BE_OPENSKY.Models.Tour", null)
+                        .WithMany("TourItineraries")
+                        .HasForeignKey("TourID1");
 
                     b.Navigation("Tour");
                 });

@@ -7,10 +7,8 @@ namespace BE_OPENSKY.Models
         [Key]
         public Guid ScheduleID { get; set; }
         
-        [Required]
         public Guid TourID { get; set; }
         
-        [Required]
         public Guid UserID { get; set; }
         
         [Required]
@@ -21,6 +19,9 @@ namespace BE_OPENSKY.Models
         
         [Required]
         public int NumberPeople { get; set; }
+        
+        [Required]
+        public ScheduleStatus Status { get; set; } = ScheduleStatus.Active;
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         

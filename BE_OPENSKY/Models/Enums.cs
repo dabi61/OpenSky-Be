@@ -76,4 +76,13 @@ namespace BE_OPENSKY.Models
         Approve,      // Đã duyệt
         Deny          // Từ chối
     }
+
+    // Enum cho trạng thái schedule
+    public enum ScheduleStatus
+    {
+        Active,       // Hoạt động
+        End,          // Kết thúc
+        Suspend,      // Tạm ngưng
+        Removed       // Đã xóa
+    }
 }

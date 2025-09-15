@@ -352,6 +352,58 @@ namespace BE_OPENSKY.Data
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CreatedAt);
             });
+
+            // Schedule
+            modelBuilder.Entity<Schedule>(entity =>
+            {
+                entity.HasKey(e => e.ScheduleID);
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.NumberPeople).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+
+                // Indexes for performance
+                entity.HasIndex(e => e.TourID);
+                entity.HasIndex(e => e.UserID);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedAt);
+            });
+
+            // TourItinerary
+            modelBuilder.Entity<TourItinerary>(entity =>
+            {
+                entity.HasKey(e => e.ItineraryID);
+                entity.Property(e => e.Location).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.DayNumber).IsRequired();
+                entity.Property(e => e.IsDeleted).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(1000);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.TourID);
+                entity.HasIndex(e => e.DayNumber);
+                entity.HasIndex(e => e.IsDeleted);
+            });
+
+            // ScheduleItinerary
+            modelBuilder.Entity<ScheduleItinerary>(entity =>
+            {
+                entity.HasKey(e => e.ScheduleItID);
+
+                // Quan hệ với bảng Schedule
+                entity.HasOne(e => e.Schedule)
+                    .WithMany(s => s.ScheduleItineraries)
+                    .HasForeignKey(e => e.ScheduleID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Quan hệ với bảng TourItinerary
+                entity.HasOne(e => e.TourItinerary)
+                    .WithMany(ti => ti.ScheduleItineraries)
+                    .HasForeignKey(e => e.ItineraryID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.ScheduleID);
+                entity.HasIndex(e => e.ItineraryID);
+            });
         }
     }
 }

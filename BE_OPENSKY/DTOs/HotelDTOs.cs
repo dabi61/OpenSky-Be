@@ -20,6 +20,8 @@ namespace BE_OPENSKY.DTOs
     // DTO cho cập nhật thông tin khách sạn với ảnh (multipart/form-data)
     public class UpdateHotelWithImagesDTO
     {
+        [Required]
+        public Guid HotelId { get; set; }
         public string? HotelName { get; set; }
         public string? Description { get; set; }
         public string? Address { get; set; }
@@ -79,6 +81,9 @@ namespace BE_OPENSKY.DTOs
     public class CreateRoomDTO
     {
         [Required]
+        public Guid HotelId { get; set; }
+        
+        [Required]
         public string RoomName { get; set; } = string.Empty;
         
         [Required]
@@ -99,6 +104,9 @@ namespace BE_OPENSKY.DTOs
     // DTO cho tạo phòng mới với ảnh (multipart form data)
     public class CreateRoomWithImagesDTO
     {
+        [Required]
+        public Guid HotelId { get; set; }
+        
         [Required]
         public string RoomName { get; set; } = string.Empty;
         

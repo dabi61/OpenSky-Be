@@ -6,12 +6,12 @@ public static class HotelRoomEndpoints
 {
     public static void MapHotelRoomEndpoints(this WebApplication app)
     {
-        var roomGroup = app.MapGroup("/hotels")
+        var roomGroup = app.MapGroup("/rooms")
             .WithTags("Hotel Room")
             .WithOpenApi();
 
         // 1. Thêm phòng mới cho khách sạn (hỗ trợ upload ảnh)
-        roomGroup.MapPost("/{hotelId:guid}/rooms", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
+        roomGroup.MapPost("/", async (HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -38,6 +38,9 @@ public static class HotelRoomEndpoints
                 var form = await context.Request.ReadFormAsync();
                 
                 // Validate và parse room data
+                if (!form.TryGetValue("hotelId", out var hotelIdValue) || !Guid.TryParse(hotelIdValue, out var hotelId))
+                    return Results.BadRequest(new { message = "HotelId không hợp lệ" });
+
                 if (!form.TryGetValue("roomName", out var roomNameValue) || string.IsNullOrWhiteSpace(roomNameValue))
                     return Results.BadRequest(new { message = "Tên phòng không được để trống" });
 
@@ -56,6 +59,7 @@ public static class HotelRoomEndpoints
                 // Tạo DTO cho room
                 var createRoomDto = new CreateRoomDTO
                 {
+                    HotelId = hotelId,
                     RoomName = roomNameValue.ToString().Trim(),
                     RoomType = roomTypeValue.ToString().Trim(),
                     Address = addressValue.ToString().Trim(),
@@ -127,7 +131,7 @@ public static class HotelRoomEndpoints
                     FailedImageCount = failedUploads.Count
                 };
 
-                return Results.Created($"/hotels/{hotelId}/rooms/{roomId}", response);
+                return Results.Created($"/rooms/{roomId}", response);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -148,7 +152,7 @@ public static class HotelRoomEndpoints
         })
             .WithName("CreateRoomWithImages")
             .WithSummary("Thêm phòng mới cho khách sạn (có ảnh)")
-            .WithDescription("Chủ khách sạn có thể tạo phòng mới và upload ảnh cùng lúc. Sử dụng multipart/form-data với fields: roomName, roomType, address, price, maxPeople và files")
+            .WithDescription("Chủ khách sạn có thể tạo phòng mới và upload ảnh cùng lúc. Sử dụng multipart/form-data với fields: hotelId, roomName, roomType, address, price, maxPeople và files")
             .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
             {
                 RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -162,6 +166,12 @@ public static class HotelRoomEndpoints
                                 Type = "object",
                                 Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                                 {
+                                    ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                    {
+                                        Type = "string",
+                                        Format = "uuid",
+                                        Description = "ID của khách sạn"
+                                    },
                                     ["roomName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                     {
                                         Type = "string",
@@ -200,7 +210,7 @@ public static class HotelRoomEndpoints
                                         Description = "Danh sách ảnh phòng (JPEG, PNG, GIF, WebP, max 5MB/file)"
                                     }
                                 },
-                                Required = new HashSet<string> { "roomName", "roomType", "address", "price", "maxPeople" }
+                                Required = new HashSet<string> { "hotelId", "roomName", "roomType", "address", "price", "maxPeople" }
                             }
                         }
                     }
@@ -214,7 +224,7 @@ public static class HotelRoomEndpoints
 
 
         // 2. Xem chi tiết phòng
-        roomGroup.MapGet("/rooms/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService) =>
+        roomGroup.MapGet("/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService) =>
         {
             try
             {
@@ -240,7 +250,7 @@ public static class HotelRoomEndpoints
         .Produces(404);
 
         // 3. Danh sách phòng có phân trang
-        roomGroup.MapGet("/{hotelId:guid}/rooms", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
+        roomGroup.MapGet("/hotel/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
         {
             try
             {
@@ -266,7 +276,7 @@ public static class HotelRoomEndpoints
         .Produces<PaginatedRoomsResponseDTO>(200);
 
         // 4. Cập nhật thông tin phòng với ảnh
-        roomGroup.MapPut("/rooms/{roomId:guid}", async (Guid roomId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
+        roomGroup.MapPut("/{roomId:guid}", async (Guid roomId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -582,7 +592,7 @@ public static class HotelRoomEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 5. Xóa phòng
-        roomGroup.MapDelete("/rooms/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService, HttpContext context) =>
+        roomGroup.MapDelete("/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -625,7 +635,7 @@ public static class HotelRoomEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 6. Cập nhật trạng thái phòng
-        roomGroup.MapPut("/rooms/{roomId:guid}/status", async (Guid roomId, [FromBody] UpdateRoomStatusDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
+        roomGroup.MapPut("/{roomId:guid}/status", async (Guid roomId, [FromBody] UpdateRoomStatusDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
@@ -668,7 +678,7 @@ public static class HotelRoomEndpoints
         .RequireAuthorization("HotelOnly");
 
         // 7. Xem danh sách phòng theo trạng thái
-        roomGroup.MapGet("/{hotelId:guid}/rooms/status", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, string? status = null) =>
+        roomGroup.MapGet("/hotel/{hotelId:guid}/status", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, string? status = null) =>
         {
             try
             {

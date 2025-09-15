@@ -37,6 +37,7 @@ public static class ServiceExtensions
         services.AddScoped<IVoucherService, VoucherService>();
         services.AddScoped<IUserVoucherService, UserVoucherService>();
         services.AddScoped<IRefundService, RefundService>();
+        services.AddScoped<ITourBookingService, TourBookingService>();
         
         // Email Service - SMTP (SendGrid SMTP for Railway, Gmail SMTP for local)
         try

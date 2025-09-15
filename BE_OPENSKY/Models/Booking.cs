@@ -14,15 +14,15 @@ namespace BE_OPENSKY.Models
         // Hotel booking fields
         public Guid? HotelID { get; set; }
         
-        // Tour booking fields (sẽ dùng sau)
+        // Tour booking fields
         public Guid? TourID { get; set; }
         
         // Common booking fields
         [Required]
-        public DateTime CheckInDate { get; set; }
+        public DateTime CheckInDate { get; set; } // Ngày check-in hotel hoặc ngày bắt đầu tour
         
         [Required]
-        public DateTime CheckOutDate { get; set; }
+        public DateTime CheckOutDate { get; set; } // Ngày check-out hotel hoặc ngày kết thúc tour
         
         [Required]
         public BookingStatus Status { get; set; } = BookingStatus.Pending;
@@ -43,9 +43,7 @@ namespace BE_OPENSKY.Models
         // Navigation properties
         public virtual User User { get; set; } = null!;
         public virtual Hotel? Hotel { get; set; }
+        public virtual Tour? Tour { get; set; }
         public virtual Bill? Bill { get; set; }
-        // Tour navigation properties sẽ thêm sau
-        // public virtual Tour? Tour { get; set; }
-        // public virtual Schedule? Schedule { get; set; }
     }
 }

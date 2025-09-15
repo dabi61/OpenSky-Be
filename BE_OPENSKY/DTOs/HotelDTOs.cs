@@ -5,10 +5,18 @@ namespace BE_OPENSKY.DTOs
     // DTO cho cập nhật thông tin khách sạn (JSON)
     public class UpdateHotelDTO
     {
+        [StringLength(200, ErrorMessage = "Tên khách sạn không được quá 200 ký tự")]
         public string? HotelName { get; set; }
+        
+        [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
         public string? Description { get; set; }
+        
+        [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
         public string? Address { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
         public string? Province { get; set; }
+        
         [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
         public decimal? Latitude { get; set; }
         [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
@@ -22,13 +30,24 @@ namespace BE_OPENSKY.DTOs
     {
         [Required]
         public Guid HotelId { get; set; }
+        
+        [StringLength(200, ErrorMessage = "Tên khách sạn không được quá 200 ký tự")]
         public string? HotelName { get; set; }
+        
+        [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
         public string? Description { get; set; }
+        
+        [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
         public string? Address { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
         public string? Province { get; set; }
+        
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public int? Star { get; set; }
+        
+        [StringLength(10, ErrorMessage = "ImageAction không được quá 10 ký tự")]
         public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
         // Files sẽ được xử lý từ form.Files
     }
@@ -84,12 +103,15 @@ namespace BE_OPENSKY.DTOs
         public Guid HotelId { get; set; }
         
         [Required]
+        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
         public string RoomName { get; set; } = string.Empty;
         
         [Required]
+        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
         public string RoomType { get; set; } = string.Empty;
         
         [Required]
+        [StringLength(500, ErrorMessage = "Địa chỉ phòng không được quá 500 ký tự")]
         public string Address { get; set; } = string.Empty;
         
         [Required]
@@ -108,12 +130,15 @@ namespace BE_OPENSKY.DTOs
         public Guid HotelId { get; set; }
         
         [Required]
+        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
         public string RoomName { get; set; } = string.Empty;
         
         [Required]
+        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
         public string RoomType { get; set; } = string.Empty;
         
         [Required]
+        [StringLength(500, ErrorMessage = "Địa chỉ phòng không được quá 500 ký tự")]
         public string Address { get; set; } = string.Empty;
         
         [Required]
@@ -130,9 +155,15 @@ namespace BE_OPENSKY.DTOs
     // DTO cho cập nhật thông tin phòng
     public class UpdateRoomDTO
     {
+        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
         public string? RoomName { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
         public string? RoomType { get; set; }
+        
+        [StringLength(500, ErrorMessage = "Địa chỉ phòng không được quá 500 ký tự")]
         public string? Address { get; set; }
+        
         [Range(0.01, double.MaxValue, ErrorMessage = "Giá phòng phải lớn hơn 0")]
         public decimal? Price { get; set; }
         [Range(1, 20, ErrorMessage = "Số lượng người phải từ 1 đến 20")]
@@ -142,11 +173,19 @@ namespace BE_OPENSKY.DTOs
     // DTO cho cập nhật thông tin phòng với ảnh (multipart/form-data)
     public class UpdateRoomWithImagesDTO
     {
+        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
         public string? RoomName { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
         public string? RoomType { get; set; }
+        
+        [StringLength(500, ErrorMessage = "Địa chỉ phòng không được quá 500 ký tự")]
         public string? Address { get; set; }
+        
         public decimal? Price { get; set; }
         public int? MaxPeople { get; set; }
+        
+        [StringLength(10, ErrorMessage = "ImageAction không được quá 10 ký tự")]
         public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
         // Files sẽ được xử lý từ form.Files
     }

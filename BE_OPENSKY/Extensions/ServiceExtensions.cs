@@ -30,6 +30,7 @@ public static class ServiceExtensions
         services.AddScoped<IBillService, BillService>();
         services.AddScoped<IQRPaymentService, QRPaymentService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
+        services.AddScoped<ITourService, TourService>();
         
         // Email Service - SMTP (SendGrid SMTP for Railway, Gmail SMTP for local)
         try

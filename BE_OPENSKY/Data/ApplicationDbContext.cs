@@ -67,12 +67,15 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Tour>(entity =>
             {
                 entity.HasKey(e => e.TourID);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.TourName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(2000);
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.Province).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Star).IsRequired();
                 entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MaxPeople).IsRequired();
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.CreatedAt).IsRequired();
 
                 entity.HasOne(e => e.User)
                     .WithMany(e => e.Tours)

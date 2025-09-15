@@ -40,7 +40,8 @@ namespace BE_OPENSKY.Models
     public enum TourStatus
     {
         Active,   // Hoạt động
-        Inactive  // Không hoạt động
+        Suspend,  // Tạm ngưng
+        Removed   // Đã xóa
     }
 
     // Enum cho trạng thái phòng

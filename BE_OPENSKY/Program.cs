@@ -120,6 +120,7 @@ public class Program
         app.MapTourItineraryEndpoints(); // Tour itinerary management endpoints
         app.MapVoucherEndpoints();     // Voucher management endpoints
         app.MapUserVoucherEndpoints(); // User voucher management endpoints
+        app.MapRefundEndpoints();      // Refund management endpoints
 
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

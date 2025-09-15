@@ -28,7 +28,7 @@ namespace BE_OPENSKY.Services
                 return null;
 
             // Tính toán thông tin giảm giá
-            var originalTotalPrice = bill.BillDetails.Sum(bd => bd.TotalPrice);
+            var originalTotalPrice = bill.BillDetails?.Sum(bd => bd.TotalPrice) ?? 0;
             var discountAmount = originalTotalPrice - bill.TotalPrice;
             var discountPercent = originalTotalPrice > 0 ? (discountAmount / originalTotalPrice) * 100 : 0;
 
@@ -62,7 +62,7 @@ namespace BE_OPENSKY.Services
                 UpdatedAt = bill.UpdatedAt,
                 UserVoucherID = bill.UserVoucherID,
                 VoucherInfo = voucherInfo,
-                BillDetails = bill.BillDetails.Select(bd => new BillDetailResponseDTO
+                BillDetails = bill.BillDetails?.Select(bd => new BillDetailResponseDTO
                 {
                     BillDetailID = bd.BillDetailID,
                     BillID = bd.BillID,
@@ -74,7 +74,7 @@ namespace BE_OPENSKY.Services
                     TotalPrice = bd.TotalPrice,
                     Notes = bd.Notes,
                     CreatedAt = bd.CreatedAt
-                }).ToList()
+                }).ToList() ?? new List<BillDetailResponseDTO>()
             };
         }
 
@@ -260,7 +260,7 @@ namespace BE_OPENSKY.Services
                     TotalPrice = bd.TotalPrice,
                     Notes = bd.Notes,
                     CreatedAt = bd.CreatedAt
-                }).ToList()
+                }).ToList() ?? new List<BillDetailResponseDTO>()
             }).ToList();
         }
 
@@ -319,7 +319,7 @@ namespace BE_OPENSKY.Services
                     TotalPrice = bd.TotalPrice,
                     Notes = bd.Notes,
                     CreatedAt = bd.CreatedAt
-                }).ToList()
+                }).ToList() ?? new List<BillDetailResponseDTO>()
             };
         }
     }

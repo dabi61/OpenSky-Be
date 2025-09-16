@@ -566,7 +566,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
@@ -589,8 +589,8 @@ namespace BE_OPENSKY.Endpoints
                 }
             })
             .WithName("CreateTourBooking")
-            .WithSummary("Tạo tour booking")
-            .WithDescription("Tạo booking mới cho tour")
+            .WithSummary("Tạo tour booking theo Schedule")
+            .WithDescription("Tạo booking mới cho tour bằng cách chọn Schedule cụ thể. Body: scheduleID, (optional) tourID, numberOfGuests, notes.")
             .Produces<object>(201)
             .Produces(400)
             .Produces(401)
@@ -606,7 +606,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
@@ -647,7 +647,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
@@ -691,7 +691,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();

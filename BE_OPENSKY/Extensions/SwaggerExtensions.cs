@@ -1,3 +1,5 @@
+using BE_OPENSKY.Models;
+
 namespace BE_OPENSKY.Extensions;
 
 public static class SwaggerExtensions
@@ -47,6 +49,19 @@ public static class SwaggerExtensions
 
             // Ensure all endpoints are discovered
             c.CustomSchemaIds(type => type.FullName);
+            
+            // Display ScheduleStatus enum as string in Swagger
+            c.MapType<ScheduleStatus>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+            {
+                Type = "string",
+                Enum = new List<Microsoft.OpenApi.Any.IOpenApiAny>
+                {
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(ScheduleStatus.Active)),
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(ScheduleStatus.End)),
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(ScheduleStatus.Suspend)),
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(ScheduleStatus.Removed))
+                }
+            });
             
             // Configure file upload support
             c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema

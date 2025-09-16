@@ -267,10 +267,15 @@ namespace BE_OPENSKY.Services
         public async Task<bool> UpdateBillPaymentStatusAsync(Guid billId, string paymentMethod, string transactionId, decimal amount)
         {
             var bill = await _context.Bills
+                .Include(b => b.BillDetails)
                 .FirstOrDefaultAsync(b => b.BillID == billId);
 
             if (bill == null)
                 return false;
+
+            // Nếu đã paid trước đó thì không làm gì thêm (idempotent)
+            if (bill.Status == BillStatus.Paid)
+                return true;
 
             // Cập nhật trạng thái bill
             bill.Status = BillStatus.Paid;
@@ -279,6 +284,25 @@ namespace BE_OPENSKY.Services
             // Cập nhật thông tin thanh toán nếu cần
             // bill.PaymentMethod = paymentMethod;
             // bill.TransactionId = transactionId;
+
+            // Nếu là bill của tour, tăng CurrentBookings cho schedule tương ứng
+            var tourDetail = bill.BillDetails
+                .FirstOrDefault(bd => bd.ItemType == TableType.Tour && bd.ScheduleID.HasValue);
+            if (tourDetail != null)
+            {
+                var schedule = await _context.Schedules
+                    .FirstOrDefaultAsync(s => s.ScheduleID == tourDetail.ScheduleID!.Value);
+                if (schedule != null)
+                {
+                    // Bảo vệ không vượt capacity
+                    var remaining = schedule.NumberPeople - schedule.CurrentBookings;
+                    var increment = Math.Min(remaining, tourDetail.Quantity);
+                    if (increment > 0)
+                    {
+                        schedule.CurrentBookings += increment;
+                    }
+                }
+            }
 
             await _context.SaveChangesAsync();
             return true;

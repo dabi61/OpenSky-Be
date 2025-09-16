@@ -12,5 +12,6 @@ namespace BE_OPENSKY.Services
         Task<bool> UpdateScheduleAsync(Guid scheduleId, UpdateScheduleDTO updateScheduleDto);
         Task<bool> SoftDeleteScheduleAsync(Guid scheduleId);
         Task<bool> IsScheduleAssignedToTourGuideAsync(Guid scheduleId, Guid tourGuideId);
+        Task<ScheduleListResponseDTO> GetBookableSchedulesForTourAsync(Guid tourId, DateTime fromDate, DateTime toDate, int guests);
     }
 }

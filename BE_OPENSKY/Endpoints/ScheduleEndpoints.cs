@@ -4,6 +4,7 @@ using BE_OPENSKY.Helpers;
 using BE_OPENSKY.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace BE_OPENSKY.Endpoints
 {
@@ -31,7 +32,7 @@ namespace BE_OPENSKY.Endpoints
                     }
 
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
@@ -140,17 +141,16 @@ namespace BE_OPENSKY.Endpoints
             .Produces(404)
             .Produces(500);
 
-            // PUT /schedules/{id} - Cập nhật schedule (chỉ thời gian và status)
-            group.MapPut("/{id:guid}", async (
-                Guid id,
-                UpdateScheduleDTO updateScheduleDto,
+            // PUT /schedules - Cập nhật schedule (ID trong body)
+            group.MapPut("/", async (
+                UpdateScheduleWithIdDTO updateScheduleDto,
                 IScheduleService scheduleService,
                 HttpContext context) =>
             {
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
@@ -165,7 +165,7 @@ namespace BE_OPENSKY.Endpoints
                     // Nếu là TourGuide, kiểm tra schedule có được phân công cho họ không
                     if (context.User.IsInRole(RoleConstants.TourGuide))
                     {
-                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(id, userId);
+                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(updateScheduleDto.ScheduleID, userId);
                         if (!isAssigned)
                         {
                             return Results.Json(new { message = "Bạn chỉ có thể cập nhật schedule được phân công cho bạn" }, statusCode: 403);
@@ -181,7 +181,13 @@ namespace BE_OPENSKY.Endpoints
                         }
                     }
 
-                    var success = await scheduleService.UpdateScheduleAsync(id, updateScheduleDto);
+                    var success = await scheduleService.UpdateScheduleAsync(updateScheduleDto.ScheduleID, new UpdateScheduleDTO
+                    {
+                        StartTime = updateScheduleDto.StartTime,
+                        EndTime = updateScheduleDto.EndTime,
+                        Status = updateScheduleDto.Status
+                    });
+
                     if (!success)
                     {
                         return Results.Json(new { message = "Không tìm thấy schedule hoặc không thể cập nhật" }, statusCode: 404);
@@ -194,11 +200,12 @@ namespace BE_OPENSKY.Endpoints
                     return Results.Json(new { message = $"Lỗi khi cập nhật schedule: {ex.Message}" }, statusCode: 500);
                 }
             })
-            .WithName("UpdateSchedule")
-            .WithSummary("Cập nhật schedule")
-            .WithDescription("Cập nhật thời gian và status của schedule. Chỉ Admin, Supervisor và TourGuide mới được cập nhật schedule.")
+            .WithName("UpdateScheduleWithBody")
+            .WithSummary("Cập nhật schedule (ID trong body)")
+            .WithDescription("Cập nhật thời gian và status của schedule. Status là trạng thái của lịch: Active, End, Suspend, Removed. Chỉ Admin, Supervisor và TourGuide mới được cập nhật.")
             .Produces(200)
             .Produces(400)
+            .Produces(401)
             .Produces(403)
             .Produces(404)
             .Produces(500)
@@ -245,7 +252,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
@@ -291,7 +298,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
@@ -334,6 +341,38 @@ namespace BE_OPENSKY.Endpoints
             .Produces(404)
             .Produces(500)
             .RequireAuthorization("ManagementRoles");
+
+            // GET /schedules/availability - Lấy các schedule có thể đặt được cho một tour trong khoảng thời gian
+            group.MapGet("/availability", async (
+                Guid tourId,
+                DateTime fromDate,
+                DateTime toDate,
+                int guests,
+                IScheduleService scheduleService) =>
+            {
+                try
+                {
+                    if (guests <= 0)
+                        return Results.BadRequest(new { message = "Số lượng khách phải lớn hơn 0" });
+
+                    var result = await scheduleService.GetBookableSchedulesForTourAsync(tourId, fromDate, toDate, guests);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: $"Có lỗi xảy ra khi kiểm tra lịch khả dụng: {ex.Message}",
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetBookableSchedulesForTour")
+            .WithSummary("Kiểm tra lịch có thể đặt được cho tour")
+            .WithDescription("Trả về danh sách schedule Active thuộc tour có đủ chỗ trong khoảng thời gian [fromDate, toDate] với số khách 'guests'.")
+            .Produces<ScheduleListResponseDTO>(200)
+            .Produces(400)
+            .Produces(500);
         }
     }
 }

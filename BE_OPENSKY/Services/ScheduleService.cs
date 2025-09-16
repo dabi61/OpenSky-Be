@@ -84,7 +84,8 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName
+                    UserName = s.User!.FullName,
+                    RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();
 
@@ -123,7 +124,8 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName
+                    UserName = s.User!.FullName,
+                    RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();
 
@@ -194,7 +196,8 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName
+                    UserName = s.User!.FullName,
+                    RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();
 
@@ -214,6 +217,54 @@ namespace BE_OPENSKY.Services
                 .FirstOrDefaultAsync(s => s.ScheduleID == scheduleId && s.UserID == tourGuideId && s.Status != ScheduleStatus.Removed);
 
             return schedule != null;
+        }
+
+        public async Task<ScheduleListResponseDTO> GetBookableSchedulesForTourAsync(Guid tourId, DateTime fromDate, DateTime toDate, int guests)
+        {
+            if (fromDate > toDate)
+                (fromDate, toDate) = (toDate, fromDate);
+
+            // Ensure UTC kind for PostgreSQL 'timestamp with time zone'
+            if (fromDate.Kind != DateTimeKind.Utc)
+                fromDate = DateTime.SpecifyKind(fromDate, DateTimeKind.Utc);
+            if (toDate.Kind != DateTimeKind.Utc)
+                toDate = DateTime.SpecifyKind(toDate, DateTimeKind.Utc);
+
+            var query = _context.Schedules
+                .Include(s => s.Tour)
+                .Include(s => s.User)
+                .Where(s => s.TourID == tourId
+                            && s.Status == ScheduleStatus.Active
+                            && s.StartTime >= fromDate
+                            && s.EndTime <= toDate
+                            && (s.NumberPeople - s.CurrentBookings) >= guests)
+                .OrderBy(s => s.StartTime);
+
+            var schedules = await query
+                .Select(s => new ScheduleResponseDTO
+                {
+                    ScheduleID = s.ScheduleID,
+                    TourID = s.TourID,
+                    UserID = s.UserID,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    NumberPeople = s.NumberPeople,
+                    Status = s.Status,
+                    CreatedAt = s.CreatedAt,
+                    TourName = s.Tour!.TourName,
+                    UserName = s.User!.FullName,
+                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                })
+                .ToListAsync();
+
+            return new ScheduleListResponseDTO
+            {
+                Schedules = schedules,
+                TotalCount = schedules.Count,
+                Page = 1,
+                Size = schedules.Count,
+                TotalPages = 1
+            };
         }
     }
 }

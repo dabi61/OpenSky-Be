@@ -20,47 +20,36 @@ namespace BE_OPENSKY.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Kiểm tra tour tồn tại
-                var tour = await _context.Tours.FindAsync(createBookingDto.TourID);
+                // Lấy schedule và tour
+                var schedule = await _context.Schedules
+                    .Include(s => s.Tour)
+                    .FirstOrDefaultAsync(s => s.ScheduleID == createBookingDto.ScheduleID && s.Status == ScheduleStatus.Active);
+                if (schedule == null)
+                    throw new ArgumentException("Schedule không tồn tại hoặc không khả dụng");
+
+                var tour = schedule.Tour;
                 if (tour == null)
-                    throw new ArgumentException("Tour không tồn tại");
+                    throw new ArgumentException("Không tìm thấy tour cho schedule");
 
-                // Kiểm tra ngày booking hợp lệ
-                if (createBookingDto.StartDate < DateTime.UtcNow)
-                    throw new ArgumentException("Không thể đặt tour trong quá khứ");
+                // TourID được lấy trực tiếp từ Schedule; không nhận từ request
 
-                if (createBookingDto.StartDate > createBookingDto.EndDate)
-                    throw new ArgumentException("Ngày bắt đầu không thể sau ngày kết thúc");
-
-                // Kiểm tra số người hợp lệ
+                // Kiểm tra số người hợp lệ và capacity
                 if (createBookingDto.NumberOfGuests <= 0)
                     throw new ArgumentException("Số người phải lớn hơn 0");
 
-                // Tìm schedule phù hợp với tour và thời gian
-                var schedule = await _context.Schedules
-                    .Where(s => s.TourID == createBookingDto.TourID 
-                               && s.StartTime.Date == createBookingDto.StartDate.Date
-                               && s.Status == ScheduleStatus.Active)
-                    .FirstOrDefaultAsync();
-
-                if (schedule == null)
-                    throw new ArgumentException("Không tìm thấy schedule phù hợp cho tour này");
-
-                // Kiểm tra capacity của schedule
                 if (schedule.CurrentBookings + createBookingDto.NumberOfGuests > schedule.NumberPeople)
                     throw new ArgumentException($"Schedule không còn đủ chỗ. Còn lại: {schedule.NumberPeople - schedule.CurrentBookings} chỗ");
 
-                // Cập nhật số người đã đặt trong schedule
-                schedule.CurrentBookings += createBookingDto.NumberOfGuests;
+                // KHÔNG cộng capacity ở bước đặt. Chỉ cộng sau khi thanh toán thành công.
 
-                // Tạo booking
+                // Tạo booking với ngày theo schedule
                 var booking = new Booking
                 {
                     BookingID = Guid.NewGuid(),
                     UserID = userId,
-                    TourID = createBookingDto.TourID,
-                    CheckInDate = createBookingDto.StartDate,
-                    CheckOutDate = createBookingDto.EndDate,
+                    TourID = schedule.TourID,
+                    CheckInDate = schedule.StartTime,
+                    CheckOutDate = schedule.EndTime,
                     Notes = createBookingDto.Notes,
                     Status = BookingStatus.Pending,
                     CreatedAt = DateTime.UtcNow,
@@ -68,6 +57,41 @@ namespace BE_OPENSKY.Services
                 };
 
                 _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+
+                // Tạo Bill Pending cho booking
+                var unitPrice = tour.Price;
+                var quantity = createBookingDto.NumberOfGuests;
+                var totalPrice = unitPrice * quantity;
+
+                var bill = new Bill
+                {
+                    BillID = Guid.NewGuid(),
+                    UserID = userId,
+                    BookingID = booking.BookingID,
+                    Deposit = 0,
+                    TotalPrice = totalPrice,
+                    Status = BillStatus.Pending,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var billDetail = new BillDetail
+                {
+                    BillDetailID = Guid.NewGuid(),
+                    BillID = bill.BillID,
+                    ItemType = TableType.Tour,
+                    ItemID = tour.TourID,
+                    ScheduleID = schedule.ScheduleID,
+                    ItemName = tour.TourName,
+                    Quantity = quantity,
+                    UnitPrice = unitPrice,
+                    TotalPrice = totalPrice,
+                    Notes = $"Tour booking cho schedule {schedule.ScheduleID}"
+                };
+
+                bill.BillDetails.Add(billDetail);
+                _context.Bills.Add(bill);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

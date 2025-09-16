@@ -1,4 +1,5 @@
 using BE_OPENSKY.Models;
+using System.Text.Json.Serialization;
 
 namespace BE_OPENSKY.DTOs
 {
@@ -17,6 +18,17 @@ namespace BE_OPENSKY.DTOs
     {
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public ScheduleStatus? Status { get; set; }
+    }
+
+    // DTO cập nhật schedule kèm ID trong body
+    public class UpdateScheduleWithIdDTO
+    {
+        public Guid ScheduleID { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public ScheduleStatus? Status { get; set; }
     }
 
@@ -33,6 +45,7 @@ namespace BE_OPENSKY.DTOs
         public DateTime CreatedAt { get; set; }
         public string? TourName { get; set; }
         public string? UserName { get; set; }
+        public int? RemainingSlots { get; set; } // Số chỗ còn lại (NumberPeople - CurrentBookings)
     }
 
     // DTO cho danh sách schedule có phân trang

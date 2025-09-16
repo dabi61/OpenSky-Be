@@ -5,9 +5,7 @@ namespace BE_OPENSKY.DTOs
     // DTO cho tạo tour booking
     public class CreateTourBookingDTO
     {
-        public Guid TourID { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public Guid ScheduleID { get; set; }
         public int NumberOfGuests { get; set; }
         public string? Notes { get; set; }
     }

@@ -40,7 +40,6 @@ public class HotelService : IHotelService
             Latitude = applicationDto.Latitude,
             Longitude = applicationDto.Longitude,
             Description = applicationDto.Description,
-            Star = applicationDto.Star,
             Status = HotelStatus.Inactive, // Chờ duyệt
             CreatedAt = DateTime.UtcNow
         };
@@ -248,8 +247,9 @@ public class HotelService : IHotelService
         if (updateDto.Longitude.HasValue)
             hotel.Longitude = updateDto.Longitude.Value;
         
-        if (updateDto.Star.HasValue)
-            hotel.Star = updateDto.Star.Value;
+        // Star is no longer updated by owner
+        // if (updateDto.Star.HasValue)
+        //     hotel.Star = updateDto.Star.Value;
 
         await _context.SaveChangesAsync();
         return true;

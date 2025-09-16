@@ -21,8 +21,6 @@ namespace BE_OPENSKY.DTOs
         public decimal? Latitude { get; set; }
         [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
         public decimal? Longitude { get; set; }
-        [Range(1, 5)]
-        public int? Star { get; set; }
     }
 
     // DTO cho cập nhật thông tin khách sạn với ảnh (multipart/form-data)
@@ -45,7 +43,6 @@ namespace BE_OPENSKY.DTOs
         
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
-        public int? Star { get; set; }
         
         [StringLength(10, ErrorMessage = "ImageAction không được quá 10 ký tự")]
         public string? ImageAction { get; set; } = "keep"; // "keep", "replace"

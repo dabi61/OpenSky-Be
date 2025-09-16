@@ -5,6 +5,7 @@ public interface IUserService
     Task<UserResponseDTO> CreateAsync(UserRegisterDTO userDto);
     Task<UserResponseDTO> CreateGoogleUserAsync(GoogleUserRegisterDTO userDto);
     Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role);
+    Task<UserResponseDTO> CreateAdminUserAsync(AdminCreateUserDTO userDto);
     Task<string?> LoginAsync(LoginRequestDTO loginDto);
     Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDTO changePasswordDto);
     Task<User?> GetByEmailAsync(string email);

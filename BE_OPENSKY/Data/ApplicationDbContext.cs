@@ -40,6 +40,7 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.PhoneNumber).HasMaxLength(20);
                 entity.Property(e => e.CitizenId).HasMaxLength(20);
+                entity.Property(e => e.dob).HasColumnType("date"); // Cấu hình cho ngày sinh
                 entity.Property(e => e.AvatarURL).HasMaxLength(500);
 
                 entity.HasIndex(e => e.Email).IsUnique();

@@ -92,6 +92,48 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<UserResponseDTO> CreateAdminUserAsync(AdminCreateUserDTO userDto)
+    {
+        // Kiểm tra email đã tồn tại chưa
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
+        if (existingUser != null)
+        {
+            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+        }
+
+        var user = new User
+        {
+            UserID = Guid.NewGuid(),
+            Email = userDto.Email,
+            Password = PasswordHelper.HashPassword(userDto.Password),
+            FullName = userDto.FullName,
+            PhoneNumber = userDto.PhoneNumber,
+            CitizenId = userDto.CitizenId,
+            dob = userDto.dob,
+            Role = userDto.Role,
+            ProviderId = null,
+            AvatarURL = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new UserResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Status = user.Status,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            dob = user.dob,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
     public async Task<string?> LoginAsync(LoginRequestDTO loginDto)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
@@ -230,7 +272,7 @@ public class UserService : IUserService
             Role = user.Role,
             PhoneNumber = user.PhoneNumber,
             CitizenId = user.CitizenId,
-            DoB = user.DoB,
+            dob = user.dob,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
         };
@@ -252,8 +294,8 @@ public class UserService : IUserService
         if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
             user.CitizenId = updateDto.CitizenId;
 
-        if (updateDto.DoB.HasValue)
-            user.DoB = updateDto.DoB;
+        if (updateDto.dob.HasValue)
+            user.dob = updateDto.dob;
 
         await _context.SaveChangesAsync();
 
@@ -265,7 +307,7 @@ public class UserService : IUserService
             Role = user.Role,
             PhoneNumber = user.PhoneNumber,
             CitizenId = user.CitizenId,
-            DoB = user.DoB,
+            dob = user.dob,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
         };
@@ -288,7 +330,7 @@ public class UserService : IUserService
             Role = user.Role,
             PhoneNumber = user.PhoneNumber,
             CitizenId = user.CitizenId,
-            DoB = user.DoB,
+            dob = user.dob,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
         };
@@ -336,7 +378,7 @@ public class UserService : IUserService
             Status = user.Status,
             PhoneNumber = user.PhoneNumber,
             CitizenId = user.CitizenId,
-            DoB = user.DoB,
+            dob = user.dob,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
         };

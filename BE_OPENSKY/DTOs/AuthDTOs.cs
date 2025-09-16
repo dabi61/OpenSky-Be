@@ -20,7 +20,7 @@ namespace BE_OPENSKY.DTOs
         public UserStatus Status { get; set; }
         public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
-        public DateOnly? DoB { get; set; }
+        public DateOnly? dob { get; set; }
         public string? AvatarURL { get; set; }
         public DateTime CreatedAt { get; set; }
     }
@@ -67,6 +67,14 @@ public class AdminCreateUserDTO
     
     [StringLength(50, ErrorMessage = "Role không được quá 50 ký tự")]
     public string Role { get; set; } = string.Empty;
+    
+    [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
+    public string? PhoneNumber { get; set; }
+    
+    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    public string? CitizenId { get; set; }
+    
+    public DateOnly? dob { get; set; }
 }
 
 // DTO cho việc cập nhật status user
@@ -262,7 +270,7 @@ public class PendingHotelResponseDTO
         [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
         public string? CitizenId { get; set; }
         
-        public DateOnly? DoB { get; set; }
+        public DateOnly? dob { get; set; }
     }
 
     // DTO cho cập nhật profile với avatar (multipart form data)
@@ -278,7 +286,7 @@ public class PendingHotelResponseDTO
         public string? CitizenId { get; set; }
         
         [StringLength(20, ErrorMessage = "Ngày sinh không được quá 20 ký tự")]
-        public string? DoB { get; set; } // String để dễ xử lý trong form
+        public string? dob { get; set; } // String để dễ xử lý trong form
         public IFormFile? Avatar { get; set; }
     }
 
@@ -298,7 +306,7 @@ public class PendingHotelResponseDTO
         public string Role { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
         public string? CitizenId { get; set; }
-        public DateOnly? DoB { get; set; }
+        public DateOnly? dob { get; set; }
         public string? AvatarURL { get; set; }
         public DateTime CreatedAt { get; set; }
     }

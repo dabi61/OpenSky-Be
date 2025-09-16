@@ -96,7 +96,6 @@ public class HotelApplicationDTO
     
     [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
     public string? Description { get; set; } // Mô tả
-    public int Star { get; set; } = 3; // Số sao (1-5)
 }
 
 // DTO cho đăng ký khách sạn với ảnh (multipart/form-data)

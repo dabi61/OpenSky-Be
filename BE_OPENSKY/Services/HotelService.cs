@@ -40,7 +40,6 @@ public class HotelService : IHotelService
             Latitude = applicationDto.Latitude,
             Longitude = applicationDto.Longitude,
             Description = applicationDto.Description,
-            Star = applicationDto.Star,
             Status = HotelStatus.Inactive, // Chờ duyệt
             CreatedAt = DateTime.UtcNow
         };

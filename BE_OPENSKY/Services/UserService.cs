@@ -169,25 +169,74 @@ public class UserService : IUserService
         return users;
     }
 
-    public async Task<PaginatedUsersResponseDTO> GetUsersPaginatedAsync(int page = 1, int limit = 10, string? role = null)
+    public async Task<PaginatedUsersResponseDTO> SearchUsersPaginatedAsync(int page = 1, int limit = 10, List<string>? roles = null, string? keyword = null)
     {
-        // Validate pagination parameters
         page = Math.Max(1, page);
-        limit = Math.Max(1, Math.Min(100, limit)); // Giới hạn tối đa 100 items per page
+        limit = Math.Max(1, Math.Min(100, limit));
 
         var query = _context.Users.AsQueryable();
 
-        // Lọc theo role nếu có
-        if (!string.IsNullOrEmpty(role))
+        // Lọc theo nhiều roles
+        if (roles != null && roles.Any())
         {
-            query = query.Where(u => u.Role == role);
+            query = query.Where(u => roles.Contains(u.Role));
         }
 
-        // Đếm tổng số users
+        // Tìm kiếm theo keyword (FullName, Email, PhoneNumber)
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(u =>
+                u.FullName.Contains(keyword) ||
+                u.Email.Contains(keyword) ||
+                u.PhoneNumber.Contains(keyword));
+        }
+
         var totalUsers = await query.CountAsync();
         var totalPages = (int)Math.Ceiling((double)totalUsers / limit);
 
-        // Lấy users với phân trang
+        var users = await query
+            .OrderBy(u => u.CreatedAt)
+            .Skip((page - 1) * limit)
+            .Take(limit)
+            .Select(u => new UserResponseDTO
+            {
+                UserID = u.UserID,
+                Email = u.Email,
+                FullName = u.FullName,
+                Role = u.Role,
+                PhoneNumber = u.PhoneNumber,
+                AvatarURL = u.AvatarURL,
+                CreatedAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        return new PaginatedUsersResponseDTO
+        {
+            Users = users,
+            CurrentPage = page,
+            PageSize = limit,
+            TotalUsers = totalUsers,
+            TotalPages = totalPages,
+            HasNextPage = page < totalPages,
+            HasPreviousPage = page > 1
+        };
+    }
+
+    public async Task<PaginatedUsersResponseDTO> GetUsersPaginatedAsync(int page = 1, int limit = 10, List<string>? roles = null){
+        page = Math.Max(1, page);
+        limit = Math.Max(1, Math.Min(100, limit));
+
+        var query = _context.Users.AsQueryable();
+
+        // Lọc theo nhiều roles
+        if (roles != null && roles.Any())
+        {
+            query = query.Where(u => roles.Contains(u.Role));
+        }
+
+        var totalUsers = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalUsers / limit);
+
         var users = await query
             .OrderBy(u => u.CreatedAt)
             .Skip((page - 1) * limit)

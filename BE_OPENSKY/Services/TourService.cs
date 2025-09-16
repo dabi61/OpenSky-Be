@@ -25,7 +25,7 @@ namespace BE_OPENSKY.Services
                 Description = createTourDto.Description,
                 Address = createTourDto.Address,
                 Province = createTourDto.Province,
-                Star = createTourDto.Star,
+                // Star removed from create; will be managed separately
                 Price = createTourDto.Price,
                 MaxPeople = createTourDto.MaxPeople,
                 Status = TourStatus.Active,
@@ -59,8 +59,9 @@ namespace BE_OPENSKY.Services
             if (!string.IsNullOrWhiteSpace(updateDto.Province))
                 tour.Province = updateDto.Province;
 
-            if (updateDto.Star.HasValue)
-                tour.Star = updateDto.Star.Value;
+            // Star is no longer updated here
+            // if (updateDto.Star.HasValue)
+            //     tour.Star = updateDto.Star.Value;
 
             if (updateDto.Price.HasValue)
                 tour.Price = updateDto.Price.Value;

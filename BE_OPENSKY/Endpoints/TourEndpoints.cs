@@ -49,8 +49,9 @@ public static class TourEndpoints
                 if (!form.TryGetValue("province", out var provinceValue) || string.IsNullOrWhiteSpace(provinceValue))
                     return Results.BadRequest(new { message = "Tỉnh/Thành phố không được để trống" });
 
-                if (!int.TryParse(form["star"], out var star) || star < 1 || star > 5)
-                    return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
+                // Remove star validation
+                // if (!int.TryParse(form["star"], out var star) || star < 1 || star > 5)
+                //     return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
 
                 if (!decimal.TryParse(form["price"], out var price) || price <= 0)
                     return Results.BadRequest(new { message = "Giá tour phải lớn hơn 0" });
@@ -65,7 +66,6 @@ public static class TourEndpoints
                     Description = form["description"].ToString(),
                     Address = addressValue.ToString().Trim(),
                     Province = provinceValue.ToString().Trim(),
-                    Star = star,
                     Price = price,
                     MaxPeople = maxPeople
                 };
@@ -150,7 +150,7 @@ public static class TourEndpoints
         })
         .WithName("CreateTourWithImages")
         .WithSummary("Tạo tour mới với ảnh")
-        .WithDescription("Tạo tour mới và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được tạo tour. Sử dụng multipart/form-data với fields: tourName, address, province, star, price, maxPeople, description và files")
+        .WithDescription("Tạo tour mới và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được tạo tour. Sử dụng multipart/form-data với fields: tourName, address, province, price, maxPeople, description và files")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -184,12 +184,6 @@ public static class TourEndpoints
                                     Type = "string",
                                     Description = "Tỉnh/Thành phố"
                                 },
-                                ["star"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "integer",
-                                    Format = "int32",
-                                    Description = "Số sao (1-5)"
-                                },
                                 ["price"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "number",
@@ -213,7 +207,7 @@ public static class TourEndpoints
                                     Description = "Danh sách ảnh tour (JPEG, PNG, GIF, WebP, max 5MB/file)"
                                 }
                             },
-                            Required = new HashSet<string> { "tourName", "address", "province", "star", "price", "maxPeople" }
+                            Required = new HashSet<string> { "tourName", "address", "province", "price", "maxPeople" }
                         }
                     }
                 }
@@ -289,7 +283,6 @@ public static class TourEndpoints
                     Description = form["description"].ToString(),
                     Address = form["address"].ToString(),
                     Province = form["province"].ToString(),
-                    Star = int.TryParse(form["star"], out var star) ? star : null,
                     Price = decimal.TryParse(form["price"], out var price) ? price : null,
                     MaxPeople = int.TryParse(form["maxPeople"], out var maxPeople) ? maxPeople : null
                 };
@@ -393,7 +386,7 @@ public static class TourEndpoints
         })
         .WithName("UpdateTourWithImages")
         .WithSummary("Cập nhật tour với ảnh")
-        .WithDescription("Cập nhật thông tin tour và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được cập nhật tour. Sử dụng multipart/form-data với fields: tourId, tourName, address, province, star, price, maxPeople, description, imageAction và files")
+        .WithDescription("Cập nhật thông tin tour và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được cập nhật tour. Sử dụng multipart/form-data với fields: tourId, tourName, address, province, price, maxPeople, description, imageAction và files")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -432,12 +425,6 @@ public static class TourEndpoints
                                 {
                                     Type = "string",
                                     Description = "Tỉnh/Thành phố"
-                                },
-                                ["star"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "integer",
-                                    Format = "int32",
-                                    Description = "Số sao (1-5)"
                                 },
                                 ["price"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {

@@ -22,10 +22,6 @@ namespace BE_OPENSKY.DTOs
         public string Province { get; set; } = string.Empty;
 
         [Required]
-        [Range(1, 5, ErrorMessage = "Số sao phải từ 1 đến 5")]
-        public int Star { get; set; }
-
-        [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Giá tour phải lớn hơn 0")]
         public decimal Price { get; set; }
 
@@ -48,9 +44,6 @@ namespace BE_OPENSKY.DTOs
 
         [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
         public string? Province { get; set; }
-
-        [Range(1, 5, ErrorMessage = "Số sao phải từ 1 đến 5")]
-        public int? Star { get; set; }
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Giá tour phải lớn hơn 0")]
         public decimal? Price { get; set; }
@@ -157,10 +150,6 @@ namespace BE_OPENSKY.DTOs
         public string Province { get; set; } = string.Empty;
 
         [Required]
-        [Range(1, 5, ErrorMessage = "Số sao phải từ 1 đến 5")]
-        public int Star { get; set; }
-
-        [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Giá tour phải lớn hơn 0")]
         public decimal Price { get; set; }
 
@@ -199,9 +188,6 @@ namespace BE_OPENSKY.DTOs
 
         [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
         public string? Province { get; set; }
-
-        [Range(1, 5, ErrorMessage = "Số sao phải từ 1 đến 5")]
-        public int? Star { get; set; }
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Giá tour phải lớn hơn 0")]
         public decimal? Price { get; set; }

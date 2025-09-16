@@ -11,7 +11,7 @@ namespace BE_OPENSKY.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? Description { get; set; }
-        public int MaxUsage { get; set; }
+        // MaxUsage removed from request DTO (không xử lý)
     }
 
     // DTO cho cập nhật voucher
@@ -23,7 +23,7 @@ namespace BE_OPENSKY.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? Description { get; set; }
-        public int? MaxUsage { get; set; }
+        // MaxUsage removed from update DTO
     }
 
     // DTO cho response voucher
@@ -36,7 +36,7 @@ namespace BE_OPENSKY.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? Description { get; set; }
-        public int MaxUsage { get; set; }
+        // MaxUsage removed from response DTO display
         public int UsedCount { get; set; } // Số lần đã sử dụng
         public bool IsExpired { get; set; } // Đã hết hạn chưa
         public bool IsAvailable { get; set; } // Còn sử dụng được không

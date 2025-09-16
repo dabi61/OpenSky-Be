@@ -62,6 +62,19 @@ public static class SwaggerExtensions
                     new Microsoft.OpenApi.Any.OpenApiString(nameof(ScheduleStatus.Removed))
                 }
             });
+
+            // Display TableType enum as string (for Voucher, BillDetail, etc.)
+            c.MapType<TableType>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+            {
+                Type = "string",
+                Enum = new List<Microsoft.OpenApi.Any.IOpenApiAny>
+                {
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(TableType.Tour)),
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(TableType.Hotel)),
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(TableType.Schedule)),
+                    new Microsoft.OpenApi.Any.OpenApiString(nameof(TableType.HotelRoom))
+                }
+            });
             
             // Configure file upload support
             c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema

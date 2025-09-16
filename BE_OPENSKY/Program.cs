@@ -20,6 +20,16 @@ public class Program
         builder.Services.AddJwtAuthentication(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         
+        // Configure JSON enums to use string names (for minimal APIs)
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
+        builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+        {
+            options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
+        
         // Configure form options for file upload
         builder.Services.Configure<FormOptions>(options =>
         {
@@ -121,10 +131,10 @@ public class Program
         app.MapVoucherEndpoints();     // Voucher management endpoints
         app.MapUserVoucherEndpoints(); // User voucher management endpoints
         app.MapRefundEndpoints();      // Refund management endpoints
-
+        
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));
-
+        
         app.Run();
     }
 }

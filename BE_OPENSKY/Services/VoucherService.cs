@@ -25,7 +25,7 @@ namespace BE_OPENSKY.Services
                 StartDate = createVoucherDto.StartDate,
                 EndDate = createVoucherDto.EndDate,
                 Description = createVoucherDto.Description,
-                MaxUsage = createVoucherDto.MaxUsage
+                // MaxUsage: không nhận từ API, giữ nguyên mặc định DB nếu có
             };
 
             _context.Vouchers.Add(voucher);
@@ -44,7 +44,7 @@ namespace BE_OPENSKY.Services
 
             var usedCount = voucher.UserVouchers.Count(uv => uv.IsUsed);
             var isExpired = DateTime.UtcNow > voucher.EndDate;
-            var isAvailable = !isExpired && usedCount < voucher.MaxUsage;
+            var isAvailable = !isExpired; // Không xét MaxUsage từ API
 
             return new VoucherResponseDTO
             {
@@ -55,7 +55,7 @@ namespace BE_OPENSKY.Services
                 StartDate = voucher.StartDate,
                 EndDate = voucher.EndDate,
                 Description = voucher.Description,
-                MaxUsage = voucher.MaxUsage,
+                // MaxUsage bỏ khỏi response API,
                 UsedCount = usedCount,
                 IsExpired = isExpired,
                 IsAvailable = isAvailable
@@ -83,7 +83,7 @@ namespace BE_OPENSKY.Services
                     StartDate = v.StartDate,
                     EndDate = v.EndDate,
                     Description = v.Description,
-                    MaxUsage = v.MaxUsage,
+                    // MaxUsage bỏ khỏi response API,
                     UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
                     IsExpired = DateTime.UtcNow > v.EndDate,
                     IsAvailable = !(DateTime.UtcNow > v.EndDate) && v.UserVouchers.Count(uv => uv.IsUsed) < v.MaxUsage
@@ -122,7 +122,7 @@ namespace BE_OPENSKY.Services
                     StartDate = v.StartDate,
                     EndDate = v.EndDate,
                     Description = v.Description,
-                    MaxUsage = v.MaxUsage,
+                    // MaxUsage bỏ khỏi response API,
                     UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
                     IsExpired = DateTime.UtcNow > v.EndDate,
                     IsAvailable = !(DateTime.UtcNow > v.EndDate) && v.UserVouchers.Count(uv => uv.IsUsed) < v.MaxUsage
@@ -162,7 +162,7 @@ namespace BE_OPENSKY.Services
                     StartDate = v.StartDate,
                     EndDate = v.EndDate,
                     Description = v.Description,
-                    MaxUsage = v.MaxUsage,
+                    // MaxUsage bỏ khỏi response API,
                     UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
                     IsExpired = false,
                     IsAvailable = v.UserVouchers.Count(uv => uv.IsUsed) < v.MaxUsage
@@ -204,8 +204,7 @@ namespace BE_OPENSKY.Services
             if (updateVoucherDto.Description != null)
                 voucher.Description = updateVoucherDto.Description;
 
-            if (updateVoucherDto.MaxUsage.HasValue)
-                voucher.MaxUsage = updateVoucherDto.MaxUsage.Value;
+            // Không cập nhật MaxUsage từ API
 
             await _context.SaveChangesAsync();
             return true;

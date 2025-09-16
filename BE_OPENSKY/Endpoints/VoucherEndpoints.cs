@@ -43,10 +43,7 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Ngày bắt đầu phải nhỏ hơn ngày kết thúc" }, statusCode: 400);
                     }
 
-                    if (createVoucherDto.MaxUsage <= 0)
-                    {
-                        return Results.Json(new { message = "Số lần sử dụng tối đa phải lớn hơn 0" }, statusCode: 400);
-                    }
+                    // Bỏ kiểm tra MaxUsage: không sử dụng trong API
 
                     // Kiểm tra mã voucher đã tồn tại chưa
                     var codeExists = await voucherService.IsVoucherCodeExistsAsync(createVoucherDto.Code);
@@ -236,10 +233,7 @@ namespace BE_OPENSKY.Endpoints
                         }
                     }
 
-                    if (updateVoucherDto.MaxUsage.HasValue && updateVoucherDto.MaxUsage.Value <= 0)
-                    {
-                        return Results.Json(new { message = "Số lần sử dụng tối đa phải lớn hơn 0" }, statusCode: 400);
-                    }
+                    // Bỏ kiểm tra MaxUsage trong update
 
                     var success = await voucherService.UpdateVoucherAsync(id, updateVoucherDto);
                     if (!success)

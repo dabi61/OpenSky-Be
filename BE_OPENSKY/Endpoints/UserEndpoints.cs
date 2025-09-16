@@ -299,7 +299,7 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // 1. Admin tạo người dùng với role tùy chỉnh
-        userGroup.MapPost("/create", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
+        userGroup.MapPost("/", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {

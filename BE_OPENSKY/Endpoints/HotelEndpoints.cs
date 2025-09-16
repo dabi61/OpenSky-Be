@@ -574,7 +574,6 @@ public static class HotelEndpoints
                     Latitude = latitude,
                     Longitude = longitude,
                     Description = form["description"].ToString(),
-                    Star = star
                 };
 
                 // Tạo đơn đăng ký khách sạn

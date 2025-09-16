@@ -20,21 +20,30 @@ public static class UserEndpoints
             .WithTags("User")
             .WithOpenApi();
         // Lấy danh sách người dùng với phân trang (phân quyền theo role)
-        userGroup.MapGet("/", async ([FromServices] IUserService userService, HttpContext context, int page = 1, int limit = 10, List<string>? roles = null) =>
+        userGroup.MapGet("/", async (
+        [FromServices] IUserService userService,
+        HttpContext context,
+        int page = 1,
+        int limit = 10,
+        [FromQuery] string[]? roles = null) =>
         {
             try
             {
                 // Chỉ Admin và Supervisor mới có quyền xem danh sách user
-                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                if (!context.User.IsInRole(RoleConstants.Admin) &&
+                    !context.User.IsInRole(RoleConstants.Supervisor))
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
 
                 // Validate pagination parameters
                 if (page < 1) page = 1;
-                if (limit < 1 || limit > 100) limit = 10; // Giới hạn tối đa 100 items per page
+                if (limit < 1 || limit > 100) limit = 10;
 
-                var result = await userService.GetUsersPaginatedAsync(page, limit, roles);
+                // Convert array sang List để truyền xuống service
+                var rolesList = roles?.ToList();
+
+                var result = await userService.GetUsersPaginatedAsync(page, limit, rolesList);
                 return Results.Ok(result);
             }
             catch (Exception)
@@ -53,29 +62,30 @@ public static class UserEndpoints
         .Produces(403)
         .RequireAuthorization("SupervisorOrAdmin");
 
+
         // Lấy danh sách người dùng với phân trang, lọc role và tìm kiếm
         userGroup.MapGet("/search", async (
-            [FromServices] IUserService userService,
-            HttpContext context,
-            int page = 1,
-            int limit = 10,
-            [FromQuery] List<string>? roles = null,
-            [FromQuery] string? keyword = null) =>
+        [FromServices] IUserService userService,
+        HttpContext context,
+        int page = 1,
+        int limit = 10,
+        [FromQuery] string[]? roles = null,  
+        [FromQuery] string? keyword = null) =>
         {
             try
             {
-                // Chỉ Admin và Supervisor mới có quyền xem danh sách user
                 if (!context.User.IsInRole(RoleConstants.Admin) &&
                     !context.User.IsInRole(RoleConstants.Supervisor))
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
 
-                // Validate pagination parameters
                 if (page < 1) page = 1;
                 if (limit < 1 || limit > 100) limit = 10;
 
-                var result = await userService.SearchUsersPaginatedAsync(page, limit, roles, keyword);
+                var rolesList = roles?.ToList(); 
+                var result = await userService.SearchUsersPaginatedAsync(page, limit, rolesList, keyword);
+
                 return Results.Ok(result);
             }
             catch (Exception)
@@ -93,6 +103,7 @@ public static class UserEndpoints
         .Produces<PaginatedUsersResponseDTO>(200)
         .Produces(403)
         .RequireAuthorization("SupervisorOrAdmin");
+
 
         // Xem thông tin cá nhân
         userGroup.MapGet("/profile", async ([FromServices] IUserService userService, HttpContext context) =>

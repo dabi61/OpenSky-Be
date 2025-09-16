@@ -2,6 +2,7 @@ using BE_OPENSKY.DTOs;
 using BE_OPENSKY.Helpers;
 using BE_OPENSKY.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace BE_OPENSKY.Endpoints
 {
@@ -22,7 +23,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
@@ -103,7 +104,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
@@ -132,149 +133,7 @@ namespace BE_OPENSKY.Endpoints
             .Produces(401)
             .Produces(500)
             .RequireAuthorization("AuthenticatedOnly");
-
-            // GET /user_vouchers/{id} - Lấy user voucher theo ID
-            group.MapGet("/{id:guid}", async (
-                Guid id,
-                IUserVoucherService userVoucherService) =>
-            {
-                try
-                {
-                    var userVoucher = await userVoucherService.GetUserVoucherByIdAsync(id);
-                    if (userVoucher == null)
-                    {
-                        return Results.Json(new { message = "Không tìm thấy user voucher" }, statusCode: 404);
-                    }
-
-                    return Results.Json(new
-                    {
-                        message = "Lấy user voucher thành công",
-                        data = userVoucher
-                    });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Json(new { message = $"Lỗi khi lấy user voucher: {ex.Message}" }, statusCode: 500);
-                }
-            })
-            .WithName("GetUserVoucherById")
-            .WithSummary("Lấy user voucher theo ID")
-            .WithDescription("Lấy thông tin chi tiết user voucher theo ID")
-            .Produces(200)
-            .Produces(404)
-            .Produces(500);
-
-            // PUT /user_vouchers/{id} - Cập nhật user voucher
-            group.MapPut("/{id:guid}", async (
-                Guid id,
-                UpdateUserVoucherDTO updateUserVoucherDto,
-                IUserVoucherService userVoucherService,
-                HttpContext context) =>
-            {
-                try
-                {
-                    // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
-                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                    {
-                        return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
-                    }
-
-                    var success = await userVoucherService.UpdateUserVoucherAsync(id, updateUserVoucherDto);
-                    if (!success)
-                    {
-                        return Results.Json(new { message = "Không tìm thấy user voucher hoặc không thể cập nhật" }, statusCode: 404);
-                    }
-
-                    return Results.Json(new { message = "Cập nhật user voucher thành công" });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Json(new { message = $"Lỗi khi cập nhật user voucher: {ex.Message}" }, statusCode: 500);
-                }
-            })
-            .WithName("UpdateUserVoucher")
-            .WithSummary("Cập nhật user voucher")
-            .WithDescription("Cập nhật thông tin user voucher")
-            .Produces(200)
-            .Produces(401)
-            .Produces(404)
-            .Produces(500)
-            .RequireAuthorization("AuthenticatedOnly");
-
-            // PUT /user_vouchers/{id}/use - Sử dụng voucher
-            group.MapPut("/{id:guid}/use", async (
-                Guid id,
-                IUserVoucherService userVoucherService,
-                HttpContext context) =>
-            {
-                try
-                {
-                    // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
-                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                    {
-                        return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
-                    }
-
-                    var success = await userVoucherService.UseVoucherAsync(id);
-                    if (!success)
-                    {
-                        return Results.Json(new { message = "Không thể sử dụng voucher. Voucher có thể đã hết hạn, đã sử dụng hoặc không tồn tại." }, statusCode: 400);
-                    }
-
-                    return Results.Json(new { message = "Sử dụng voucher thành công" });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Json(new { message = $"Lỗi khi sử dụng voucher: {ex.Message}" }, statusCode: 500);
-                }
-            })
-            .WithName("UseVoucher")
-            .WithSummary("Sử dụng voucher")
-            .WithDescription("Sử dụng voucher (đánh dấu đã sử dụng)")
-            .Produces(200)
-            .Produces(400)
-            .Produces(401)
-            .Produces(500)
-            .RequireAuthorization("AuthenticatedOnly");
-
-            // DELETE /user_vouchers/{id} - Xóa user voucher
-            group.MapDelete("/{id:guid}", async (
-                Guid id,
-                IUserVoucherService userVoucherService,
-                HttpContext context) =>
-            {
-                try
-                {
-                    // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
-                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                    {
-                        return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
-                    }
-
-                    var success = await userVoucherService.DeleteUserVoucherAsync(id);
-                    if (!success)
-                    {
-                        return Results.Json(new { message = "Không tìm thấy user voucher hoặc không thể xóa" }, statusCode: 404);
-                    }
-
-                    return Results.Json(new { message = "Xóa user voucher thành công" });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Json(new { message = $"Lỗi khi xóa user voucher: {ex.Message}" }, statusCode: 500);
-                }
-            })
-            .WithName("DeleteUserVoucher")
-            .WithSummary("Xóa user voucher")
-            .WithDescription("Xóa voucher khỏi danh sách của người dùng")
-            .Produces(200)
-            .Produces(401)
-            .Produces(404)
-            .Produces(500)
-            .RequireAuthorization("AuthenticatedOnly");
+            
         }
     }
 }

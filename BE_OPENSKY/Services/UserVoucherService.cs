@@ -31,35 +31,6 @@ namespace BE_OPENSKY.Services
             return userVoucher.UserVoucherID;
         }
 
-        public async Task<UserVoucherResponseDTO?> GetUserVoucherByIdAsync(Guid userVoucherId)
-        {
-            var userVoucher = await _context.UserVouchers
-                .Include(uv => uv.User)
-                .Include(uv => uv.Voucher)
-                .FirstOrDefaultAsync(uv => uv.UserVoucherID == userVoucherId);
-
-            if (userVoucher == null) return null;
-
-            var isExpired = DateTime.UtcNow > userVoucher.Voucher.EndDate;
-
-            return new UserVoucherResponseDTO
-            {
-                UserVoucherID = userVoucher.UserVoucherID,
-                UserID = userVoucher.UserID,
-                VoucherID = userVoucher.VoucherID,
-                IsUsed = userVoucher.IsUsed,
-                SavedAt = userVoucher.SavedAt,
-                UserName = userVoucher.User?.FullName,
-                VoucherCode = userVoucher.Voucher?.Code,
-                VoucherPercent = userVoucher.Voucher?.Percent,
-                VoucherTableType = userVoucher.Voucher?.TableType,
-                VoucherStartDate = userVoucher.Voucher?.StartDate,
-                VoucherEndDate = userVoucher.Voucher?.EndDate,
-                VoucherDescription = userVoucher.Voucher?.Description,
-                VoucherIsExpired = isExpired
-            };
-        }
-
         public async Task<UserVoucherListResponseDTO> GetUserVouchersByUserIdAsync(Guid userId, int page = 1, int size = 10)
         {
             var query = _context.UserVouchers
@@ -143,31 +114,6 @@ namespace BE_OPENSKY.Services
             };
         }
 
-        public async Task<bool> UpdateUserVoucherAsync(Guid userVoucherId, UpdateUserVoucherDTO updateUserVoucherDto)
-        {
-            var userVoucher = await _context.UserVouchers
-                .FirstOrDefaultAsync(uv => uv.UserVoucherID == userVoucherId);
-
-            if (userVoucher == null) return false;
-
-            if (updateUserVoucherDto.IsUsed.HasValue)
-                userVoucher.IsUsed = updateUserVoucherDto.IsUsed.Value;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> DeleteUserVoucherAsync(Guid userVoucherId)
-        {
-            var userVoucher = await _context.UserVouchers
-                .FirstOrDefaultAsync(uv => uv.UserVoucherID == userVoucherId);
-
-            if (userVoucher == null) return false;
-
-            _context.UserVouchers.Remove(userVoucher);
-            await _context.SaveChangesAsync();
-            return true;
-        }
 
         public async Task<bool> IsVoucherAlreadySavedAsync(Guid userId, Guid voucherId)
         {
@@ -175,25 +121,6 @@ namespace BE_OPENSKY.Services
                 .AnyAsync(uv => uv.UserID == userId && uv.VoucherID == voucherId);
         }
 
-        public async Task<bool> UseVoucherAsync(Guid userVoucherId)
-        {
-            var userVoucher = await _context.UserVouchers
-                .Include(uv => uv.Voucher)
-                .FirstOrDefaultAsync(uv => uv.UserVoucherID == userVoucherId);
-
-            if (userVoucher == null) return false;
-
-            // Kiểm tra voucher còn hiệu lực không
-            if (DateTime.UtcNow > userVoucher.Voucher.EndDate)
-                return false;
-
-            // Kiểm tra đã sử dụng chưa
-            if (userVoucher.IsUsed)
-                return false;
-
-            userVoucher.IsUsed = true;
-            await _context.SaveChangesAsync();
-            return true;
-        }
+        
     }
 }

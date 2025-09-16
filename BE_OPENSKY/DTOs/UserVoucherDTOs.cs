@@ -8,12 +8,6 @@ namespace BE_OPENSKY.DTOs
         public Guid VoucherID { get; set; }
     }
 
-    // DTO cho cập nhật user voucher
-    public class UpdateUserVoucherDTO
-    {
-        public bool? IsUsed { get; set; }
-    }
-
     // DTO cho response user voucher
     public class UserVoucherResponseDTO
     {

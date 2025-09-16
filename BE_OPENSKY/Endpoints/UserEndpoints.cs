@@ -13,27 +13,38 @@ public static class UserEndpoints
             
         return contentType.Substring(boundaryIndex + "boundary=".Length);
     }
+
     public static void MapUserEndpoints(this WebApplication app)
     {
         var userGroup = app.MapGroup("/users")
             .WithTags("User")
             .WithOpenApi();
-        // Lấy danh sách người dùng với phân trang (chỉ Admin)
-        userGroup.MapGet("/", async ([FromServices] IUserService userService, HttpContext context, int page = 1, int limit = 10, string? role = null) =>
+
+        // Lấy danh sách người dùng với phân trang (phân quyền theo role)
+        userGroup.MapGet("/", async (
+        [FromServices] IUserService userService,
+        HttpContext context,
+        int page = 1,
+        int limit = 10,
+        [FromQuery] string[]? roles = null) =>
         {
             try
             {
-                // Chỉ Admin mới có quyền xem danh sách user
-                if (!context.User.IsInRole(RoleConstants.Admin))
+                // Chỉ Admin và Supervisor mới có quyền xem danh sách user
+                if (!context.User.IsInRole(RoleConstants.Admin) &&
+                    !context.User.IsInRole(RoleConstants.Supervisor))
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
 
                 // Validate pagination parameters
                 if (page < 1) page = 1;
-                if (limit < 1 || limit > 100) limit = 10; // Giới hạn tối đa 100 items per page
+                if (limit < 1 || limit > 100) limit = 10;
 
-                var result = await userService.GetUsersPaginatedAsync(page, limit, role);
+                // Convert array sang List để truyền xuống service
+                var rolesList = roles?.ToList();
+
+                var result = await userService.GetUsersPaginatedAsync(page, limit, rolesList);
                 return Results.Ok(result);
             }
             catch (Exception)
@@ -47,10 +58,52 @@ public static class UserEndpoints
         })
         .WithName("GetUsers")
         .WithSummary("Lấy danh sách người dùng với phân trang")
-        .WithDescription("Chỉ Admin có thể xem danh sách người dùng với phân trang. Hỗ trợ lọc theo role.")
+        .WithDescription("Admin và Supervisor có thể xem danh sách người dùng với phân trang. Hỗ trợ lọc theo role.")
         .Produces<PaginatedUsersResponseDTO>(200)
         .Produces(403)
-        .RequireAuthorization("AdminOnly");
+        .RequireAuthorization("SupervisorOrAdmin");
+
+
+        // Lấy danh sách người dùng với phân trang, lọc role và tìm kiếm
+        userGroup.MapGet("/search", async (
+        [FromServices] IUserService userService,
+        HttpContext context,
+        int page = 1,
+        int limit = 10,
+        [FromQuery] string[]? roles = null,  
+        [FromQuery] string? keyword = null) =>
+        {
+            try
+            {
+                if (!context.User.IsInRole(RoleConstants.Admin) &&
+                    !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                if (page < 1) page = 1;
+                if (limit < 1 || limit > 100) limit = 10;
+
+                var rolesList = roles?.ToList(); 
+                var result = await userService.SearchUsersPaginatedAsync(page, limit, rolesList, keyword);
+
+                return Results.Ok(result);
+            }
+            catch (Exception)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: "Có lỗi xảy ra khi lấy danh sách người dùng",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("SearchUsers")
+        .WithSummary("Lấy danh sách người dùng với phân trang, lọc role và tìm kiếm")
+        .WithDescription("Admin và Supervisor có thể xem danh sách người dùng với phân trang. Hỗ trợ lọc theo nhiều role và tìm kiếm theo từ khóa.")
+        .Produces<PaginatedUsersResponseDTO>(200)
+        .Produces(403)
+        .RequireAuthorization("SupervisorOrAdmin");
 
         // Xem thông tin cá nhân
         userGroup.MapGet("/profile", async ([FromServices] IUserService userService, HttpContext context) =>

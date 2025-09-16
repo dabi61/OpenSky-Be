@@ -553,7 +553,8 @@ public static class HotelEndpoints
                     Province = provinceValue.ToString().Trim(),
                     Latitude = latitude,
                     Longitude = longitude,
-                    Description = form["description"].ToString()
+
+                    Description = form["description"].ToString(),
                 };
 
                 // Tạo đơn đăng ký khách sạn

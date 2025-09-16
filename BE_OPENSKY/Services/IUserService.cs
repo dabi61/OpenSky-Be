@@ -11,7 +11,7 @@ public interface IUserService
     Task<bool> ChangeUserRoleAsync(Guid userId, string newRole);
     Task<List<UserResponseDTO>> GetUsersAsync(string? role = null);
     Task<PaginatedUsersResponseDTO> GetUsersPaginatedAsync(int page = 1, int limit = 10, List<string>? roles = null);
-    Task<PaginatedUsersResponseDTO> SearchUsersPaginatedAsync(int page = 1, int limit = 10, List<string>? roles = null, string? keyword = null)
+    Task<PaginatedUsersResponseDTO> SearchUsersPaginatedAsync(int page = 1, int limit = 10, List<string>? roles = null, string? keyword = null);
 
     // Profile management methods
     Task<ProfileResponseDTO?> GetProfileAsync(Guid userId);

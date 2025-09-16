@@ -11,27 +11,34 @@ namespace BE_OPENSKY.Models
         public Guid UserID { get; set; }
         
         [Required]
-        public string Name { get; set; } = string.Empty; // Tên tour
+        [StringLength(200)]
+        public string TourName { get; set; } = string.Empty; // Tên tour
         
-        [Required]
-        public string Address { get; set; } = string.Empty;
-        
-        [Required]
-        public int NumberOfDays { get; set; }
-        
-        [Required]
-        public int MaxPeople { get; set; }
-        
-        [Required]
-        public decimal Price { get; set; } // Giá tour
-        
+        [StringLength(2000)]
         public string? Description { get; set; }
         
         [Required]
-        public TourStatus Status { get; set; } = TourStatus.Active; // Active, Inactive, Draft
+        [StringLength(500)]
+        public string Address { get; set; } = string.Empty;
         
         [Required]
-        public int Star { get; set; } = 0; // Rating from 1-5
+        [StringLength(100)]
+        public string Province { get; set; } = string.Empty;
+        
+        [Required]
+        [Range(1, 5)]
+        public int Star { get; set; } = 1; // Rating from 1-5
+        
+        [Required]
+        [Range(0.01, double.MaxValue)]
+        public decimal Price { get; set; } // Giá tour
+        
+        [Required]
+        [Range(1, 100)]
+        public int MaxPeople { get; set; }
+        
+        [Required]
+        public TourStatus Status { get; set; } = TourStatus.Active; // Active, Suspend, Removed
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         

@@ -40,6 +40,7 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.Status).IsRequired().HasConversion<string>();
                 entity.Property(e => e.PhoneNumber).HasMaxLength(20);
                 entity.Property(e => e.CitizenId).HasMaxLength(20);
+                entity.Property(e => e.dob).HasColumnType("date"); // Cấu hình cho ngày sinh
                 entity.Property(e => e.AvatarURL).HasMaxLength(500);
 
                 entity.HasIndex(e => e.Email).IsUnique();
@@ -67,12 +68,15 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<Tour>(entity =>
             {
                 entity.HasKey(e => e.TourID);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.TourName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(2000);
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.Province).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Star).IsRequired();
                 entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MaxPeople).IsRequired();
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.CreatedAt).IsRequired();
 
                 entity.HasOne(e => e.User)
                     .WithMany(e => e.Tours)
@@ -348,6 +352,58 @@ namespace BE_OPENSKY.Data
                 // Indexes for performance
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CreatedAt);
+            });
+
+            // Schedule
+            modelBuilder.Entity<Schedule>(entity =>
+            {
+                entity.HasKey(e => e.ScheduleID);
+                entity.Property(e => e.Status).IsRequired().HasConversion<string>();
+                entity.Property(e => e.NumberPeople).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+
+                // Indexes for performance
+                entity.HasIndex(e => e.TourID);
+                entity.HasIndex(e => e.UserID);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedAt);
+            });
+
+            // TourItinerary
+            modelBuilder.Entity<TourItinerary>(entity =>
+            {
+                entity.HasKey(e => e.ItineraryID);
+                entity.Property(e => e.Location).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.DayNumber).IsRequired();
+                entity.Property(e => e.IsDeleted).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(1000);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.TourID);
+                entity.HasIndex(e => e.DayNumber);
+                entity.HasIndex(e => e.IsDeleted);
+            });
+
+            // ScheduleItinerary
+            modelBuilder.Entity<ScheduleItinerary>(entity =>
+            {
+                entity.HasKey(e => e.ScheduleItID);
+
+                // Quan hệ với bảng Schedule
+                entity.HasOne(e => e.Schedule)
+                    .WithMany(s => s.ScheduleItineraries)
+                    .HasForeignKey(e => e.ScheduleID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Quan hệ với bảng TourItinerary
+                entity.HasOne(e => e.TourItinerary)
+                    .WithMany(ti => ti.ScheduleItineraries)
+                    .HasForeignKey(e => e.ItineraryID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.ScheduleID);
+                entity.HasIndex(e => e.ItineraryID);
             });
         }
     }

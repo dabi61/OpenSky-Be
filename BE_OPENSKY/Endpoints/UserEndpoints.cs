@@ -19,6 +19,7 @@ public static class UserEndpoints
         var userGroup = app.MapGroup("/users")
             .WithTags("User")
             .WithOpenApi();
+
         // Lấy danh sách người dùng với phân trang (phân quyền theo role)
         userGroup.MapGet("/", async (
         [FromServices] IUserService userService,
@@ -104,7 +105,6 @@ public static class UserEndpoints
         .Produces(403)
         .RequireAuthorization("SupervisorOrAdmin");
 
-
         // Xem thông tin cá nhân
         userGroup.MapGet("/profile", async ([FromServices] IUserService userService, HttpContext context) =>
         {
@@ -174,12 +174,12 @@ public static class UserEndpoints
                             // Thử parse với format dd-MM-yyyy trước
                             if (DateTime.TryParseExact(doBString, "dd-MM-yyyy", null, System.Globalization.DateTimeStyles.None, out var doB))
                             {
-                                updateDto.DoB = DateOnly.FromDateTime(doB);
+                                updateDto.dob = DateOnly.FromDateTime(doB);
                             }
                             // Nếu không được, thử parse với format mặc định
                             else if (DateTime.TryParse(doBString, out doB))
                             {
-                                updateDto.DoB = DateOnly.FromDateTime(doB);
+                                updateDto.dob = DateOnly.FromDateTime(doB);
                             }
                         }
 
@@ -298,13 +298,13 @@ public static class UserEndpoints
         .Produces(404)
         .RequireAuthorization("AdminOnly");
 
-        // 1. Admin, Supervisor tạo người dùng với role tùy chỉnh
+        // 1. Admin tạo người dùng với role tùy chỉnh
         userGroup.MapPost("/create", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
         {
             try
             {
-                // Kiểm tra quyền Admin hoặc Supervisor
-                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                // Chỉ Admin mới có quyền tạo user
+                if (!context.User.IsInRole(RoleConstants.Admin))
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
@@ -322,36 +322,17 @@ public static class UserEndpoints
                 if (string.IsNullOrWhiteSpace(createUserDto.Role))
                     return Results.BadRequest(new { message = "Role không được để trống" });
 
-                // Phân quyền theo role của người tạo
-                var isAdmin = context.User.IsInRole(RoleConstants.Admin);
-                var isSupervisor = context.User.IsInRole(RoleConstants.Supervisor);
-
                 // Admin có thể tạo tất cả role
-                var adminAllowedRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
-                
-                // Supervisor chỉ có thể tạo TourGuide
-                var supervisorAllowedRoles = new[] { RoleConstants.TourGuide };
+                var allowedRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
 
-                // Kiểm tra quyền tạo role
-                if (isAdmin && !adminAllowedRoles.Contains(createUserDto.Role))
+                // Kiểm tra role hợp lệ
+                if (!allowedRoles.Contains(createUserDto.Role))
                 {
-                    return Results.BadRequest(new { message = $"Admin không thể tạo role: {createUserDto.Role}" });
-                }
-                
-                if (isSupervisor && !supervisorAllowedRoles.Contains(createUserDto.Role))
-                {
-                    return Results.BadRequest(new { message = "Supervisor chỉ có thể tạo tài khoản TourGuide" });
+                    return Results.BadRequest(new { message = $"Role không hợp lệ: {createUserDto.Role}" });
                 }
 
-                // Tạo tài khoản với role được chỉ định
-                var registerDto = new UserRegisterDTO
-                {
-                    Email = createUserDto.Email,
-                    Password = createUserDto.Password,
-                    FullName = createUserDto.FullName
-                };
-
-                var user = await userService.CreateWithRoleAsync(registerDto, createUserDto.Role);
+                // Tạo tài khoản với đầy đủ thông tin
+                var user = await userService.CreateAdminUserAsync(createUserDto);
                 return Results.Created($"/users/{user.UserID}", user);
             }
             catch (InvalidOperationException ex)
@@ -368,12 +349,12 @@ public static class UserEndpoints
             }
         })
         .WithName("CreateUserWithRole")
-        .WithSummary("Admin, Supervisor tạo người dùng với role tùy chỉnh")
-        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào. Supervisor chỉ có thể tạo tài khoản TourGuide.")
+        .WithSummary("Admin tạo người dùng với role tùy chỉnh")
+        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào (Admin, Supervisor, TourGuide, Customer, Hotel).")
         .Produces<UserResponseDTO>(201)
         .Produces(400)
         .Produces(403)
-        .RequireAuthorization("SupervisorOrAdmin");
+        .RequireAuthorization("AdminOnly");
 
         // 2. Admin quản lý status người dùng
         userGroup.MapPut("/{userId:guid}/status", async (Guid userId, [FromBody] UpdateUserStatusDTO updateStatusDto, [FromServices] IUserService userService, HttpContext context) =>

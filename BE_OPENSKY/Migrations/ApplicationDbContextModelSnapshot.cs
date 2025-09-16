@@ -175,6 +175,8 @@ namespace BE_OPENSKY.Migrations
 
                     b.HasIndex("Status");
 
+                    b.HasIndex("TourID");
+
                     b.HasIndex("UserID");
 
                     b.ToTable("Bookings");
@@ -437,6 +439,9 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("CurrentBookings")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("timestamp with time zone");
 
@@ -446,6 +451,10 @@ namespace BE_OPENSKY.Migrations
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid>("TourID")
                         .HasColumnType("uuid");
 
@@ -453,6 +462,10 @@ namespace BE_OPENSKY.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("ScheduleID");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("TourID");
 
@@ -541,22 +554,19 @@ namespace BE_OPENSKY.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<int>("MaxPeople")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("NumberOfDays")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("Star")
                         .HasColumnType("integer");
@@ -564,6 +574,11 @@ namespace BE_OPENSKY.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("TourName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<Guid>("UserID")
                         .HasColumnType("uuid");
@@ -588,6 +603,9 @@ namespace BE_OPENSKY.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -597,6 +615,10 @@ namespace BE_OPENSKY.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("ItineraryID");
+
+                    b.HasIndex("DayNumber");
+
+                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("TourID");
 
@@ -619,9 +641,6 @@ namespace BE_OPENSKY.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly?>("DoB")
-                        .HasColumnType("date");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -653,6 +672,9 @@ namespace BE_OPENSKY.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateOnly?>("dob")
+                        .HasColumnType("date");
 
                     b.HasKey("UserID");
 
@@ -772,6 +794,10 @@ namespace BE_OPENSKY.Migrations
                         .HasForeignKey("HotelID")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("BE_OPENSKY.Models.Tour", "Tour")
+                        .WithMany()
+                        .HasForeignKey("TourID");
+
                     b.HasOne("BE_OPENSKY.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserID")
@@ -779,6 +805,8 @@ namespace BE_OPENSKY.Migrations
                         .IsRequired();
 
                     b.Navigation("Hotel");
+
+                    b.Navigation("Tour");
 
                     b.Navigation("User");
                 });

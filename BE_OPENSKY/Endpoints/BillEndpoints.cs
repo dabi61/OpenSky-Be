@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using BE_OPENSKY.DTOs;
+using BE_OPENSKY.Services;
+using BE_OPENSKY.Helpers;
 
 namespace BE_OPENSKY.Endpoints
 {
@@ -9,6 +12,86 @@ namespace BE_OPENSKY.Endpoints
             var billGroup = app.MapGroup("/bills")
                 .WithTags("Bill")
                 .WithOpenApi();
+
+            // PUT /bills/apply-voucher - Áp dụng voucher vào bill đã có (billId trong body)
+            billGroup.MapPut("/apply-voucher", async (
+                ApplyVoucherToBillDTO applyVoucherDto,
+                IBillService billService,
+                HttpContext context) =>
+            {
+                try
+                {
+                    // Lấy UserID từ token
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var result = await billService.ApplyVoucherToBillAsync(userId, applyVoucherDto);
+                    return Results.Ok(result);
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("ApplyVoucherToBill")
+            .WithSummary("Áp dụng voucher vào hóa đơn")
+            .WithDescription("Áp dụng voucher giảm giá vào hóa đơn đã có và cập nhật giá tự động (billId trong body)")
+            .Produces<ApplyVoucherResponseDTO>(200)
+            .Produces(400)
+            .Produces(401)
+            .Produces(500)
+            .RequireAuthorization();
+
+            // DELETE /bills/{id}/remove-voucher - Xóa voucher khỏi bill
+            billGroup.MapDelete("/{billId}/remove-voucher", async (
+                Guid billId,
+                IBillService billService,
+                HttpContext context) =>
+            {
+                try
+                {
+                    // Lấy UserID từ token
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var result = await billService.RemoveVoucherFromBillAsync(billId, userId);
+                    return Results.Ok(result);
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("RemoveVoucherFromBill")
+            .WithSummary("Xóa voucher khỏi hóa đơn")
+            .WithDescription("Xóa voucher khỏi hóa đơn và khôi phục giá gốc")
+            .Produces<ApplyVoucherResponseDTO>(200)
+            .Produces(400)
+            .Produces(401)
+            .Produces(500)
+            .RequireAuthorization();
 
             // 1. Tạo QR code thanh toán cho hóa đơn
             billGroup.MapPost("/qr/create", async ([FromBody] QRPaymentRequestDTO request, [FromServices] IQRPaymentService qrPaymentService, HttpContext context) =>

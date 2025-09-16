@@ -247,8 +247,9 @@ public class HotelService : IHotelService
         if (updateDto.Longitude.HasValue)
             hotel.Longitude = updateDto.Longitude.Value;
         
-        if (updateDto.Star.HasValue)
-            hotel.Star = updateDto.Star.Value;
+        // Star is no longer updated by owner
+        // if (updateDto.Star.HasValue)
+        //     hotel.Star = updateDto.Star.Value;
 
         await _context.SaveChangesAsync();
         return true;

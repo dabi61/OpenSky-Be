@@ -147,7 +147,7 @@ public class GoogleAuthService : IGoogleAuthService
             Role = user.Role,
             PhoneNumber = user.PhoneNumber,
             CitizenId = user.CitizenId,
-            DoB = user.DoB,
+            dob = user.dob,
             AvatarURL = user.AvatarURL,
             CreatedAt = user.CreatedAt
         };

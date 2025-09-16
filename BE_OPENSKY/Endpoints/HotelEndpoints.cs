@@ -72,14 +72,6 @@ public static class HotelEndpoints
                                 return Results.BadRequest(new { message = "Kinh độ phải từ -180 đến 180" });
                         }
 
-                        if (form.ContainsKey("star") && int.TryParse(form["star"].FirstOrDefault(), out var star))
-                        {
-                            if (star >= 1 && star <= 5)
-                                updateDto.Star = star;
-                            else
-                                return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
-                        }
-
                         // Lấy image action
                         var imageAction = form["imageAction"].FirstOrDefault() ?? "keep";
                         if (imageAction != "keep" && imageAction != "replace")
@@ -208,8 +200,7 @@ public static class HotelEndpoints
                                 Address = updateWithImagesDto.Address,
                                 Province = updateWithImagesDto.Province,
                                 Latitude = updateWithImagesDto.Latitude,
-                                Longitude = updateWithImagesDto.Longitude,
-                                Star = updateWithImagesDto.Star
+                                Longitude = updateWithImagesDto.Longitude
                             };
                         }
                         else
@@ -245,7 +236,7 @@ public static class HotelEndpoints
         })
         .WithName("UpdateHotelWithImages")
         .WithSummary("Cập nhật thông tin khách sạn với ảnh")
-        .WithDescription("Cập nhật thông tin khách sạn với ảnh. Sử dụng multipart/form-data với fields: hotelId, hotelName, description, address, province, latitude, longitude, star, imageAction, files. keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
+        .WithDescription("Cập nhật thông tin khách sạn với ảnh. Sử dụng multipart/form-data với fields: hotelId, hotelName, description, address, province, latitude, longitude, imageAction, files. keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -296,12 +287,6 @@ public static class HotelEndpoints
                                     Type = "number",
                                     Format = "decimal",
                                     Description = "Kinh độ (-180 đến 180)"
-                                },
-                                ["star"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "integer",
-                                    Format = "int32",
-                                    Description = "Số sao (1-5)"
                                 },
                                 ["imageAction"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
@@ -374,12 +359,6 @@ public static class HotelEndpoints
                                     Type = "number",
                                     Format = "decimal",
                                     Description = "Kinh độ (-180 đến 180)"
-                                },
-                                ["star"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "integer",
-                                    Format = "int32",
-                                    Description = "Số sao (1-5)"
                                 }
                             }
                         }
@@ -552,8 +531,9 @@ public static class HotelEndpoints
                 if (!decimal.TryParse(form["longitude"], out var longitude))
                     return Results.BadRequest(new { message = "Kinh độ không hợp lệ" });
 
-                if (!int.TryParse(form["star"], out var star))
-                    return Results.BadRequest(new { message = "Số sao không hợp lệ" });
+                // Remove star validation for POST
+                // if (!int.TryParse(form["star"], out var star))
+                //     return Results.BadRequest(new { message = "Số sao không hợp lệ" });
 
                 // Validate ranges
                 if (latitude < -90 || latitude > 90)
@@ -562,8 +542,8 @@ public static class HotelEndpoints
                 if (longitude < -180 || longitude > 180)
                     return Results.BadRequest(new { message = "Kinh độ phải từ -180 đến 180" });
 
-                if (star < 1 || star > 5)
-                    return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
+                // if (star < 1 || star > 5)
+                //     return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
 
                 // Tạo DTO cho hotel application
                 var applicationDto = new HotelApplicationDTO
@@ -573,6 +553,7 @@ public static class HotelEndpoints
                     Province = provinceValue.ToString().Trim(),
                     Latitude = latitude,
                     Longitude = longitude,
+
                     Description = form["description"].ToString(),
                 };
 
@@ -661,7 +642,7 @@ public static class HotelEndpoints
         })
         .WithName("ApplyHotelWithImages")
         .WithSummary("Customer đăng ký mở khách sạn với ảnh")
-        .WithDescription("Customer có thể đăng ký để trở thành Hotel và upload ảnh cùng lúc. Sử dụng multipart/form-data với fields: hotelName, address, province, latitude, longitude, description, star và files")
+        .WithDescription("Customer có thể đăng ký để trở thành Hotel và upload ảnh cùng lúc. Sử dụng multipart/form-data với fields: hotelName, address, province, latitude, longitude, description và files")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -686,6 +667,11 @@ public static class HotelEndpoints
                                     Type = "string",
                                     Description = "Tên khách sạn"
                                 },
+                                ["description"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Mô tả khách sạn (tùy chọn)"
+                                },
                                 ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
@@ -708,17 +694,6 @@ public static class HotelEndpoints
                                     Format = "decimal",
                                     Description = "Kinh độ (-180 đến 180)"
                                 },
-                                ["description"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Mô tả khách sạn (tùy chọn)"
-                                },
-                                ["star"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "integer",
-                                    Format = "int32",
-                                    Description = "Số sao (1-5)"
-                                },
                                 ["files"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "array",
@@ -730,7 +705,7 @@ public static class HotelEndpoints
                                     Description = "Danh sách ảnh khách sạn (JPEG, PNG, GIF, WebP, max 5MB/file)"
                                 }
                             },
-                            Required = new HashSet<string> { "hotelName", "address", "province", "latitude", "longitude", "star" }
+                            Required = new HashSet<string> { "hotelName", "address", "province", "latitude", "longitude" }
                         }
                     }
                 }

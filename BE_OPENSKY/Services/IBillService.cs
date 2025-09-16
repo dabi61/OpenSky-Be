@@ -1,3 +1,5 @@
+using BE_OPENSKY.DTOs;
+
 namespace BE_OPENSKY.Services
 {
     public interface IBillService
@@ -13,5 +15,11 @@ namespace BE_OPENSKY.Services
         
         // Lấy bill theo booking ID
         Task<BillResponseDTO?> GetBillByBookingIdAsync(Guid bookingId);
+        
+        // Áp dụng voucher vào bill đã có
+        Task<ApplyVoucherResponseDTO> ApplyVoucherToBillAsync(Guid userId, ApplyVoucherToBillDTO applyVoucherDto);
+        
+        // Xóa voucher khỏi bill
+        Task<ApplyVoucherResponseDTO> RemoveVoucherFromBillAsync(Guid billId, Guid userId);
     }
 }

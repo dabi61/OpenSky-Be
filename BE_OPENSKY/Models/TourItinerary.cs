@@ -7,7 +7,6 @@ namespace BE_OPENSKY.Models
         [Key]
         public Guid ItineraryID { get; set; }
         
-        [Required]
         public Guid TourID { get; set; }
         
         [Required]
@@ -17,6 +16,9 @@ namespace BE_OPENSKY.Models
         public string Location { get; set; } = string.Empty;
         
         public string? Description { get; set; }
+        
+        [Required]
+        public bool IsDeleted { get; set; } = false;
         
         // Navigation properties
         public virtual Tour Tour { get; set; } = null!;

@@ -4,7 +4,9 @@ namespace BE_OPENSKY.Models
     public enum TableType
     {
         Tour,
-        Hotel
+        Hotel,
+        Schedule,
+        HotelRoom
     }
 
     // Enum cho các loại bảng được sử dụng trong Image
@@ -40,7 +42,8 @@ namespace BE_OPENSKY.Models
     public enum TourStatus
     {
         Active,   // Hoạt động
-        Inactive  // Không hoạt động
+        Suspend,  // Tạm ngưng
+        Removed   // Đã xóa
     }
 
     // Enum cho trạng thái phòng
@@ -71,8 +74,15 @@ namespace BE_OPENSKY.Models
     // Enum cho trạng thái refund
     public enum RefundStatus
     {
-        Pending,      // Chờ xử lý
-        Approve,      // Đã duyệt
-        Deny          // Từ chối
+        Completed     // Đã hoàn tiền (tự động)
+    }
+
+    // Enum cho trạng thái schedule
+    public enum ScheduleStatus
+    {
+        Active,       // Hoạt động
+        End,          // Kết thúc
+        Suspend,      // Tạm ngưng
+        Removed       // Đã xóa
     }
 }

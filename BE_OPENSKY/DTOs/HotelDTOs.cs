@@ -21,8 +21,6 @@ namespace BE_OPENSKY.DTOs
         public decimal? Latitude { get; set; }
         [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
         public decimal? Longitude { get; set; }
-        [Range(1, 5)]
-        public int? Star { get; set; }
     }
 
     // DTO cho cập nhật thông tin khách sạn với ảnh (multipart/form-data)
@@ -45,7 +43,6 @@ namespace BE_OPENSKY.DTOs
         
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
-        public int? Star { get; set; }
         
         [StringLength(10, ErrorMessage = "ImageAction không được quá 10 ký tự")]
         public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
@@ -307,5 +304,27 @@ namespace BE_OPENSKY.DTOs
         public List<string> FailedUploads { get; set; } = new();
         public int SuccessImageCount { get; set; }
         public int FailedImageCount { get; set; }
+    }
+
+    // DTO cho cập nhật phòng với roomId trong body (JSON)
+    public class UpdateRoomWithIdDTO
+    {
+        [Required]
+        public Guid RoomId { get; set; }
+
+        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
+        public string? RoomName { get; set; }
+
+        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
+        public string? RoomType { get; set; }
+
+        [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
+        public string? Address { get; set; }
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Giá phòng phải lớn hơn 0")]
+        public decimal? Price { get; set; }
+
+        [Range(1, 20, ErrorMessage = "Số lượng người phải từ 1 đến 20")]
+        public int? MaxPeople { get; set; }
     }
 }

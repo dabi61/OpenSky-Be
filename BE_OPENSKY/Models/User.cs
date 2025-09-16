@@ -28,7 +28,7 @@ namespace BE_OPENSKY.Models
         
         public string? CitizenId { get; set; } // Số CMND/CCCD
         
-        public DateOnly? DoB { get; set; } // Ngày sinh
+        public DateOnly? dob { get; set; } // Ngày sinh
         
         public string? AvatarURL { get; set; } // Link ảnh đại diện
         

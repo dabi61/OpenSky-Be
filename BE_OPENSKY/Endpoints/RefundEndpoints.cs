@@ -22,7 +22,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
@@ -62,7 +62,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
@@ -102,7 +102,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();

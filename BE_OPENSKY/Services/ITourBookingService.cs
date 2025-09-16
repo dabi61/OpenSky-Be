@@ -16,9 +16,6 @@ namespace BE_OPENSKY.Services
         // Lấy tất cả tour booking (Admin)
         Task<TourBookingListResponseDTO> GetAllTourBookingsAsync(int page = 1, int size = 10);
         
-        // Cập nhật tour booking
-        Task<bool> UpdateTourBookingAsync(Guid bookingId, Guid userId, UpdateTourBookingDTO updateBookingDto);
-        
         // Hủy tour booking
         Task<bool> CancelTourBookingAsync(Guid bookingId, Guid userId);
         

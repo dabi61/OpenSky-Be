@@ -37,6 +37,7 @@ namespace BE_OPENSKY.DTOs
     // DTO cho áp dụng voucher vào bill đã có
     public class ApplyVoucherToBillDTO
     {
+        public Guid BillID { get; set; }
         public Guid UserVoucherID { get; set; }
     }
 

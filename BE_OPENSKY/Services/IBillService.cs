@@ -17,7 +17,7 @@ namespace BE_OPENSKY.Services
         Task<BillResponseDTO?> GetBillByBookingIdAsync(Guid bookingId);
         
         // Áp dụng voucher vào bill đã có
-        Task<ApplyVoucherResponseDTO> ApplyVoucherToBillAsync(Guid billId, Guid userId, ApplyVoucherToBillDTO applyVoucherDto);
+        Task<ApplyVoucherResponseDTO> ApplyVoucherToBillAsync(Guid userId, ApplyVoucherToBillDTO applyVoucherDto);
         
         // Xóa voucher khỏi bill
         Task<ApplyVoucherResponseDTO> RemoveVoucherFromBillAsync(Guid billId, Guid userId);

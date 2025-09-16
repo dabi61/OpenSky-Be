@@ -13,9 +13,8 @@ namespace BE_OPENSKY.Endpoints
                 .WithTags("Bill")
                 .WithOpenApi();
 
-            // PUT /bills/{id}/apply-voucher - Áp dụng voucher vào bill đã có
-            billGroup.MapPut("/{billId}/apply-voucher", async (
-                Guid billId,
+            // PUT /bills/apply-voucher - Áp dụng voucher vào bill đã có (billId trong body)
+            billGroup.MapPut("/apply-voucher", async (
                 ApplyVoucherToBillDTO applyVoucherDto,
                 IBillService billService,
                 HttpContext context) =>
@@ -23,13 +22,13 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
                     }
 
-                    var result = await billService.ApplyVoucherToBillAsync(billId, userId, applyVoucherDto);
+                    var result = await billService.ApplyVoucherToBillAsync(userId, applyVoucherDto);
                     return Results.Ok(result);
                 }
                 catch (ArgumentException ex)
@@ -47,7 +46,7 @@ namespace BE_OPENSKY.Endpoints
             })
             .WithName("ApplyVoucherToBill")
             .WithSummary("Áp dụng voucher vào hóa đơn")
-            .WithDescription("Áp dụng voucher giảm giá vào hóa đơn đã có và cập nhật giá tự động")
+            .WithDescription("Áp dụng voucher giảm giá vào hóa đơn đã có và cập nhật giá tự động (billId trong body)")
             .Produces<ApplyVoucherResponseDTO>(200)
             .Produces(400)
             .Produces(401)
@@ -63,7 +62,7 @@ namespace BE_OPENSKY.Endpoints
                 try
                 {
                     // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst("user_id");
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();

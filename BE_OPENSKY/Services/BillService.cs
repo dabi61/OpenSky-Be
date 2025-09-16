@@ -78,7 +78,7 @@ namespace BE_OPENSKY.Services
             };
         }
 
-        public async Task<ApplyVoucherResponseDTO> ApplyVoucherToBillAsync(Guid billId, Guid userId, ApplyVoucherToBillDTO applyVoucherDto)
+        public async Task<ApplyVoucherResponseDTO> ApplyVoucherToBillAsync(Guid userId, ApplyVoucherToBillDTO applyVoucherDto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -88,7 +88,7 @@ namespace BE_OPENSKY.Services
                     .Include(b => b.BillDetails)
                     .Include(b => b.UserVoucher)
                         .ThenInclude(uv => uv.Voucher)
-                    .FirstOrDefaultAsync(b => b.BillID == billId && b.UserID == userId);
+                    .FirstOrDefaultAsync(b => b.BillID == applyVoucherDto.BillID && b.UserID == userId);
 
                 if (bill == null)
                     throw new ArgumentException("Hóa đơn không tồn tại hoặc không thuộc về người dùng này");

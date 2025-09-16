@@ -181,44 +181,7 @@ namespace BE_OPENSKY.Services
             };
         }
 
-        public async Task<bool> UpdateTourBookingAsync(Guid bookingId, Guid userId, UpdateTourBookingDTO updateBookingDto)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var booking = await _context.Bookings
-                    .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId && b.TourID != null);
-
-                if (booking == null)
-                    return false;
-
-                // Chỉ cho phép cập nhật booking chưa bắt đầu
-                if (booking.Status != BookingStatus.Pending)
-                    throw new ArgumentException("Chỉ có thể cập nhật booking chưa bắt đầu");
-
-                // Cập nhật các trường
-                if (updateBookingDto.StartDate.HasValue)
-                    booking.CheckInDate = updateBookingDto.StartDate.Value;
-
-                if (updateBookingDto.EndDate.HasValue)
-                    booking.CheckOutDate = updateBookingDto.EndDate.Value;
-
-                if (updateBookingDto.Notes != null)
-                    booking.Notes = updateBookingDto.Notes;
-
-                booking.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return true;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+        
 
         public async Task<bool> CancelTourBookingAsync(Guid bookingId, Guid userId)
         {
@@ -249,7 +212,6 @@ namespace BE_OPENSKY.Services
                 throw;
             }
         }
-
 
         private async Task<TourBookingResponseDTO> MapToTourBookingResponseDTO(Booking booking)
         {

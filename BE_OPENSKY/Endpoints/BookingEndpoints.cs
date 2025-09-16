@@ -636,52 +636,6 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization();
 
-
-            // 18. Cập nhật tour booking
-            bookingGroup.MapPut("/tour/{bookingId}", async (
-                Guid bookingId,
-                UpdateTourBookingDTO updateBookingDto,
-                ITourBookingService tourBookingService,
-                HttpContext context) =>
-            {
-                try
-                {
-                    // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                    {
-                        return Results.Unauthorized();
-                    }
-
-                    var success = await tourBookingService.UpdateTourBookingAsync(bookingId, userId, updateBookingDto);
-                    if (!success)
-                        return Results.NotFound(new { message = "Không tìm thấy tour booking" });
-
-                    return Results.Ok(new { message = "Cập nhật tour booking thành công" });
-                }
-                catch (ArgumentException ex)
-                {
-                    return Results.BadRequest(new { message = ex.Message });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Problem(
-                        title: "Lỗi hệ thống",
-                        detail: ex.Message,
-                        statusCode: 500
-                    );
-                }
-            })
-            .WithName("UpdateTourBooking")
-            .WithSummary("Cập nhật tour booking")
-            .WithDescription("Cập nhật thông tin tour booking")
-            .Produces<object>(200)
-            .Produces(400)
-            .Produces(401)
-            .Produces(404)
-            .Produces(500)
-            .RequireAuthorization();
-
             // 19. Hủy tour booking
             bookingGroup.MapDelete("/tour/{bookingId}", async (
                 Guid bookingId,

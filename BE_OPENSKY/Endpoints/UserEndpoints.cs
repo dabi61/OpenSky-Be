@@ -298,8 +298,13 @@ public static class UserEndpoints
         .Produces(404)
         .RequireAuthorization("AdminOnly");
 
-        // 1. Admin tạo người dùng với role tùy chỉnh
-        userGroup.MapPost("/", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
+
+        // 1b. Admin tạo người dùng với avatar (multipart/form-data)
+        userGroup.MapPost("/", async (
+            [FromForm] AdminCreateUserWithAvatarDTO createUserDto,
+            [FromServices] IUserService userService, 
+            [FromServices] ICloudinaryService cloudinaryService,
+            HttpContext context) =>
         {
             try
             {
@@ -331,8 +336,41 @@ public static class UserEndpoints
                     return Results.BadRequest(new { message = $"Role không hợp lệ: {createUserDto.Role}" });
                 }
 
-                // Tạo tài khoản với đầy đủ thông tin
-                var user = await userService.CreateAdminUserAsync(createUserDto);
+                // Parse DateOnly nếu có
+                DateOnly? dob = null;
+                if (!string.IsNullOrWhiteSpace(createUserDto.dob) && DateOnly.TryParse(createUserDto.dob, out var parsedDob))
+                {
+                    dob = parsedDob;
+                }
+
+                // Tạo DTO cho service
+                var adminCreateUserDto = new AdminCreateUserDTO
+                {
+                    Email = createUserDto.Email,
+                    Password = createUserDto.Password,
+                    FullName = createUserDto.FullName,
+                    Role = createUserDto.Role,
+                    PhoneNumber = createUserDto.PhoneNumber,
+                    CitizenId = createUserDto.CitizenId,
+                    dob = dob
+                };
+
+                // Upload avatar nếu có
+                string? avatarUrl = null;
+                if (createUserDto.Avatar != null && createUserDto.Avatar.Length > 0)
+                {
+                    try
+                    {
+                        avatarUrl = await cloudinaryService.UploadImageAsync(createUserDto.Avatar, "avatars");
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.BadRequest(new { message = $"Lỗi khi upload avatar: {ex.Message}" });
+                    }
+                }
+
+                // Tạo user với avatar
+                var user = await userService.CreateAdminUserWithAvatarAsync(adminCreateUserDto, avatarUrl);
                 return Results.Created($"/users/{user.UserID}", user);
             }
             catch (InvalidOperationException ex)
@@ -348,13 +386,16 @@ public static class UserEndpoints
                 );
             }
         })
-        .WithName("CreateUserWithRole")
-        .WithSummary("Admin tạo người dùng với role tùy chỉnh")
-        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào (Admin, Supervisor, TourGuide, Customer, Hotel).")
+        .WithName("CreateUserWithAvatar")
+        .WithSummary("Admin tạo người dùng với avatar")
+        .WithDescription("Admin có thể tạo người dùng với avatar (multipart/form-data). Hỗ trợ upload ảnh đại diện.")
+        .WithOpenApi()
         .Produces<UserResponseDTO>(201)
         .Produces(400)
         .Produces(403)
+        .DisableAntiforgery()
         .RequireAuthorization("AdminOnly");
+
 
         // 2. Admin quản lý status người dùng
         userGroup.MapPut("/{userId:guid}/status", async (Guid userId, [FromBody] UpdateUserStatusDTO updateStatusDto, [FromServices] IUserService userService, HttpContext context) =>
@@ -407,6 +448,154 @@ public static class UserEndpoints
         .WithSummary("Admin quản lý status người dùng")
         .WithDescription("Admin có thể thay đổi trạng thái người dùng (Active, Banned)")
         .Produces(200)
+        .Produces(400)
+        .Produces(401)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("AdminOnly");
+
+        // 3. Admin cập nhật thông tin user với avatar (multipart/form-data)
+        userGroup.MapPut("/update", async (HttpContext context, [FromServices] IUserService userService, [FromServices] ICloudinaryService cloudinaryService) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin
+                if (!context.User.IsInRole(RoleConstants.Admin))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Khởi tạo AdminUpdateUserDTO
+                var updateDto = new AdminUpdateUserDTO();
+                Guid userId = Guid.Empty;
+                string? avatarUrl = null;
+
+                // Xử lý multipart form data
+                if (context.Request.HasFormContentType)
+                {
+                    try
+                    {
+                        var form = await context.Request.ReadFormAsync();
+                        
+                        // Lấy userId từ form (bắt buộc)
+                        if (!form.TryGetValue("userId", out var userIdValue) || !Guid.TryParse(userIdValue, out userId))
+                        {
+                            return Results.BadRequest(new { message = "UserId không hợp lệ hoặc không được cung cấp" });
+                        }
+                        
+                        // Lấy thông tin text từ form
+                        if (form.ContainsKey("fullName"))
+                            updateDto.FullName = form["fullName"].FirstOrDefault();
+                        if (form.ContainsKey("role"))
+                            updateDto.Role = form["role"].FirstOrDefault();
+                        if (form.ContainsKey("phoneNumber"))
+                            updateDto.PhoneNumber = form["phoneNumber"].FirstOrDefault();
+                        if (form.ContainsKey("citizenId"))
+                            updateDto.CitizenId = form["citizenId"].FirstOrDefault();
+                        if (form.ContainsKey("dob") && !string.IsNullOrEmpty(form["dob"].FirstOrDefault()))
+                        {
+                            var doBString = form["dob"].FirstOrDefault();
+                            // Thử parse với format dd-MM-yyyy trước
+                            if (DateTime.TryParseExact(doBString, "dd-MM-yyyy", null, System.Globalization.DateTimeStyles.None, out var doB))
+                            {
+                                updateDto.dob = DateOnly.FromDateTime(doB);
+                            }
+                            // Nếu không được, thử parse với format mặc định
+                            else if (DateTime.TryParse(doBString, out doB))
+                            {
+                                updateDto.dob = DateOnly.FromDateTime(doB);
+                            }
+                        }
+
+                        // Lấy file avatar từ form
+                        var avatarFile = form.Files.FirstOrDefault() ?? 
+                                       form.Files.GetFile("file") ?? 
+                                       form.Files.GetFile("avatar") ?? 
+                                       form.Files.GetFile("image");
+
+                        if (avatarFile != null && avatarFile.Length > 0)
+                        {
+                            Console.WriteLine($"Uploading avatar: {avatarFile.FileName}, Size: {avatarFile.Length}, Content-Type: {avatarFile.ContentType}");
+                            
+                            // Upload ảnh lên Cloudinary
+                            avatarUrl = await cloudinaryService.UploadImageAsync(avatarFile, "avatars");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Multipart parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
+                    }
+                }
+                else
+                {
+                    // Nếu không phải multipart, thử parse JSON
+                    try
+                    {
+                        context.Request.EnableBuffering();
+                        context.Request.Body.Position = 0;
+                        
+                        using var reader = new StreamReader(context.Request.Body);
+                        var jsonString = await reader.ReadToEndAsync();
+                        
+                        if (!string.IsNullOrEmpty(jsonString))
+                        {
+                            var updateWithAvatarDto = System.Text.Json.JsonSerializer.Deserialize<AdminUpdateUserWithAvatarDTO>(jsonString);
+                            if (updateWithAvatarDto == null)
+                                return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
+                            
+                            userId = updateWithAvatarDto.UserId;
+                            updateDto = new AdminUpdateUserDTO
+                            {
+                                FullName = updateWithAvatarDto.FullName,
+                                Role = updateWithAvatarDto.Role,
+                                PhoneNumber = updateWithAvatarDto.PhoneNumber,
+                                CitizenId = updateWithAvatarDto.CitizenId,
+                                dob = !string.IsNullOrEmpty(updateWithAvatarDto.dob) && DateOnly.TryParse(updateWithAvatarDto.dob, out var dob) ? dob : null
+                            };
+                        }
+                        else
+                        {
+                            return Results.BadRequest(new { message = "Request body không được để trống" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"JSON parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu JSON" });
+                    }
+                }
+
+                // Cập nhật thông tin user
+                var updatedUser = await userService.AdminUpdateUserWithAvatarAsync(userId, updateDto, avatarUrl);
+                
+                return Results.Ok(new { 
+                    message = "Cập nhật thông tin người dùng thành công",
+                    user = updatedUser 
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi cập nhật thông tin người dùng: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("AdminUpdateUserWithAvatar")
+        .WithSummary("Admin cập nhật thông tin user với avatar")
+        .WithDescription("Admin có thể cập nhật thông tin user và upload avatar trong một request. Hỗ trợ multipart/form-data với các trường text và file. UserId được truyền trong request body.")
+        .Accepts<AdminUpdateUserWithAvatarDTO>("multipart/form-data")
+        .Produces<UserResponseDTO>(200)
         .Produces(400)
         .Produces(401)
         .Produces(403)

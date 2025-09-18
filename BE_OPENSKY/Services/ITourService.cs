@@ -9,7 +9,10 @@ namespace BE_OPENSKY.Services
         Task<bool> SoftDeleteTourAsync(Guid tourId, Guid userId);
         Task<TourResponseDTO?> GetTourByIdAsync(Guid tourId);
         Task<PaginatedToursResponseDTO> GetToursAsync(int page, int size);
+        Task<PaginatedToursResponseDTO> GetToursByStatusAsync(TourStatus status, int page, int size);
         Task<TourSearchResponseDTO> SearchToursAsync(TourSearchDTO searchDto);
         Task<bool> IsTourOwnerAsync(Guid tourId, Guid userId);
+        Task<bool> UpdateTourStatusAsync(Guid tourId, TourStatus status);
+        Task<bool> UpdateTourStatusAsync(Guid tourId, string statusString);
     }
 }

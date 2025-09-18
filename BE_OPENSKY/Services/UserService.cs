@@ -134,6 +134,48 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<UserResponseDTO> CreateAdminUserWithAvatarAsync(AdminCreateUserDTO userDto, string? avatarUrl)
+    {
+        // Kiểm tra email đã tồn tại chưa
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
+        if (existingUser != null)
+        {
+            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+        }
+
+        var user = new User
+        {
+            UserID = Guid.NewGuid(),
+            Email = userDto.Email,
+            Password = PasswordHelper.HashPassword(userDto.Password),
+            FullName = userDto.FullName,
+            PhoneNumber = userDto.PhoneNumber,
+            CitizenId = userDto.CitizenId,
+            dob = userDto.dob,
+            Role = userDto.Role,
+            ProviderId = null,
+            AvatarURL = avatarUrl, // Set avatar URL nếu có
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new UserResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Status = user.Status,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            dob = user.dob,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
     public async Task<string?> LoginAsync(LoginRequestDTO loginDto)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
@@ -454,6 +496,100 @@ public class UserService : IUserService
         user.Status = status;
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<UserResponseDTO> AdminUpdateUserAsync(Guid userId, AdminUpdateUserDTO updateDto)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException("Không tìm thấy người dùng");
+
+        // Cập nhật các thông tin được cung cấp
+        if (!string.IsNullOrWhiteSpace(updateDto.FullName))
+            user.FullName = updateDto.FullName;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.Role))
+        {
+            // Kiểm tra role hợp lệ
+            if (!RoleConstants.AllRoles.Contains(updateDto.Role))
+                throw new ArgumentException("Role không hợp lệ");
+            
+            user.Role = updateDto.Role;
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+            user.PhoneNumber = updateDto.PhoneNumber;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
+            user.CitizenId = updateDto.CitizenId;
+
+        if (updateDto.dob.HasValue)
+            user.dob = updateDto.dob;
+
+        await _context.SaveChangesAsync();
+
+        return new UserResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Status = user.Status,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            dob = user.dob,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public async Task<UserResponseDTO> AdminUpdateUserWithAvatarAsync(Guid userId, AdminUpdateUserDTO updateDto, string? avatarUrl)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException("Không tìm thấy người dùng");
+
+        // Cập nhật các thông tin được cung cấp
+        if (!string.IsNullOrWhiteSpace(updateDto.FullName))
+            user.FullName = updateDto.FullName;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.Role))
+        {
+            // Kiểm tra role hợp lệ
+            if (!RoleConstants.AllRoles.Contains(updateDto.Role))
+                throw new ArgumentException("Role không hợp lệ");
+            
+            user.Role = updateDto.Role;
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+            user.PhoneNumber = updateDto.PhoneNumber;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
+            user.CitizenId = updateDto.CitizenId;
+
+        if (updateDto.dob.HasValue)
+            user.dob = updateDto.dob;
+
+        // Cập nhật avatar nếu có
+        if (!string.IsNullOrWhiteSpace(avatarUrl))
+            user.AvatarURL = avatarUrl;
+
+        await _context.SaveChangesAsync();
+
+        return new UserResponseDTO
+        {
+            UserID = user.UserID,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Status = user.Status,
+            PhoneNumber = user.PhoneNumber,
+            CitizenId = user.CitizenId,
+            dob = user.dob,
+            AvatarURL = user.AvatarURL,
+            CreatedAt = user.CreatedAt
+        };
     }
 }
 

@@ -638,6 +638,77 @@ public static class TourEndpoints
         .WithDescription("Lấy thông tin chi tiết của một tour")
         .Produces<TourResponseDTO>(200)
         .Produces(404);
+
+        // 9. Lấy danh sách tour theo status (ADMIN - SUPERVISOR)
+        tourGroup.MapGet("/{status}", async (TourStatus status, [FromServices] ITourService tourService, HttpContext context, int page = 1, int size = 10) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được xem danh sách tour theo status." }, statusCode: 403);
+                }
+
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
+
+                var paginatedTours = await tourService.GetToursByStatusAsync(status, page, size);
+                
+                return Results.Ok(paginatedTours);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách tour theo status: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetToursByStatus")
+        .WithSummary("Lấy danh sách tour theo status")
+        .WithDescription("Admin và Supervisor có thể lấy danh sách tour theo trạng thái (Active, Suspend, Removed) với phân trang")
+        .Produces<PaginatedToursResponseDTO>(200)
+        .Produces(403)
+        .RequireAuthorization("SupervisorOrAdmin");
+
+        // 10. Cập nhật status tour (ADMIN - SUPERVISOR)
+        tourGroup.MapPut("/{tourId:guid}/status", async (Guid tourId, [FromBody] UpdateTourStatusDTO updateStatusDto, [FromServices] ITourService tourService, HttpContext context) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được cập nhật status tour." }, statusCode: 403);
+                }
+
+                var success = await tourService.UpdateTourStatusAsync(tourId, updateStatusDto.Status);
+                
+                if (!success)
+                {
+                    return Results.NotFound(new { message = "Không tìm thấy tour hoặc status không hợp lệ" });
+                }
+
+                return Results.Ok(new { message = "Cập nhật status tour thành công", status = updateStatusDto.Status });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi cập nhật status tour: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateTourStatus")
+        .WithSummary("Cập nhật status tour")
+        .WithDescription("Admin và Supervisor có thể cập nhật trạng thái tour (Active, Suspend, Removed)")
+        .Produces(200)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("SupervisorOrAdmin");
     }
 
     private static bool IsImageContentType(string? contentType)

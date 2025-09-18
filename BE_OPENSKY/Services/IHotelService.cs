@@ -11,7 +11,7 @@ public interface IHotelService
     Task<List<PendingHotelResponseDTO>> GetUserHotelsAsync(Guid userId);
     
     // New hotel owner methods
-    Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId, int page = 1, int limit = 10);
+    Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId);
     Task<bool> UpdateHotelAsync(Guid hotelId, Guid userId, UpdateHotelDTO updateDto);
     Task<bool> IsHotelOwnerAsync(Guid hotelId, Guid userId);
     Task<List<string>> DeleteHotelImagesAsync(Guid hotelId, Guid userId, string action = "keep");
@@ -31,4 +31,14 @@ public interface IHotelService
     // Quản lý trạng thái phòng
     Task<bool> UpdateRoomStatusAsync(Guid roomId, Guid userId, UpdateRoomStatusDTO updateDto);
     Task<RoomStatusListDTO> GetRoomStatusListAsync(Guid hotelId, string? status = null);
+    
+    // Quản lý trạng thái hotel (ADMIN - SUPERVISOR)
+    Task<PaginatedHotelsResponseDTO> GetHotelsByStatusAsync(HotelStatus status, int page, int size);
+    Task<bool> UpdateHotelStatusAsync(Guid hotelId, string statusString);
+    
+    // Lấy khách sạn theo số sao (Public)
+    Task<PaginatedHotelsResponseDTO> GetHotelsByStarAsync(int star, int page, int size);
+    
+    // Lấy khách sạn theo tỉnh/thành phố (Public)
+    Task<PaginatedHotelsResponseDTO> GetHotelsByProvinceAsync(string province, int page, int size);
 }

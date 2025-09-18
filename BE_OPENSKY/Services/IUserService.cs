@@ -6,6 +6,7 @@ public interface IUserService
     Task<UserResponseDTO> CreateGoogleUserAsync(GoogleUserRegisterDTO userDto);
     Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role);
     Task<UserResponseDTO> CreateAdminUserAsync(AdminCreateUserDTO userDto);
+    Task<UserResponseDTO> CreateAdminUserWithAvatarAsync(AdminCreateUserDTO userDto, string? avatarUrl);
     Task<string?> LoginAsync(LoginRequestDTO loginDto);
     Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDTO changePasswordDto);
     Task<User?> GetByEmailAsync(string email);
@@ -25,6 +26,8 @@ public interface IUserService
     // Admin methods
     Task<UserResponseDTO?> GetUserByIdAsync(Guid userId);
     Task<bool> UpdateUserStatusAsync(Guid userId, UserStatus status, Guid adminId);
+    Task<UserResponseDTO> AdminUpdateUserAsync(Guid userId, AdminUpdateUserDTO updateDto);
+    Task<UserResponseDTO> AdminUpdateUserWithAvatarAsync(Guid userId, AdminUpdateUserDTO updateDto, string? avatarUrl);
 }
 
 

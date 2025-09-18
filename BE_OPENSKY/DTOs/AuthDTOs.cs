@@ -106,6 +106,46 @@ public class AdminCreateUserWithAvatarDTO
     public IFormFile? Avatar { get; set; }
 }
 
+// DTO cho Admin cập nhật thông tin user (JSON)
+public class AdminUpdateUserDTO
+{
+    [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
+    public string? FullName { get; set; }
+    
+    [StringLength(50, ErrorMessage = "Role không được quá 50 ký tự")]
+    public string? Role { get; set; }
+    
+    [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
+    public string? PhoneNumber { get; set; }
+    
+    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    public string? CitizenId { get; set; }
+    
+    public DateOnly? dob { get; set; }
+}
+
+// DTO cho Admin cập nhật user với avatar (multipart/form-data)
+public class AdminUpdateUserWithAvatarDTO
+{
+    [Required]
+    public Guid UserId { get; set; }
+    
+    [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
+    public string? FullName { get; set; }
+    
+    [StringLength(50, ErrorMessage = "Role không được quá 50 ký tự")]
+    public string? Role { get; set; }
+    
+    [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
+    public string? PhoneNumber { get; set; }
+    
+    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    public string? CitizenId { get; set; }
+    
+    public string? dob { get; set; } // String để dễ xử lý trong form
+    public IFormFile? Avatar { get; set; }
+}
+
 // DTO cho việc cập nhật status user
 public class UpdateUserStatusDTO
 {

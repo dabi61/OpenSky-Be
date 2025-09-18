@@ -26,6 +26,8 @@ public interface IUserService
     // Admin methods
     Task<UserResponseDTO?> GetUserByIdAsync(Guid userId);
     Task<bool> UpdateUserStatusAsync(Guid userId, UserStatus status, Guid adminId);
+    Task<UserResponseDTO> AdminUpdateUserAsync(Guid userId, AdminUpdateUserDTO updateDto);
+    Task<UserResponseDTO> AdminUpdateUserWithAvatarAsync(Guid userId, AdminUpdateUserDTO updateDto, string? avatarUrl);
 }
 
 

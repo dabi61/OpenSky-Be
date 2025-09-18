@@ -374,36 +374,8 @@ public static class HotelEndpoints
         .RequireAuthorization("HotelOnly");
 
 
-        // 2. Xem chi tiết khách sạn (với phân trang phòng)
-        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
-        {
-            try
-            {
-                if (page < 1) page = 1;
-                if (limit < 1 || limit > 100) limit = 10;
 
-                var hotelDetail = await hotelService.GetHotelDetailAsync(hotelId, page, limit);
-                
-                return hotelDetail != null 
-                    ? Results.Ok(hotelDetail)
-                    : Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc khách sạn chưa được kích hoạt" });
-            }
-            catch (Exception)
-            {
-                return Results.Problem(
-                    title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi lấy chi tiết khách sạn",
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("GetHotelDetail")
-        .WithSummary("Xem chi tiết khách sạn - có danh sách phòng")
-        .WithDescription("Lấy thông tin chi tiết khách sạn bao gồm ảnh và danh sách phòng có phân trang")
-        .Produces<HotelDetailResponseDTO>(200)
-        .Produces(404);
-
-        // 3. Tìm kiếm và lọc khách sạn (Public - không cần auth)
+        // 2. Tìm kiếm và lọc khách sạn (Public - không cần auth)
         hotelGroup.MapGet("/search", async (
             IHotelService hotelService,
             string? q = null,
@@ -488,7 +460,7 @@ public static class HotelEndpoints
         .Produces(500)
         .AllowAnonymous(); // Public endpoint - không cần authentication
 
-        // 4. Customer đăng ký mở khách sạn với ảnh (chuyển từ Customer -> Hotel sau khi được duyệt)
+        // 3. Customer đăng ký mở khách sạn với ảnh (chuyển từ Customer -> Hotel sau khi được duyệt)
         hotelGroup.MapPost("/apply", async (HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
@@ -717,69 +689,61 @@ public static class HotelEndpoints
         .Produces(403)
         .RequireAuthorization("CustomerOnly");
 
-        // 5. Admin xem tất cả đơn đăng ký khách sạn chờ duyệt
-        hotelGroup.MapGet("/pending", async ([FromServices] IHotelService hotelService, HttpContext context) =>
+        // 4. Xem tất cả khách sạn đang hoạt động (Public)
+        hotelGroup.MapGet("/active", async ([FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
         {
             try
             {
-                // Kiểm tra quyền Admin
-                if (!context.User.IsInRole(RoleConstants.Admin))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
 
-                var pendingHotels = await hotelService.GetPendingHotelsAsync();
-                return Results.Ok(pendingHotels);
+                var activeHotels = await hotelService.GetHotelsByStatusAsync(HotelStatus.Active, page, size);
+                return Results.Ok(activeHotels);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return Results.Problem(
                     title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi lấy danh sách đơn đăng ký khách sạn",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách khách sạn đang hoạt động: {ex.Message}",
                     statusCode: 500
                 );
             }
         })
-        .WithName("GetPendingHotels")
-        .WithSummary("Admin xem tất cả đơn đăng ký khách sạn chờ duyệt")
-        .WithDescription("Admin có thể xem danh sách khách sạn có status Inactive (chờ duyệt)")
-        .Produces<List<PendingHotelResponseDTO>>(200)
-        .Produces(403)
-        .RequireAuthorization("AdminOnly");
+        .WithName("GetActiveHotels")
+        .WithSummary("Xem tất cả khách sạn đang hoạt động")
+        .WithDescription("Mọi người đều có thể xem danh sách khách sạn có status Active với phân trang")
+        .Produces<PaginatedHotelsResponseDTO>(200)
+        .AllowAnonymous();
 
-        // 6. Admin xem chi tiết đơn đăng ký khách sạn
-        hotelGroup.MapGet("/pending/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
+        // 5. Xem chi tiết khách sạn bằng ID với danh sách phòng (Public)
+        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int limit = 10) =>
         {
             try
             {
-                // Kiểm tra quyền Admin
-                if (!context.User.IsInRole(RoleConstants.Admin))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
+                if (page < 1) page = 1;
+                if (limit < 1 || limit > 100) limit = 10;
 
-                var hotel = await hotelService.GetHotelByIdAsync(hotelId);
+                var hotelDetail = await hotelService.GetHotelDetailAsync(hotelId, page, limit);
                 
-                return hotel != null 
-                    ? Results.Ok(hotel)
-                    : Results.NotFound(new { message = "Không tìm thấy khách sạn" });
+                return hotelDetail != null 
+                    ? Results.Ok(hotelDetail)
+                    : Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc khách sạn chưa được kích hoạt" });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return Results.Problem(
                     title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi lấy chi tiết khách sạn",
+                    detail: $"Có lỗi xảy ra khi lấy chi tiết khách sạn: {ex.Message}",
                     statusCode: 500
                 );
             }
         })
-        .WithName("GetPendingHotelById")
-        .WithSummary("Admin xem chi tiết đơn đăng ký khách sạn")
-        .WithDescription("Admin có thể xem chi tiết một khách sạn chờ duyệt")
-        .Produces<PendingHotelResponseDTO>(200)
-        .Produces(403)
+        .WithName("GetHotelDetail")
+        .WithSummary("Xem chi tiết khách sạn với danh sách phòng")
+        .WithDescription("Mọi người đều có thể xem chi tiết khách sạn bao gồm ảnh và danh sách phòng có phân trang (chỉ hiển thị khách sạn Active)")
+        .Produces<HotelDetailResponseDTO>(200)
         .Produces(404)
-        .RequireAuthorization("AdminOnly");
+        .AllowAnonymous();
 
         // 7. Admin duyệt đơn đăng ký khách sạn
         hotelGroup.MapPost("/approve/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>

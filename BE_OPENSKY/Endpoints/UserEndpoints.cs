@@ -298,8 +298,13 @@ public static class UserEndpoints
         .Produces(404)
         .RequireAuthorization("AdminOnly");
 
-        // 1. Admin tạo người dùng với role tùy chỉnh
-        userGroup.MapPost("/", async ([FromBody] AdminCreateUserDTO createUserDto, [FromServices] IUserService userService, HttpContext context) =>
+
+        // 1b. Admin tạo người dùng với avatar (multipart/form-data)
+        userGroup.MapPost("/", async (
+            [FromForm] AdminCreateUserWithAvatarDTO createUserDto,
+            [FromServices] IUserService userService, 
+            [FromServices] ICloudinaryService cloudinaryService,
+            HttpContext context) =>
         {
             try
             {
@@ -331,8 +336,41 @@ public static class UserEndpoints
                     return Results.BadRequest(new { message = $"Role không hợp lệ: {createUserDto.Role}" });
                 }
 
-                // Tạo tài khoản với đầy đủ thông tin
-                var user = await userService.CreateAdminUserAsync(createUserDto);
+                // Parse DateOnly nếu có
+                DateOnly? dob = null;
+                if (!string.IsNullOrWhiteSpace(createUserDto.dob) && DateOnly.TryParse(createUserDto.dob, out var parsedDob))
+                {
+                    dob = parsedDob;
+                }
+
+                // Tạo DTO cho service
+                var adminCreateUserDto = new AdminCreateUserDTO
+                {
+                    Email = createUserDto.Email,
+                    Password = createUserDto.Password,
+                    FullName = createUserDto.FullName,
+                    Role = createUserDto.Role,
+                    PhoneNumber = createUserDto.PhoneNumber,
+                    CitizenId = createUserDto.CitizenId,
+                    dob = dob
+                };
+
+                // Upload avatar nếu có
+                string? avatarUrl = null;
+                if (createUserDto.Avatar != null && createUserDto.Avatar.Length > 0)
+                {
+                    try
+                    {
+                        avatarUrl = await cloudinaryService.UploadImageAsync(createUserDto.Avatar, "avatars");
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.BadRequest(new { message = $"Lỗi khi upload avatar: {ex.Message}" });
+                    }
+                }
+
+                // Tạo user với avatar
+                var user = await userService.CreateAdminUserWithAvatarAsync(adminCreateUserDto, avatarUrl);
                 return Results.Created($"/users/{user.UserID}", user);
             }
             catch (InvalidOperationException ex)
@@ -348,13 +386,16 @@ public static class UserEndpoints
                 );
             }
         })
-        .WithName("CreateUserWithRole")
-        .WithSummary("Admin tạo người dùng với role tùy chỉnh")
-        .WithDescription("Admin có thể tạo người dùng với bất kỳ role nào (Admin, Supervisor, TourGuide, Customer, Hotel).")
+        .WithName("CreateUserWithAvatar")
+        .WithSummary("Admin tạo người dùng với avatar")
+        .WithDescription("Admin có thể tạo người dùng với avatar (multipart/form-data). Hỗ trợ upload ảnh đại diện.")
+        .WithOpenApi()
         .Produces<UserResponseDTO>(201)
         .Produces(400)
         .Produces(403)
+        .DisableAntiforgery()
         .RequireAuthorization("AdminOnly");
+
 
         // 2. Admin quản lý status người dùng
         userGroup.MapPut("/{userId:guid}/status", async (Guid userId, [FromBody] UpdateUserStatusDTO updateStatusDto, [FromServices] IUserService userService, HttpContext context) =>

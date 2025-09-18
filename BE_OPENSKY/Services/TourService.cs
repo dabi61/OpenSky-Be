@@ -164,6 +164,48 @@ namespace BE_OPENSKY.Services
             };
         }
 
+        public async Task<PaginatedToursResponseDTO> GetToursByStatusAsync(TourStatus status, int page, int size)
+        {
+            var query = _context.Tours
+                .Include(t => t.User)
+                .Where(t => t.Status == status)
+                .OrderByDescending(t => t.CreatedAt);
+
+            var totalTours = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalTours / size);
+
+            var tours = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .Select(t => new TourSummaryDTO
+                {
+                    TourID = t.TourID,
+                    TourName = t.TourName,
+                    Address = t.Address,
+                    Province = t.Province,
+                    Star = t.Star,
+                    Price = t.Price,
+                    MaxPeople = t.MaxPeople,
+                    Status = t.Status,
+                    FirstImage = _context.Images
+                        .Where(i => i.TableType == TableTypeImage.Tour && i.TypeID == t.TourID)
+                        .Select(i => i.URL)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return new PaginatedToursResponseDTO
+            {
+                Tours = tours,
+                CurrentPage = page,
+                PageSize = size,
+                TotalTours = totalTours,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+
         public async Task<TourSearchResponseDTO> SearchToursAsync(TourSearchDTO searchDto)
         {
             var query = _context.Tours
@@ -263,6 +305,38 @@ namespace BE_OPENSKY.Services
         {
             return await _context.Tours
                 .AnyAsync(t => t.TourID == tourId && t.UserID == userId);
+        }
+
+        public async Task<bool> UpdateTourStatusAsync(Guid tourId, TourStatus status)
+        {
+            var tour = await _context.Tours
+                .FirstOrDefaultAsync(t => t.TourID == tourId);
+
+            if (tour == null)
+                return false;
+
+            tour.Status = status;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateTourStatusAsync(Guid tourId, string statusString)
+        {
+            // Parse string thành TourStatus enum
+            if (!Enum.TryParse<TourStatus>(statusString, true, out var status))
+            {
+                return false; // Status không hợp lệ
+            }
+
+            var tour = await _context.Tours
+                .FirstOrDefaultAsync(t => t.TourID == tourId);
+
+            if (tour == null)
+                return false;
+
+            tour.Status = status;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

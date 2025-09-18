@@ -128,7 +128,7 @@ namespace BE_OPENSKY.DTOs
     public class UpdateTourStatusDTO
     {
         [Required]
-        public TourStatus Status { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 
     // DTO cho tạo tour với ảnh (multipart form data)

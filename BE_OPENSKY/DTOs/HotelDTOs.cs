@@ -78,8 +78,6 @@ namespace BE_OPENSKY.DTOs
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public List<string> Images { get; set; } = new(); // URLs của ảnh khách sạn
-        public List<RoomSummaryDTO> Rooms { get; set; } = new(); // Danh sách phòng (có phân trang)
-        public int TotalRooms { get; set; } // Tổng số phòng
     }
 
     // DTO tóm tắt phòng trong danh sách khách sạn

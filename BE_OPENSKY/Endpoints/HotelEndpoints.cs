@@ -715,15 +715,12 @@ public static class HotelEndpoints
         .Produces<PaginatedHotelsResponseDTO>(200)
         .AllowAnonymous();
 
-        // 5. Xem chi tiết khách sạn bằng ID với danh sách phòng (Public)
-        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int limit = 10) =>
+        // 5. Xem chi tiết khách sạn bằng ID (Public)
+        hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {
-                if (page < 1) page = 1;
-                if (limit < 1 || limit > 100) limit = 10;
-
-                var hotelDetail = await hotelService.GetHotelDetailAsync(hotelId, page, limit);
+                var hotelDetail = await hotelService.GetHotelDetailAsync(hotelId);
                 
                 return hotelDetail != null 
                     ? Results.Ok(hotelDetail)
@@ -739,8 +736,8 @@ public static class HotelEndpoints
             }
         })
         .WithName("GetHotelDetail")
-        .WithSummary("Xem chi tiết khách sạn với danh sách phòng")
-        .WithDescription("Mọi người đều có thể xem chi tiết khách sạn bao gồm ảnh và danh sách phòng có phân trang (chỉ hiển thị khách sạn Active)")
+        .WithSummary("Xem chi tiết khách sạn")
+        .WithDescription("Mọi người đều có thể xem chi tiết khách sạn bao gồm ảnh (chỉ hiển thị khách sạn Active)")
         .Produces<HotelDetailResponseDTO>(200)
         .Produces(404)
         .AllowAnonymous();

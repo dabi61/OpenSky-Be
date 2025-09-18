@@ -11,7 +11,7 @@ public interface IHotelService
     Task<List<PendingHotelResponseDTO>> GetUserHotelsAsync(Guid userId);
     
     // New hotel owner methods
-    Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId, int page = 1, int limit = 10);
+    Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId);
     Task<bool> UpdateHotelAsync(Guid hotelId, Guid userId, UpdateHotelDTO updateDto);
     Task<bool> IsHotelOwnerAsync(Guid hotelId, Guid userId);
     Task<List<string>> DeleteHotelImagesAsync(Guid hotelId, Guid userId, string action = "keep");

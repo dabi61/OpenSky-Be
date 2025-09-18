@@ -160,11 +160,23 @@ public class HotelService : IHotelService
             })
             .ToListAsync();
 
+        // Lấy ảnh cho từng khách sạn
+        foreach (var hotel in userHotels)
+        {
+            var images = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotel.HotelID)
+                .OrderBy(i => i.CreatedAt)
+                .Select(i => i.URL)
+                .ToListAsync();
+            
+            hotel.Images = images;
+        }
+
         return userHotels;
     }
 
     // New hotel owner methods
-    public async Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId, int page = 1, int limit = 10)
+    public async Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId)
     {
         var hotel = await _context.Hotels
             .Include(h => h.User)
@@ -177,28 +189,6 @@ public class HotelService : IHotelService
             .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotelId)
             .OrderBy(i => i.CreatedAt)
             .Select(i => i.URL)
-            .ToListAsync();
-
-        // Get paginated rooms
-        var totalRooms = await _context.HotelRooms.CountAsync(r => r.HotelID == hotelId);
-        var rooms = await _context.HotelRooms
-            .Where(r => r.HotelID == hotelId)
-            .OrderBy(r => r.RoomName)
-            .Skip((page - 1) * limit)
-            .Take(limit)
-            .Select(r => new RoomSummaryDTO
-            {
-                RoomID = r.RoomID,
-                RoomName = r.RoomName,
-                RoomType = r.RoomType,
-                Price = r.Price,
-                MaxPeople = r.MaxPeople,
-                FirstImage = _context.Images
-                    .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == r.RoomID)
-                    .OrderBy(i => i.CreatedAt)
-                    .Select(i => i.URL)
-                    .FirstOrDefault()
-            })
             .ToListAsync();
 
         return new HotelDetailResponseDTO
@@ -215,9 +205,7 @@ public class HotelService : IHotelService
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
             CreatedAt = hotel.CreatedAt,
-            Images = images,
-            Rooms = rooms,
-            TotalRooms = totalRooms
+            Images = images
         };
     }
 

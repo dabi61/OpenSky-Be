@@ -190,6 +190,7 @@ public class PendingHotelResponseDTO
     public int Star { get; set; }
     public string Status { get; set; } = string.Empty; // Inactive, Active, Suspend, Removed
     public DateTime CreatedAt { get; set; }
+    public List<string> Images { get; set; } = new(); // URLs của ảnh khách sạn
 }
 
     // DTO đăng nhập

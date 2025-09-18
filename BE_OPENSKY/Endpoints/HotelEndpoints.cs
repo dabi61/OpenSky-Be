@@ -891,6 +891,77 @@ public static class HotelEndpoints
         .Produces<List<PendingHotelResponseDTO>>(200)
         .Produces(401)
         .RequireAuthorization("AuthenticatedOnly");
+
+        // 10. Lấy danh sách khách sạn theo status (ADMIN - SUPERVISOR)
+        hotelGroup.MapGet("/status/{status}", async (HotelStatus status, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được xem danh sách khách sạn theo status." }, statusCode: 403);
+                }
+
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
+
+                var paginatedHotels = await hotelService.GetHotelsByStatusAsync(status, page, size);
+                
+                return Results.Ok(paginatedHotels);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách khách sạn theo status: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetHotelsByStatus")
+        .WithSummary("Lấy danh sách khách sạn theo status")
+        .WithDescription("Admin và Supervisor có thể lấy danh sách khách sạn theo trạng thái (Active, Inactive, Suspend, Removed) với phân trang")
+        .Produces<PaginatedHotelsResponseDTO>(200)
+        .Produces(403)
+        .RequireAuthorization("SupervisorOrAdmin");
+
+        // 11. Cập nhật status khách sạn (ADMIN - SUPERVISOR)
+        hotelGroup.MapPut("/{hotelId:guid}/status", async (Guid hotelId, [FromBody] UpdateHotelStatusDTO updateStatusDto, [FromServices] IHotelService hotelService, HttpContext context) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được cập nhật status khách sạn." }, statusCode: 403);
+                }
+
+                var success = await hotelService.UpdateHotelStatusAsync(hotelId, updateStatusDto.Status);
+                
+                if (!success)
+                {
+                    return Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc status không hợp lệ" });
+                }
+
+                return Results.Ok(new { message = "Cập nhật status khách sạn thành công", status = updateStatusDto.Status });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi cập nhật status khách sạn: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateHotelStatus")
+        .WithSummary("Cập nhật status khách sạn")
+        .WithDescription("Admin và Supervisor có thể cập nhật trạng thái khách sạn (Active, Inactive, Suspend, Removed)")
+        .Produces(200)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization("SupervisorOrAdmin");
         }
 
         private static bool IsImageContentType(string? contentType)
@@ -900,4 +971,4 @@ public static class HotelEndpoints
                 
             return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
         }
-}
+    }

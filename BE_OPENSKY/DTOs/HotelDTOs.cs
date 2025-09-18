@@ -250,6 +250,41 @@ namespace BE_OPENSKY.DTOs
         public bool HasPreviousPage { get; set; }
     }
 
+    // DTO tóm tắt khách sạn trong danh sách (cho admin/supervisor)
+    public class HotelSummaryDTO
+    {
+        public Guid HotelID { get; set; }
+        public Guid UserID { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public string HotelName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Province { get; set; } = string.Empty;
+        public int Star { get; set; }
+        public HotelStatus Status { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? FirstImage { get; set; }
+    }
+
+    // DTO cho phân trang danh sách khách sạn
+    public class PaginatedHotelsResponseDTO
+    {
+        public List<HotelSummaryDTO> Hotels { get; set; } = new();
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public int TotalHotels { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+    }
+
+    // DTO cho cập nhật trạng thái khách sạn
+    public class UpdateHotelStatusDTO
+    {
+        [Required]
+        public string Status { get; set; } = string.Empty;
+    }
+
     // DTOs cho tìm kiếm và lọc khách sạn
     public class HotelSearchDTO
     {

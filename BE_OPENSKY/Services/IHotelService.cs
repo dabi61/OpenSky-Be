@@ -31,4 +31,8 @@ public interface IHotelService
     // Quản lý trạng thái phòng
     Task<bool> UpdateRoomStatusAsync(Guid roomId, Guid userId, UpdateRoomStatusDTO updateDto);
     Task<RoomStatusListDTO> GetRoomStatusListAsync(Guid hotelId, string? status = null);
+    
+    // Quản lý trạng thái hotel (ADMIN - SUPERVISOR)
+    Task<PaginatedHotelsResponseDTO> GetHotelsByStatusAsync(HotelStatus status, int page, int size);
+    Task<bool> UpdateHotelStatusAsync(Guid hotelId, string statusString);
 }

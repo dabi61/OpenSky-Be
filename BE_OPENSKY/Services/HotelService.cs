@@ -743,4 +743,68 @@ public class HotelService : IHotelService
 
         return deletedUrls;
     }
+
+    // Quản lý trạng thái hotel (ADMIN - SUPERVISOR)
+    public async Task<PaginatedHotelsResponseDTO> GetHotelsByStatusAsync(HotelStatus status, int page, int size)
+    {
+        var query = _context.Hotels
+            .Include(h => h.User)
+            .Where(h => h.Status == status)
+            .OrderByDescending(h => h.CreatedAt);
+
+        var totalHotels = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalHotels / size);
+
+        var hotels = await query
+            .Skip((page - 1) * size)
+            .Take(size)
+            .Select(h => new HotelSummaryDTO
+            {
+                HotelID = h.HotelID,
+                UserID = h.UserID,
+                UserName = h.User.FullName,
+                UserEmail = h.User.Email,
+                HotelName = h.HotelName,
+                Address = h.Address,
+                Province = h.Province,
+                Star = h.Star,
+                Status = h.Status,
+                CreatedAt = h.CreatedAt,
+                FirstImage = _context.Images
+                    .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == h.HotelID)
+                    .Select(i => i.URL)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return new PaginatedHotelsResponseDTO
+        {
+            Hotels = hotels,
+            CurrentPage = page,
+            PageSize = size,
+            TotalHotels = totalHotels,
+            TotalPages = totalPages,
+            HasNextPage = page < totalPages,
+            HasPreviousPage = page > 1
+        };
+    }
+
+    public async Task<bool> UpdateHotelStatusAsync(Guid hotelId, string statusString)
+    {
+        // Parse string thành HotelStatus enum
+        if (!Enum.TryParse<HotelStatus>(statusString, true, out var status))
+        {
+            return false; // Status không hợp lệ
+        }
+
+        var hotel = await _context.Hotels
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId);
+
+        if (hotel == null)
+            return false;
+
+        hotel.Status = status;
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

@@ -745,7 +745,75 @@ public static class HotelEndpoints
         .Produces(404)
         .AllowAnonymous();
 
-        // 7. Admin duyệt đơn đăng ký khách sạn
+        // 6. Lấy danh sách khách sạn theo số sao (Public)
+        hotelGroup.MapGet("/star/{star}", async (int star, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
+        {
+            try
+            {
+                // Validate star parameter
+                if (star < 1 || star > 5)
+                {
+                    return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
+                }
+
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
+
+                var paginatedHotels = await hotelService.GetHotelsByStarAsync(star, page, size);
+                
+                return Results.Ok(paginatedHotels);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách khách sạn theo sao: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetHotelsByStar")
+        .WithSummary("Lấy danh sách khách sạn theo số sao")
+        .WithDescription("Mọi người đều có thể lấy danh sách khách sạn theo số sao (1-5) với phân trang (chỉ hiển thị khách sạn Active)")
+        .Produces<PaginatedHotelsResponseDTO>(200)
+        .Produces(400)
+        .AllowAnonymous();
+
+        // 7. Lấy danh sách khách sạn theo tỉnh/thành phố (Public)
+        hotelGroup.MapGet("/province/{province}", async (string province, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
+        {
+            try
+            {
+                // Validate province parameter
+                if (string.IsNullOrWhiteSpace(province))
+                {
+                    return Results.BadRequest(new { message = "Tỉnh/thành phố không được để trống" });
+                }
+
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
+
+                var paginatedHotels = await hotelService.GetHotelsByProvinceAsync(province, page, size);
+                
+                return Results.Ok(paginatedHotels);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách khách sạn theo tỉnh: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetHotelsByProvince")
+        .WithSummary("Lấy danh sách khách sạn theo tỉnh/thành phố")
+        .WithDescription("Mọi người đều có thể lấy danh sách khách sạn theo tỉnh/thành phố với phân trang (chỉ hiển thị khách sạn Active)")
+        .Produces<PaginatedHotelsResponseDTO>(200)
+        .Produces(400)
+        .AllowAnonymous();
+
+        // 8. Admin duyệt đơn đăng ký khách sạn
         hotelGroup.MapPost("/approve/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try

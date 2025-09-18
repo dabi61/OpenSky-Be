@@ -807,4 +807,166 @@ public class HotelService : IHotelService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    // Lấy khách sạn theo số sao (Public)
+    public async Task<PaginatedHotelsResponseDTO> GetHotelsByStarAsync(int star, int page, int size)
+    {
+        var query = _context.Hotels
+            .Include(h => h.User)
+            .Where(h => h.Status == HotelStatus.Active && h.Star == star) // Chỉ lấy khách sạn Active với số sao cụ thể
+            .OrderByDescending(h => h.CreatedAt);
+
+        var totalHotels = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalHotels / size);
+
+        var hotels = await query
+            .Skip((page - 1) * size)
+            .Take(size)
+            .Select(h => new HotelSummaryDTO
+            {
+                HotelID = h.HotelID,
+                UserID = h.UserID,
+                UserName = h.User.FullName,
+                UserEmail = h.User.Email,
+                HotelName = h.HotelName,
+                Address = h.Address,
+                Province = h.Province,
+                Star = h.Star,
+                Status = h.Status,
+                CreatedAt = h.CreatedAt,
+                FirstImage = _context.Images
+                    .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == h.HotelID)
+                    .Select(i => i.URL)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return new PaginatedHotelsResponseDTO
+        {
+            Hotels = hotels,
+            CurrentPage = page,
+            PageSize = size,
+            TotalHotels = totalHotels,
+            TotalPages = totalPages,
+            HasNextPage = page < totalPages,
+            HasPreviousPage = page > 1
+        };
+    }
+
+    // Lấy khách sạn theo tỉnh/thành phố (Public)
+    public async Task<PaginatedHotelsResponseDTO> GetHotelsByProvinceAsync(string province, int page, int size)
+    {
+        // Lấy tất cả khách sạn Active trước
+        var allActiveHotels = await _context.Hotels
+            .Include(h => h.User)
+            .Where(h => h.Status == HotelStatus.Active)
+            .ToListAsync();
+
+        // Normalize chuỗi để xử lý encoding và ký tự đặc biệt
+        var normalizedProvince = NormalizeString(province);
+        
+        // Filter bằng LINQ to Objects
+        var filteredHotels = allActiveHotels
+            .Where(h => NormalizeString(h.Province).Contains(normalizedProvince))
+            .OrderByDescending(h => h.CreatedAt)
+            .ToList();
+
+        var totalHotels = filteredHotels.Count;
+        var totalPages = (int)Math.Ceiling((double)totalHotels / size);
+
+        // Pagination
+        var paginatedHotels = filteredHotels
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToList();
+
+        // Convert to DTO
+        var hotels = new List<HotelSummaryDTO>();
+        foreach (var hotel in paginatedHotels)
+        {
+            var firstImage = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotel.HotelID)
+                .Select(i => i.URL)
+                .FirstOrDefaultAsync();
+
+            hotels.Add(new HotelSummaryDTO
+            {
+                HotelID = hotel.HotelID,
+                UserID = hotel.UserID,
+                UserName = hotel.User.FullName,
+                UserEmail = hotel.User.Email,
+                HotelName = hotel.HotelName,
+                Address = hotel.Address,
+                Province = hotel.Province,
+                Star = hotel.Star,
+                Status = hotel.Status,
+                CreatedAt = hotel.CreatedAt,
+                FirstImage = firstImage
+            });
+        }
+
+        return new PaginatedHotelsResponseDTO
+        {
+            Hotels = hotels,
+            CurrentPage = page,
+            PageSize = size,
+            TotalHotels = totalHotels,
+            TotalPages = totalPages,
+            HasNextPage = page < totalPages,
+            HasPreviousPage = page > 1
+        };
+    }
+
+    // Helper method để normalize chuỗi Unicode
+    private static string NormalizeString(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        // Loại bỏ dấu và chuyển về chữ thường
+        var normalized = input.Trim().ToLowerInvariant();
+        
+        // Xử lý các ký tự đặc biệt thường gặp
+        normalized = normalized.Replace("tp.", "thanh pho")
+                              .Replace("tp ", "thanh pho ")
+                              .Replace("hcm", "ho chi minh")
+                              .Replace("hồ chí minh", "ho chi minh")
+                              .Replace("hà nội", "ha noi")
+                              .Replace("đà nẵng", "da nang")
+                              .Replace("cần thơ", "can tho")
+                              .Replace("nghệ an", "nghe an")
+                              .Replace("thanh hóa", "thanh hoa")
+                              .Replace("phú yên", "phu yen")
+                              .Replace("khánh hòa", "khanh hoa")
+                              .Replace("bình định", "binh dinh")
+                              .Replace("quảng nam", "quang nam")
+                              .Replace("quảng ngãi", "quang ngai")
+                              .Replace("bình thuận", "binh thuan")
+                              .Replace("bà rịa - vũng tàu", "ba ria vung tau")
+                              .Replace("bà rịa vũng tàu", "ba ria vung tau")
+                              .Replace("tây ninh", "tay ninh")
+                              .Replace("bình dương", "binh duong")
+                              .Replace("đồng nai", "dong nai")
+                              .Replace("long an", "long an")
+                              .Replace("tiền giang", "tien giang")
+                              .Replace("bến tre", "ben tre")
+                              .Replace("trà vinh", "tra vinh")
+                              .Replace("vĩnh long", "vinh long")
+                              .Replace("đồng tháp", "dong thap")
+                              .Replace("an giang", "an giang")
+                              .Replace("kiên giang", "kien giang")
+                              .Replace("cà mau", "ca mau")
+                              .Replace("bạc liêu", "bac lieu")
+                              .Replace("sóc trăng", "soc trang")
+                              .Replace("hậu giang", "hau giang")
+                              .Replace("bình phước", "binh phuoc")
+                              .Replace("tây nguyên", "tay nguyen")
+                              .Replace("kon tum", "kon tum")
+                              .Replace("gia lai", "gia lai")
+                              .Replace("đắk lắk", "dak lak")
+                              .Replace("đắk nông", "dak nong")
+                              .Replace("lâm đồng", "lam dong");
+
+        return normalized;
+    }
 }

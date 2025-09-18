@@ -35,4 +35,10 @@ public interface IHotelService
     // Quản lý trạng thái hotel (ADMIN - SUPERVISOR)
     Task<PaginatedHotelsResponseDTO> GetHotelsByStatusAsync(HotelStatus status, int page, int size);
     Task<bool> UpdateHotelStatusAsync(Guid hotelId, string statusString);
+    
+    // Lấy khách sạn theo số sao (Public)
+    Task<PaginatedHotelsResponseDTO> GetHotelsByStarAsync(int star, int page, int size);
+    
+    // Lấy khách sạn theo tỉnh/thành phố (Public)
+    Task<PaginatedHotelsResponseDTO> GetHotelsByProvinceAsync(string province, int page, int size);
 }

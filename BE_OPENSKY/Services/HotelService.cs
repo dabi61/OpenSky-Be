@@ -808,6 +808,78 @@ public class HotelService : IHotelService
         };
     }
 
+    // Lấy tất cả hotel (không bao gồm status Removed)
+    public async Task<PaginatedHotelsResponseDTO> GetHotelsExcludeRemovedAsync(int page = 1, int limit = 10)
+    {
+        Console.WriteLine($"GetHotelsExcludeRemovedAsync - Page: {page}, Limit: {limit}");
+
+        try
+        {
+            // Validate parameters
+            if (page < 1) page = 1;
+            if (limit < 1 || limit > 100) limit = 10;
+
+            var query = _context.Hotels
+                .Include(h => h.User)
+                .Where(h => h.Status != HotelStatus.Removed) // Loại trừ status Removed
+                .OrderByDescending(h => h.CreatedAt);
+
+            var totalHotels = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalHotels / limit);
+
+            var hotels = await query
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(h => new HotelSummaryDTO
+                {
+                    HotelID = h.HotelID,
+                    HotelName = h.HotelName,
+                    Address = h.Address,
+                    Province = h.Province,
+                    Star = h.Star,
+                    Status = h.Status,
+                    CreatedAt = h.CreatedAt,
+                    FirstImage = _context.Images
+                        .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == h.HotelID)
+                        .Select(i => i.URL)
+                        .FirstOrDefault(),
+                    User = new UserSummaryDTO
+                    {
+                        UserID = h.User.UserID,
+                        Email = h.User.Email,
+                        FullName = h.User.FullName,
+                        Role = h.User.Role,
+                        PhoneNumber = h.User.PhoneNumber,
+                        CitizenId = h.User.CitizenId,
+                        dob = h.User.dob,
+                        AvatarURL = h.User.AvatarURL,
+                        Status = h.User.Status,
+                        CreatedAt = h.User.CreatedAt
+                    }
+                })
+                .ToListAsync();
+
+            Console.WriteLine($"Found {totalHotels} hotels (excluding Removed status)");
+
+            return new PaginatedHotelsResponseDTO
+            {
+                Hotels = hotels,
+                CurrentPage = page,
+                PageSize = limit,
+                TotalHotels = totalHotels,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetHotelsExcludeRemovedAsync: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
     public async Task<bool> UpdateHotelStatusAsync(Guid hotelId, string statusString)
     {
         // Parse string thành HotelStatus enum

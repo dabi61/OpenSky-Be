@@ -715,7 +715,36 @@ public static class HotelEndpoints
         .Produces<PaginatedHotelsResponseDTO>(200)
         .AllowAnonymous();
 
-        // 5. Xem chi tiết khách sạn bằng ID (Public)
+        // 5. Lấy tất cả hotel (không bao gồm status Removed) - Public
+        hotelGroup.MapGet("/all", async ([FromServices] IHotelService hotelService, int page = 1, int limit = 10) =>
+        {
+            try
+            {
+                // Validate parameters
+                if (page < 1) page = 1;
+                if (limit < 1 || limit > 100) limit = 10;
+
+                var result = await hotelService.GetHotelsExcludeRemovedAsync(page, limit);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách khách sạn: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetAllHotelsExcludeRemoved")
+        .WithSummary("Lấy tất cả khách sạn (không bao gồm khách sạn đã xóa)")
+        .WithDescription("Lấy danh sách tất cả khách sạn, loại trừ những khách sạn có status Removed")
+        .Produces<PaginatedHotelsResponseDTO>(200)
+        .Produces(400)
+        .Produces(500)
+        .AllowAnonymous();
+
+        // 6. Xem chi tiết khách sạn bằng ID (Public)
         hotelGroup.MapGet("/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
@@ -742,7 +771,7 @@ public static class HotelEndpoints
         .Produces(404)
         .AllowAnonymous();
 
-        // 6. Lấy danh sách khách sạn theo số sao (Public)
+        // 7. Lấy danh sách khách sạn theo số sao (Public)
         hotelGroup.MapGet("/star/{star}", async (int star, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
         {
             try
@@ -776,7 +805,7 @@ public static class HotelEndpoints
         .Produces(400)
         .AllowAnonymous();
 
-        // 7. Lấy danh sách khách sạn theo tỉnh/thành phố (Public)
+        // 8. Lấy danh sách khách sạn theo tỉnh/thành phố (Public)
         hotelGroup.MapGet("/province/{province}", async (string province, [FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
         {
             try

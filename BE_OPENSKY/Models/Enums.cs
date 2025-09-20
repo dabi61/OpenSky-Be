@@ -51,7 +51,8 @@ namespace BE_OPENSKY.Models
     {
         Available,    // Có sẵn
         Occupied,     // Đã được đặt
-        Maintenance  // Bảo trì
+        Maintenance,  // Bảo trì
+        Removed       // Đã xóa
     }
 
     // Enum cho trạng thái booking

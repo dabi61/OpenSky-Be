@@ -180,7 +180,7 @@ public class HotelService : IHotelService
     {
         var hotel = await _context.Hotels
             .Include(h => h.User)
-            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.Status == HotelStatus.Active);
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId);
 
         if (hotel == null) return null;
 
@@ -279,33 +279,55 @@ public class HotelService : IHotelService
 
     public async Task<RoomDetailResponseDTO?> GetRoomDetailAsync(Guid roomId)
     {
-        var room = await _context.HotelRooms
-            .Include(r => r.Hotel)
-            .FirstOrDefaultAsync(r => r.RoomID == roomId);
-
-        if (room == null) return null;
-
-        // Get room images
-        var images = await _context.Images
-            .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == roomId)
-            .OrderBy(i => i.CreatedAt)
-            .Select(i => i.URL)
-            .ToListAsync();
-
-        return new RoomDetailResponseDTO
+        try
         {
-            RoomID = room.RoomID,
-            HotelID = room.HotelID,
-            HotelName = room.Hotel.HotelName,
-            RoomName = room.RoomName,
-            RoomType = room.RoomType,
-            Address = room.Address,
-            Price = room.Price,
-            MaxPeople = room.MaxPeople,
-            CreatedAt = DateTime.UtcNow, // Using current time since CreatedAt doesn't exist in current model
-            UpdatedAt = DateTime.UtcNow, // Using current time since UpdatedAt doesn't exist in current model
-            Images = images
-        };
+            Console.WriteLine($"[DEBUG] Getting room detail for roomId: {roomId}");
+            
+            var room = await _context.HotelRooms
+                .Include(r => r.Hotel)
+                .FirstOrDefaultAsync(r => r.RoomID == roomId);
+
+            if (room == null) 
+            {
+                Console.WriteLine($"[DEBUG] Room not found for roomId: {roomId}");
+                return null;
+            }
+
+            Console.WriteLine($"[DEBUG] Room found: {room.RoomName}, Hotel: {room.Hotel?.HotelName ?? "NULL"}");
+
+            // Get room images
+            var images = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == roomId)
+                .OrderBy(i => i.CreatedAt)
+                .Select(i => i.URL)
+                .ToListAsync();
+
+            Console.WriteLine($"[DEBUG] Found {images.Count} images for room");
+
+            var result = new RoomDetailResponseDTO
+            {
+                RoomID = room.RoomID,
+                HotelID = room.HotelID,
+                HotelName = room.Hotel?.HotelName ?? "Khách sạn không tồn tại",
+                RoomName = room.RoomName ?? string.Empty,
+                RoomType = room.RoomType ?? string.Empty,
+                Address = room.Address ?? string.Empty,
+                Price = room.Price,
+                MaxPeople = room.MaxPeople,
+                CreatedAt = DateTime.UtcNow, // Using current time since CreatedAt doesn't exist in current model
+                UpdatedAt = DateTime.UtcNow, // Using current time since UpdatedAt doesn't exist in current model
+                Images = images ?? new List<string>()
+            };
+
+            Console.WriteLine($"[DEBUG] Successfully created RoomDetailResponseDTO");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Exception in GetRoomDetailAsync: {ex.Message}");
+            Console.WriteLine($"[ERROR] StackTrace: {ex.StackTrace}");
+            throw; // Re-throw để endpoint có thể xử lý
+        }
     }
 
     public async Task<bool> UpdateRoomAsync(Guid roomId, Guid userId, UpdateRoomDTO updateDto)
@@ -332,28 +354,6 @@ public class HotelService : IHotelService
         if (updateDto.MaxPeople.HasValue)
             room.MaxPeople = updateDto.MaxPeople.Value;
 
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<bool> DeleteRoomAsync(Guid roomId, Guid userId)
-    {
-        var room = await _context.HotelRooms
-            .Include(r => r.Hotel)
-            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status == HotelStatus.Active);
-
-        if (room == null) return false;
-
-        // Delete all images for this room
-        var roomImages = await _context.Images
-            .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == roomId)
-            .ToListAsync();
-        if (roomImages.Any())
-        {
-            _context.Images.RemoveRange(roomImages);
-        }
-
-        _context.HotelRooms.Remove(room);
         await _context.SaveChangesAsync();
         return true;
     }
@@ -562,7 +562,7 @@ public class HotelService : IHotelService
         // Convert string status to enum
         if (!Enum.TryParse<RoomStatus>(updateDto.Status, true, out var roomStatus))
         {
-            throw new ArgumentException($"Trạng thái không hợp lệ: {updateDto.Status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance");
+            throw new ArgumentException($"Trạng thái không hợp lệ: {updateDto.Status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance, Removed");
         }
 
         // Cập nhật trạng thái phòng
@@ -593,7 +593,7 @@ public class HotelService : IHotelService
             }
             else
             {
-                throw new ArgumentException($"Trạng thái không hợp lệ: {status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance");
+                throw new ArgumentException($"Trạng thái không hợp lệ: {status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance, Removed");
             }
         }
 
@@ -620,7 +620,7 @@ public class HotelService : IHotelService
             AvailableRooms = allRooms.Count(r => r.Status == RoomStatus.Available),
             OccupiedRooms = allRooms.Count(r => r.Status == RoomStatus.Occupied),
             MaintenanceRooms = allRooms.Count(r => r.Status == RoomStatus.Maintenance),
-            OutOfOrderRooms = 0 // Tạm thời set = 0 vì không có OutOfOrder
+            RemovedRooms = allRooms.Count(r => r.Status == RoomStatus.Removed)
         };
 
         return roomStatusList;

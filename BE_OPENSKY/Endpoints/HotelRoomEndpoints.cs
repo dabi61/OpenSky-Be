@@ -234,11 +234,15 @@ public static class HotelRoomEndpoints
                     ? Results.Ok(roomDetail)
                     : Results.NotFound(new { message = "Không tìm thấy phòng" });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Log chi tiết lỗi để debug
+                Console.WriteLine($"Error in GetRoomDetail: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                
                 return Results.Problem(
                     title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi lấy chi tiết phòng",
+                    detail: $"Có lỗi xảy ra khi lấy chi tiết phòng: {ex.Message}",
                     statusCode: 500
                 );
             }
@@ -625,50 +629,8 @@ public static class HotelRoomEndpoints
         .Produces(404)
         .RequireAuthorization("HotelOnly");
 
-        // 5. Xóa phòng
-        roomGroup.MapDelete("/{roomId:guid}", async (Guid roomId, [FromServices] IHotelService hotelService, HttpContext context) =>
-        {
-            try
-            {
-                // Lấy user ID từ JWT token
-                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                {
-                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
-                }
 
-                // Kiểm tra quyền Hotel
-                if (!context.User.IsInRole(RoleConstants.Hotel))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
-
-                // Xóa phòng
-                var success = await hotelService.DeleteRoomAsync(roomId, userId);
-                
-                return success 
-                    ? Results.Ok(new { message = "Xóa phòng thành công" })
-                    : Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền xóa" });
-            }
-            catch (Exception)
-            {
-                return Results.Problem(
-                    title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi xóa phòng",
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("DeleteRoom")
-        .WithSummary("Xóa phòng")
-        .WithDescription("Chủ khách sạn có thể xóa phòng (bao gồm tất cả ảnh của phòng)")
-        .Produces(200)
-        .Produces(401)
-        .Produces(403)
-        .Produces(404)
-        .RequireAuthorization("HotelOnly");
-
-        // 6. Cập nhật trạng thái phòng
+        // 5. Cập nhật trạng thái phòng
         roomGroup.MapPut("/{roomId:guid}/status", async (Guid roomId, [FromBody] UpdateRoomStatusDTO updateDto, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
@@ -704,14 +666,14 @@ public static class HotelRoomEndpoints
         })
         .WithName("UpdateRoomStatus")
         .WithSummary("Cập nhật trạng thái phòng")
-        .WithDescription("Chủ khách sạn có thể cập nhật trạng thái phòng (Available, Occupied, Maintenance)")
+        .WithDescription("Chủ khách sạn có thể cập nhật trạng thái phòng (Available, Occupied, Maintenance, Removed)")
         .Produces(200)
         .Produces(401)
         .Produces(403)
         .Produces(404)
         .RequireAuthorization("HotelOnly");
 
-        // 7. Xem danh sách phòng theo trạng thái
+        // 6. Xem danh sách phòng theo trạng thái
         roomGroup.MapGet("/hotel/{hotelId:guid}/status", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context, string? status = null) =>
         {
             try

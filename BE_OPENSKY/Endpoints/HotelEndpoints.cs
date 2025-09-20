@@ -724,7 +724,7 @@ public static class HotelEndpoints
                 
                 return hotelDetail != null 
                     ? Results.Ok(hotelDetail)
-                    : Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc khách sạn chưa được kích hoạt" });
+                    : Results.NotFound(new { message = "Không tìm thấy khách sạn" });
             }
             catch (Exception ex)
             {
@@ -737,7 +737,7 @@ public static class HotelEndpoints
         })
         .WithName("GetHotelDetail")
         .WithSummary("Xem chi tiết khách sạn")
-        .WithDescription("Mọi người đều có thể xem chi tiết khách sạn bao gồm ảnh (chỉ hiển thị khách sạn Active)")
+        .WithDescription("Mọi người đều có thể xem chi tiết khách sạn bao gồm ảnh (hiển thị tất cả khách sạn)")
         .Produces<HotelDetailResponseDTO>(200)
         .Produces(404)
         .AllowAnonymous();

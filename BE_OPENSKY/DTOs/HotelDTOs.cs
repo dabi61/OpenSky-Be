@@ -66,8 +66,6 @@ namespace BE_OPENSKY.DTOs
     public class HotelDetailResponseDTO
     {
         public Guid HotelID { get; set; }
-        public Guid UserID { get; set; }
-        public string Email { get; set; } = string.Empty;
         public string HotelName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string Address { get; set; } = string.Empty;
@@ -78,6 +76,7 @@ namespace BE_OPENSKY.DTOs
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public List<string> Images { get; set; } = new(); // URLs của ảnh khách sạn
+        public UserSummaryDTO User { get; set; } = new(); // Thông tin user đầy đủ
     }
 
     // DTO tóm tắt phòng trong danh sách khách sạn

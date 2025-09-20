@@ -194,8 +194,6 @@ public class HotelService : IHotelService
         return new HotelDetailResponseDTO
         {
             HotelID = hotel.HotelID,
-            UserID = hotel.UserID,
-            Email = hotel.Email,
             HotelName = hotel.HotelName,
             Description = hotel.Description,
             Address = hotel.Address,
@@ -205,7 +203,20 @@ public class HotelService : IHotelService
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
             CreatedAt = hotel.CreatedAt,
-            Images = images
+            Images = images,
+            User = new UserSummaryDTO
+            {
+                UserID = hotel.User.UserID,
+                Email = hotel.User.Email,
+                FullName = hotel.User.FullName,
+                Role = hotel.User.Role,
+                PhoneNumber = hotel.User.PhoneNumber,
+                CitizenId = hotel.User.CitizenId,
+                dob = hotel.User.dob,
+                AvatarURL = hotel.User.AvatarURL,
+                Status = hotel.User.Status,
+                CreatedAt = hotel.User.CreatedAt
+            }
         };
     }
 

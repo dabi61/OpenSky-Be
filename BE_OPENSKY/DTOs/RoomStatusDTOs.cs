@@ -6,7 +6,7 @@ namespace BE_OPENSKY.DTOs
 public class UpdateRoomStatusDTO
 {
     [Required]
-    public string Status { get; set; } = string.Empty; // Nhận string: "Available", "Occupied", "Maintenance"
+    public string Status { get; set; } = string.Empty; // Nhận string: "Available", "Occupied", "Maintenance", "Removed"
 }
 
     // DTO cho phản hồi trạng thái phòng
@@ -28,6 +28,6 @@ public class UpdateRoomStatusDTO
         public int AvailableRooms { get; set; }
         public int OccupiedRooms { get; set; }
         public int MaintenanceRooms { get; set; }
-        public int OutOfOrderRooms { get; set; }
+        public int RemovedRooms { get; set; }
     }
 }

@@ -21,7 +21,6 @@ public interface IHotelService
     Task<Guid> CreateRoomAsync(Guid hotelId, Guid userId, CreateRoomDTO createRoomDto);
     Task<RoomDetailResponseDTO?> GetRoomDetailAsync(Guid roomId);
     Task<bool> UpdateRoomAsync(Guid roomId, Guid userId, UpdateRoomDTO updateDto);
-    Task<bool> DeleteRoomAsync(Guid roomId, Guid userId);
     Task<PaginatedRoomsResponseDTO> GetHotelRoomsAsync(Guid hotelId, int page = 1, int limit = 10);
     Task<bool> IsRoomOwnerAsync(Guid roomId, Guid userId);
     

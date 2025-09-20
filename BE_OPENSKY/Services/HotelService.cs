@@ -314,6 +314,7 @@ public class HotelService : IHotelService
                 Address = room.Address ?? string.Empty,
                 Price = room.Price,
                 MaxPeople = room.MaxPeople,
+                Status = room.Status.ToString(),
                 CreatedAt = DateTime.UtcNow, // Using current time since CreatedAt doesn't exist in current model
                 UpdatedAt = DateTime.UtcNow, // Using current time since UpdatedAt doesn't exist in current model
                 Images = images ?? new List<string>()
@@ -364,6 +365,7 @@ public class HotelService : IHotelService
         var totalPages = (int)Math.Ceiling((double)totalRooms / limit);
 
         var rooms = await _context.HotelRooms
+            .Include(r => r.Hotel)
             .Where(r => r.HotelID == hotelId)
             .OrderBy(r => r.RoomName)
             .Skip((page - 1) * limit)
@@ -371,10 +373,15 @@ public class HotelService : IHotelService
             .Select(r => new RoomSummaryDTO
             {
                 RoomID = r.RoomID,
+                HotelID = r.HotelID,
+                HotelName = r.Hotel.HotelName,
                 RoomName = r.RoomName,
                 RoomType = r.RoomType,
+                Address = r.Address,
                 Price = r.Price,
                 MaxPeople = r.MaxPeople,
+                Status = r.Status.ToString(),
+                CreatedAt = DateTime.UtcNow, // Tạm thời sử dụng thời gian hiện tại
                 FirstImage = _context.Images
                     .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == r.RoomID)
                     .OrderBy(i => i.CreatedAt)
@@ -559,10 +566,11 @@ public class HotelService : IHotelService
             return false;
         }
 
-        // Convert string status to enum
-        if (!Enum.TryParse<RoomStatus>(updateDto.Status, true, out var roomStatus))
+        // Validate và convert string status to enum
+        if (!IsValidRoomStatus(updateDto.Status, out var roomStatus))
         {
-            throw new ArgumentException($"Trạng thái không hợp lệ: {updateDto.Status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance, Removed");
+            var validStatuses = string.Join(", ", Enum.GetNames<RoomStatus>());
+            throw new ArgumentException($"Trạng thái không hợp lệ: '{updateDto.Status}'. Các trạng thái hợp lệ: {validStatuses}");
         }
 
         // Cập nhật trạng thái phòng
@@ -587,13 +595,14 @@ public class HotelService : IHotelService
 
         if (!string.IsNullOrEmpty(status))
         {
-            if (Enum.TryParse<RoomStatus>(status, true, out var roomStatus))
+            if (IsValidRoomStatus(status, out var roomStatus))
             {
                 query = query.Where(r => r.Status == roomStatus);
             }
             else
             {
-                throw new ArgumentException($"Trạng thái không hợp lệ: {status}. Các trạng thái hợp lệ: Available, Occupied, Maintenance, Removed");
+                var validStatuses = string.Join(", ", Enum.GetNames<RoomStatus>());
+                throw new ArgumentException($"Trạng thái không hợp lệ: '{status}'. Các trạng thái hợp lệ: {validStatuses}");
             }
         }
 
@@ -750,8 +759,6 @@ public class HotelService : IHotelService
             {
                 HotelID = h.HotelID,
                 UserID = h.UserID,
-                UserName = h.User.FullName,
-                UserEmail = h.User.Email,
                 HotelName = h.HotelName,
                 Address = h.Address,
                 Province = h.Province,
@@ -761,7 +768,20 @@ public class HotelService : IHotelService
                 FirstImage = _context.Images
                     .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == h.HotelID)
                     .Select(i => i.URL)
-                    .FirstOrDefault()
+                    .FirstOrDefault(),
+                User = new UserSummaryDTO
+                {
+                    UserID = h.User.UserID,
+                    Email = h.User.Email,
+                    FullName = h.User.FullName,
+                    Role = h.User.Role,
+                    PhoneNumber = h.User.PhoneNumber,
+                    CitizenId = h.User.CitizenId,
+                    dob = h.User.dob,
+                    AvatarURL = h.User.AvatarURL,
+                    Status = h.User.Status,
+                    CreatedAt = h.User.CreatedAt
+                }
             })
             .ToListAsync();
 
@@ -814,8 +834,6 @@ public class HotelService : IHotelService
             {
                 HotelID = h.HotelID,
                 UserID = h.UserID,
-                UserName = h.User.FullName,
-                UserEmail = h.User.Email,
                 HotelName = h.HotelName,
                 Address = h.Address,
                 Province = h.Province,
@@ -825,7 +843,20 @@ public class HotelService : IHotelService
                 FirstImage = _context.Images
                     .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == h.HotelID)
                     .Select(i => i.URL)
-                    .FirstOrDefault()
+                    .FirstOrDefault(),
+                User = new UserSummaryDTO
+                {
+                    UserID = h.User.UserID,
+                    Email = h.User.Email,
+                    FullName = h.User.FullName,
+                    Role = h.User.Role,
+                    PhoneNumber = h.User.PhoneNumber,
+                    CitizenId = h.User.CitizenId,
+                    dob = h.User.dob,
+                    AvatarURL = h.User.AvatarURL,
+                    Status = h.User.Status,
+                    CreatedAt = h.User.CreatedAt
+                }
             })
             .ToListAsync();
 
@@ -881,15 +912,26 @@ public class HotelService : IHotelService
             {
                 HotelID = hotel.HotelID,
                 UserID = hotel.UserID,
-                UserName = hotel.User.FullName,
-                UserEmail = hotel.User.Email,
                 HotelName = hotel.HotelName,
                 Address = hotel.Address,
                 Province = hotel.Province,
                 Star = hotel.Star,
                 Status = hotel.Status,
                 CreatedAt = hotel.CreatedAt,
-                FirstImage = firstImage
+                FirstImage = firstImage,
+                User = new UserSummaryDTO
+                {
+                    UserID = hotel.User.UserID,
+                    Email = hotel.User.Email,
+                    FullName = hotel.User.FullName,
+                    Role = hotel.User.Role,
+                    PhoneNumber = hotel.User.PhoneNumber,
+                    CitizenId = hotel.User.CitizenId,
+                    dob = hotel.User.dob,
+                    AvatarURL = hotel.User.AvatarURL,
+                    Status = hotel.User.Status,
+                    CreatedAt = hotel.User.CreatedAt
+                }
             });
         }
 
@@ -956,5 +998,90 @@ public class HotelService : IHotelService
                               .Replace("lâm đồng", "lam dong");
 
         return normalized;
+    }
+
+    // Lấy danh sách phòng của hotel (không bao gồm status Removed)
+    public async Task<PaginatedRoomsResponseDTO> GetHotelRoomsExcludeRemovedAsync(Guid hotelId, int page = 1, int limit = 10)
+    {
+        Console.WriteLine($"GetHotelRoomsExcludeRemovedAsync - HotelId: {hotelId}, Page: {page}, Limit: {limit}");
+
+        try
+        {
+            // Kiểm tra hotel có tồn tại không
+            var hotelExists = await _context.Hotels.AnyAsync(h => h.HotelID == hotelId);
+            if (!hotelExists)
+            {
+                Console.WriteLine($"Hotel not found: {hotelId}");
+                throw new ArgumentException("Khách sạn không tồn tại");
+            }
+
+            // Validate parameters
+            if (page < 1) page = 1;
+            if (limit < 1 || limit > 100) limit = 10;
+
+            var query = _context.HotelRooms
+                .Include(r => r.Hotel)
+                .Where(r => r.HotelID == hotelId && r.Status != RoomStatus.Removed); // Loại trừ status Removed
+
+            var totalRooms = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalRooms / limit);
+
+            var rooms = await query
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(r => new RoomSummaryDTO
+                {
+                    RoomID = r.RoomID,
+                    HotelID = r.HotelID,
+                    HotelName = r.Hotel.HotelName,
+                    RoomName = r.RoomName,
+                    RoomType = r.RoomType,
+                    Address = r.Address,
+                    Price = r.Price,
+                    MaxPeople = r.MaxPeople,
+                    Status = r.Status.ToString(),
+                    CreatedAt = DateTime.UtcNow, // Tạm thời sử dụng thời gian hiện tại
+                    FirstImage = _context.Images
+                        .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == r.RoomID)
+                        .Select(i => i.URL)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            Console.WriteLine($"Found {totalRooms} rooms (excluding Removed status) for hotel {hotelId}");
+
+            return new PaginatedRoomsResponseDTO
+            {
+                Rooms = rooms,
+                CurrentPage = page,
+                PageSize = limit,
+                TotalRooms = totalRooms,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetHotelRoomsExcludeRemovedAsync: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    // Helper method để validate RoomStatus enum values
+    private static bool IsValidRoomStatus(string status, out RoomStatus roomStatus)
+    {
+        roomStatus = default;
+        
+        if (string.IsNullOrWhiteSpace(status))
+            return false;
+
+        // Kiểm tra xem có phải là giá trị enum hợp lệ không
+        if (!Enum.TryParse<RoomStatus>(status.Trim(), true, out roomStatus))
+            return false;
+
+        // Kiểm tra xem giá trị có tồn tại trong enum không (tránh trường hợp số không hợp lệ)
+        return Enum.IsDefined(typeof(RoomStatus), roomStatus);
     }
 }

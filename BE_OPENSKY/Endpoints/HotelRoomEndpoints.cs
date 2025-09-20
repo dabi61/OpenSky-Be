@@ -249,7 +249,7 @@ public static class HotelRoomEndpoints
         })
         .WithName("GetRoomDetail")
         .WithSummary("Xem chi tiết phòng")
-        .WithDescription("Lấy thông tin chi tiết của một phòng cụ thể")
+        .WithDescription("Lấy thông tin chi tiết của một phòng cụ thể bao gồm trạng thái phòng")
         .Produces<RoomDetailResponseDTO>(200)
         .Produces(404);
 
@@ -276,7 +276,7 @@ public static class HotelRoomEndpoints
         })
         .WithName("GetHotelRooms")
         .WithSummary("Danh sách phòng có phân trang")
-        .WithDescription("Lấy danh sách phòng của khách sạn với phân trang")
+        .WithDescription("Lấy danh sách phòng của khách sạn với phân trang bao gồm trạng thái phòng")
         .Produces<PaginatedRoomsResponseDTO>(200);
 
         // 4. Cập nhật thông tin phòng với ảnh
@@ -655,22 +655,33 @@ public static class HotelRoomEndpoints
                     ? Results.Ok(new { message = "Cập nhật trạng thái phòng thành công" })
                     : Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
             }
-            catch (Exception)
+            catch (ArgumentException ex)
             {
+                // Xử lý validation errors (status không hợp lệ)
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Log chi tiết lỗi để debug
+                Console.WriteLine($"Error in UpdateRoomStatus: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                
                 return Results.Problem(
                     title: "Lỗi hệ thống",
-                    detail: "Có lỗi xảy ra khi cập nhật trạng thái phòng",
+                    detail: $"Có lỗi xảy ra khi cập nhật trạng thái phòng: {ex.Message}",
                     statusCode: 500
                 );
             }
         })
         .WithName("UpdateRoomStatus")
         .WithSummary("Cập nhật trạng thái phòng")
-        .WithDescription("Chủ khách sạn có thể cập nhật trạng thái phòng (Available, Occupied, Maintenance, Removed)")
+        .WithDescription("Chủ khách sạn có thể cập nhật trạng thái phòng. Chỉ chấp nhận các giá trị enum hợp lệ: Available, Occupied, Maintenance, Removed")
         .Produces(200)
+        .Produces(400)
         .Produces(401)
         .Produces(403)
         .Produces(404)
+        .Produces(500)
         .RequireAuthorization("HotelOnly");
 
         // 6. Xem danh sách phòng theo trạng thái
@@ -717,6 +728,43 @@ public static class HotelRoomEndpoints
         .Produces(401)
         .Produces(403)
         .RequireAuthorization("HotelOnly");
+
+        // 7. Lấy danh sách phòng của hotel (không bao gồm status Removed) - Public
+        roomGroup.MapGet("/hotel/{hotelId}/active", async (
+            Guid hotelId,
+            [FromServices] IHotelService hotelService,
+            int page = 1,
+            int limit = 10) =>
+        {
+            try
+            {
+                // Validate parameters
+                if (page < 1) page = 1;
+                if (limit < 1 || limit > 100) limit = 10;
+
+                var result = await hotelService.GetHotelRoomsExcludeRemovedAsync(hotelId, page, limit);
+                return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách phòng: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetHotelRoomsExcludeRemoved")
+        .WithSummary("Lấy danh sách phòng của khách sạn (không bao gồm phòng đã xóa)")
+        .WithDescription("Lấy danh sách phòng của một khách sạn, loại trừ những phòng có status Removed")
+        .Produces<PaginatedRoomsResponseDTO>(200)
+        .Produces(400)
+        .Produces(500)
+        .AllowAnonymous();
     }
 
     private static bool IsImageContentType(string? contentType)

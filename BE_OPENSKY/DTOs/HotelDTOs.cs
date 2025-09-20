@@ -84,10 +84,15 @@ namespace BE_OPENSKY.DTOs
     public class RoomSummaryDTO
     {
         public Guid RoomID { get; set; }
+        public Guid HotelID { get; set; }
+        public string HotelName { get; set; } = string.Empty;
         public string RoomName { get; set; } = string.Empty;
         public string RoomType { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int MaxPeople { get; set; }
+        public string Status { get; set; } = string.Empty; // Trạng thái phòng
+        public DateTime CreatedAt { get; set; }
         public string? FirstImage { get; set; } // Ảnh đại diện của phòng
     }
 
@@ -209,6 +214,7 @@ namespace BE_OPENSKY.DTOs
         public string Address { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int MaxPeople { get; set; }
+        public string Status { get; set; } = string.Empty; // Trạng thái phòng
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<string> Images { get; set; } = new(); // URLs của ảnh phòng
@@ -248,13 +254,26 @@ namespace BE_OPENSKY.DTOs
         public bool HasPreviousPage { get; set; }
     }
 
+    // DTO cho thông tin user (không bao gồm password)
+    public class UserSummaryDTO
+    {
+        public Guid UserID { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? CitizenId { get; set; }
+        public DateOnly? dob { get; set; }
+        public string? AvatarURL { get; set; }
+        public UserStatus Status { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
     // DTO tóm tắt khách sạn trong danh sách (cho admin/supervisor)
     public class HotelSummaryDTO
     {
         public Guid HotelID { get; set; }
         public Guid UserID { get; set; }
-        public string UserName { get; set; } = string.Empty;
-        public string UserEmail { get; set; } = string.Empty;
         public string HotelName { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string Province { get; set; } = string.Empty;
@@ -262,6 +281,7 @@ namespace BE_OPENSKY.DTOs
         public HotelStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? FirstImage { get; set; }
+        public UserSummaryDTO User { get; set; } = new(); // Thông tin user đầy đủ
     }
 
     // DTO cho phân trang danh sách khách sạn

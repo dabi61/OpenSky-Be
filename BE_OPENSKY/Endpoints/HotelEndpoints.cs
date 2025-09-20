@@ -690,14 +690,14 @@ public static class HotelEndpoints
         .RequireAuthorization("CustomerOnly");
 
         // 4. Xem tất cả khách sạn đang hoạt động (Public)
-        hotelGroup.MapGet("/active", async ([FromServices] IHotelService hotelService, HttpContext context, int page = 1, int size = 10) =>
+        hotelGroup.MapGet("/active", async ([FromServices] IHotelService hotelService, HttpContext context, int page = 1, int limit = 10) =>
         {
             try
             {
                 if (page < 1) page = 1;
-                if (size < 1 || size > 100) size = 10;
+                if (limit < 1 || limit > 100) limit = 10;
 
-                var activeHotels = await hotelService.GetHotelsByStatusAsync(HotelStatus.Active, page, size);
+                var activeHotels = await hotelService.GetHotelsByStatusAsync(HotelStatus.Active, page, limit);
                 return Results.Ok(activeHotels);
             }
             catch (Exception ex)

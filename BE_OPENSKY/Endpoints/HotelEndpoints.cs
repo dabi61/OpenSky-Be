@@ -11,7 +11,7 @@ public static class HotelEndpoints
             .WithOpenApi();
 
         // 1. Cập nhật thông tin khách sạn với ảnh
-        hotelGroup.MapPut("/", async (HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
+        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -30,7 +30,6 @@ public static class HotelEndpoints
 
                 // Khởi tạo UpdateHotelDTO
                 var updateDto = new UpdateHotelDTO();
-                Guid hotelId;
 
                 // Xử lý multipart form data
                 if (context.Request.HasFormContentType)
@@ -38,10 +37,6 @@ public static class HotelEndpoints
                     try
                     {
                         var form = await context.Request.ReadFormAsync();
-                        
-                        // Lấy hotelId từ form
-                        if (!form.TryGetValue("hotelId", out var hotelIdValue) || !Guid.TryParse(hotelIdValue, out hotelId))
-                            return Results.BadRequest(new { message = "HotelId không hợp lệ" });
                         
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("hotelName") && !string.IsNullOrWhiteSpace(form["hotelName"].FirstOrDefault()))
@@ -188,20 +183,11 @@ public static class HotelEndpoints
                         
                         if (!string.IsNullOrEmpty(jsonString))
                         {
-                            var updateWithImagesDto = System.Text.Json.JsonSerializer.Deserialize<UpdateHotelWithImagesDTO>(jsonString);
-                            if (updateWithImagesDto == null)
+                            var updateHotelDto = System.Text.Json.JsonSerializer.Deserialize<UpdateHotelDTO>(jsonString);
+                            if (updateHotelDto == null)
                                 return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
                             
-                            hotelId = updateWithImagesDto.HotelId;
-                            updateDto = new UpdateHotelDTO
-                            {
-                                HotelName = updateWithImagesDto.HotelName,
-                                Description = updateWithImagesDto.Description,
-                                Address = updateWithImagesDto.Address,
-                                Province = updateWithImagesDto.Province,
-                                Latitude = updateWithImagesDto.Latitude,
-                                Longitude = updateWithImagesDto.Longitude
-                            };
+                            updateDto = updateHotelDto;
                         }
                         else
                         {
@@ -236,9 +222,23 @@ public static class HotelEndpoints
         })
         .WithName("UpdateHotelWithImages")
         .WithSummary("Cập nhật thông tin khách sạn với ảnh")
-        .WithDescription("Cập nhật thông tin khách sạn với ảnh. Sử dụng multipart/form-data với fields: hotelId, hotelName, description, address, province, latitude, longitude, imageAction, files. keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
+        .WithDescription("Cập nhật thông tin khách sạn với ảnh. imageAction: files. keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
+            Parameters = new List<Microsoft.OpenApi.Models.OpenApiParameter>
+            {
+                new Microsoft.OpenApi.Models.OpenApiParameter
+                {
+                    Name = "hotelId",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Path,
+                    Required = true,
+                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                        Format = "uuid"
+                    }
+                }
+            },
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
             {
                 Content = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
@@ -250,12 +250,6 @@ public static class HotelEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
-                                ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Format = "uuid",
-                                    Description = "ID của khách sạn"
-                                },
                                 ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
@@ -322,12 +316,6 @@ public static class HotelEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
-                                ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Format = "uuid",
-                                    Description = "ID của khách sạn"
-                                },
                                 ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",

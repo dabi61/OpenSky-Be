@@ -64,14 +64,10 @@ namespace BE_OPENSKY.Endpoints
                     var scheduleItinerary = await scheduleItineraryService.GetScheduleItineraryByIdAsync(id);
                     if (scheduleItinerary == null)
                     {
-                        return Results.Json(new { message = "Không tìm thấy schedule itinerary" }, statusCode: 404);
+                        return Results.NotFound();
                     }
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy schedule itinerary thành công",
-                        data = scheduleItinerary
-                    });
+                    return Results.Ok(scheduleItinerary);
                 }
                 catch (Exception ex)
                 {
@@ -141,11 +137,7 @@ namespace BE_OPENSKY.Endpoints
                 {
                     var scheduleItineraries = await scheduleItineraryService.GetScheduleItinerariesByScheduleIdAsync(scheduleId);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách schedule itinerary theo schedule thành công",
-                        data = scheduleItineraries
-                    });
+                    return Results.Ok(scheduleItineraries);
                 }
                 catch (Exception ex)
                 {

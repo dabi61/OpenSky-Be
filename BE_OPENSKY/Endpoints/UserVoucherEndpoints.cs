@@ -76,11 +76,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await userVoucherService.GetUserVouchersAsync(page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách user voucher thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -115,11 +111,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await userVoucherService.GetUserVouchersByUserIdAsync(userId, page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách voucher của tôi thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {

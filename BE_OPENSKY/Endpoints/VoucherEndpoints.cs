@@ -86,11 +86,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await voucherService.GetVouchersAsync(page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách voucher thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -116,11 +112,7 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy voucher" }, statusCode: 404);
                     }
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy voucher thành công",
-                        data = voucher
-                    });
+                    return Results.Ok(voucher);
                 }
                 catch (Exception ex)
                 {
@@ -147,11 +139,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await voucherService.GetActiveVouchersAsync(page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách voucher đang hoạt động thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -178,11 +166,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await voucherService.GetVouchersByTableTypeAsync(tableType, page, size);
 
-                    return Results.Json(new
-                    {
-                        message = $"Lấy danh sách voucher loại {tableType} thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {

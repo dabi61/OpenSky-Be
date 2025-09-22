@@ -93,11 +93,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await scheduleService.GetSchedulesAsync(page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách schedule thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -123,11 +119,7 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy schedule" }, statusCode: 404);
                     }
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy schedule thành công",
-                        data = schedule
-                    });
+                    return Results.Ok(schedule);
                 }
                 catch (Exception ex)
                 {
@@ -225,11 +217,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await scheduleService.GetSchedulesByTourIdAsync(tourId, page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách schedule theo tour thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -269,11 +257,7 @@ namespace BE_OPENSKY.Endpoints
 
                     var result = await scheduleService.GetSchedulesByTourGuideIdAsync(userId, page, size);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách schedule được phân công thành công",
-                        data = result
-                    });
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {

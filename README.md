@@ -1,4 +1,4 @@
-# BE_OPENSKY - Tài liệu API
+# BE_OPENSKY - Tài liệu API.
 
 Hệ thống quản lý du lịch tích hợp với 16 bảng database và API đầy đủ.
 

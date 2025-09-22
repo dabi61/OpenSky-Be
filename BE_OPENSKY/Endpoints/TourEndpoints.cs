@@ -245,8 +245,8 @@ public static class TourEndpoints
         .WithDescription("Lấy danh sách tour với phân trang")
         .Produces<PaginatedToursResponseDTO>(200);
 
-        // 3. Cập nhật thông tin tour với ảnh
-        tourGroup.MapPut("/", async (HttpContext context, [FromServices] ITourService tourService, [FromServices] ICloudinaryService cloudinaryService) =>
+        // 3. Cập nhật thông tin tour với ảnh (đưa tourId lên param)
+        tourGroup.MapPut("/{tourId:guid}", async (Guid tourId, HttpContext context, [FromServices] ITourService tourService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -272,9 +272,7 @@ public static class TourEndpoints
                 // Đọc form data
                 var form = await context.Request.ReadFormAsync();
                 
-                // Validate và parse tour data
-                if (!form.TryGetValue("tourId", out var tourIdValue) || !Guid.TryParse(tourIdValue, out var tourId))
-                    return Results.BadRequest(new { message = "Tour ID không hợp lệ" });
+                // tourId đã có từ route; không cần lấy từ form
 
                 // Tạo DTO cho tour
                 var updateDto = new UpdateTourDTO
@@ -386,7 +384,7 @@ public static class TourEndpoints
         })
         .WithName("UpdateTourWithImages")
         .WithSummary("Cập nhật tour với ảnh")
-        .WithDescription("Cập nhật thông tin tour và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được cập nhật tour. Sử dụng multipart/form-data với fields: tourId, tourName, address, province, price, maxPeople, description, imageAction và files")
+        .WithDescription("Cập nhật thông tin tour và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được cập nhật tour. Sử dụng multipart/form-data với fields: tourName, address, province, price, maxPeople, description, imageAction và files. tourId nằm trên path.")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
@@ -400,12 +398,6 @@ public static class TourEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
-                                ["tourId"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Format = "uuid",
-                                    Description = "ID của tour cần cập nhật"
-                                },
                                 ["tourName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
@@ -454,7 +446,7 @@ public static class TourEndpoints
                                     Description = "Danh sách ảnh tour (JPEG, PNG, GIF, WebP, max 5MB/file)"
                                 }
                             },
-                            Required = new HashSet<string> { "tourId" }
+                            Required = new HashSet<string>()
                         }
                     }
                 }

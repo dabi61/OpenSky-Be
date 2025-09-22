@@ -524,7 +524,8 @@ public static class UserEndpoints
         .RequireAuthorization("AdminOnly");
 
         // 3. Admin cập nhật thông tin user với avatar (multipart/form-data)
-        userGroup.MapPut("/update", async (HttpContext context, [FromServices] IUserService userService, [FromServices] ICloudinaryService cloudinaryService) =>
+        // Đưa userId vào route param để hiển thị rõ trên Swagger
+        userGroup.MapPut("/{userId:guid}/update", async (Guid userId, HttpContext context, [FromServices] IUserService userService, [FromServices] ICloudinaryService cloudinaryService) =>
         {
             try
             {
@@ -536,7 +537,6 @@ public static class UserEndpoints
 
                 // Khởi tạo AdminUpdateUserDTO
                 var updateDto = new AdminUpdateUserDTO();
-                Guid userId = Guid.Empty;
                 string? avatarUrl = null;
 
                 // Xử lý multipart form data
@@ -545,13 +545,8 @@ public static class UserEndpoints
                     try
                     {
                         var form = await context.Request.ReadFormAsync();
-                        
-                        // Lấy userId từ form (bắt buộc)
-                        if (!form.TryGetValue("userId", out var userIdValue) || !Guid.TryParse(userIdValue, out userId))
-                        {
-                            return Results.BadRequest(new { message = "UserId không hợp lệ hoặc không được cung cấp" });
-                        }
-                        
+                        // userId đã có từ route; không cần lấy từ form nữa
+
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("fullName"))
                             updateDto.FullName = form["fullName"].FirstOrDefault();
@@ -613,7 +608,6 @@ public static class UserEndpoints
                             if (updateWithAvatarDto == null)
                                 return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
                             
-                            userId = updateWithAvatarDto.UserId;
                             updateDto = new AdminUpdateUserDTO
                             {
                                 FullName = updateWithAvatarDto.FullName,

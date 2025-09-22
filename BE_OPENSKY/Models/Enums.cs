@@ -75,7 +75,9 @@ namespace BE_OPENSKY.Models
     // Enum cho trạng thái refund
     public enum RefundStatus
     {
-        Completed     // Đã hoàn tiền (tự động)
+        Pending,       // Chờ duyệt
+        Rejected,      // Bị từ chối
+        Completed      // Đã hoàn tiền (đồng ý refund là hoàn thành luôn)
     }
 
     // Enum cho trạng thái schedule

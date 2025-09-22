@@ -6,6 +6,12 @@ namespace BE_OPENSKY.Services
     {
         // Tạo refund request
         Task<Guid> CreateRefundAsync(Guid userId, CreateRefundDTO createRefundDto);
+        // Tạo yêu cầu refund dạng chờ duyệt (không thay đổi DB bill/booking)
+        Task<Guid> CreateRefundRequestAsync(Guid userId, CreateRefundDTO createRefundDto);
+        // Duyệt yêu cầu refund (thực hiện hoàn tiền và ghi DB như hiện tại)
+        Task<Guid> ApproveRefundRequestAsync(Guid billId, Guid approverId);
+        // Từ chối yêu cầu refund (xóa yêu cầu pending ở Redis)
+        Task<bool> RejectRefundRequestAsync(Guid billId, Guid approverId, string? reason = null);
         
         // Lấy refund theo ID
         Task<RefundResponseDTO?> GetRefundByIdAsync(Guid refundId, Guid userId);

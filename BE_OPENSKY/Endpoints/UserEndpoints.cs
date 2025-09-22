@@ -24,8 +24,8 @@ public static class UserEndpoints
         userGroup.MapGet("/", async (
         [FromServices] IUserService userService,
         HttpContext context,
-        int page = 1,
-        int limit = 10,
+        [FromQuery(Name = "page")] string? pageStr,
+        [FromQuery(Name = "limit")] string? limitStr,
         [FromQuery] string[]? roles = null) =>
         {
             try
@@ -37,12 +37,30 @@ public static class UserEndpoints
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }
 
-                // Validate pagination parameters
+                // Validate pagination parameters từ string để báo message khi truyền chữ
+                if (!int.TryParse(pageStr, out var page))
+                {
+                    page = 1;
+                    if (!string.IsNullOrWhiteSpace(pageStr))
+                        return Results.BadRequest(new { message = "Tham số page phải là số nguyên" });
+                }
+                if (!int.TryParse(limitStr, out var limit))
+                {
+                    limit = 10;
+                    if (!string.IsNullOrWhiteSpace(limitStr))
+                        return Results.BadRequest(new { message = "Tham số limit phải là số nguyên" });
+                }
                 if (page < 1) page = 1;
                 if (limit < 1 || limit > 100) limit = 10;
 
-                // Convert array sang List để truyền xuống service
-                var rolesList = roles?.ToList();
+                // Convert array sang List và chỉ giữ các role hợp lệ
+                var allowedRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
+                List<string>? rolesList = roles?.Where(r => allowedRoles.Contains(r)).ToList();
+                if (rolesList != null && rolesList.Count == 0)
+                {
+                    // Truyền sai roles (không nằm trong set) vẫn 200 OK → bỏ filter
+                    rolesList = null;
+                }
 
                 var result = await userService.GetUsersPaginatedAsync(page, limit, rolesList);
                 return Results.Ok(result);
@@ -140,7 +158,7 @@ public static class UserEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
         // Cập nhật thông tin cá nhân và upload avatar (gộp 2 API thành 1)
-        userGroup.MapPut("/profile", async (HttpContext context, [FromServices] IUserService userService, [FromServices] ICloudinaryService cloudinaryService) =>
+        userGroup.MapPut("/profile", async (HttpContext context, [FromServices] IUserService userService, [FromServices] ICloudinaryService cloudinaryService, [FromServices] ApplicationDbContext dbContext) =>
         {
             try
             {
@@ -226,6 +244,57 @@ public static class UserEndpoints
                     {
                         Console.WriteLine($"JSON parsing failed: {ex.Message}");
                         return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu JSON" });
+                    }
+                }
+
+                // Validate định dạng: phoneNumber, citizenId, dob
+                if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+                {
+                    // Cho phép 9-15 chữ số, có thể bắt đầu bằng +
+                    var phone = updateDto.PhoneNumber.Trim();
+                    var isValidPhone = System.Text.RegularExpressions.Regex.IsMatch(phone, "^\\+?[0-9]{9,15}$");
+                    if (!isValidPhone)
+                    {
+                        return Results.BadRequest(new { message = "Số điện thoại không hợp lệ" });
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
+                {
+                    // CCCD/CMND: 9-12 chữ số
+                    var cid = updateDto.CitizenId.Trim();
+                    var isValidCid = System.Text.RegularExpressions.Regex.IsMatch(cid, "^[0-9]{9,12}$");
+                    if (!isValidCid)
+                    {
+                        return Results.BadRequest(new { message = "Số CMND/CCCD không hợp lệ" });
+                    }
+                }
+
+                if (updateDto.dob.HasValue)
+                {
+                    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                    if (updateDto.dob.Value >= today)
+                    {
+                        return Results.BadRequest(new { message = "Ngày sinh phải nhỏ hơn ngày hiện tại" });
+                    }
+                }
+
+                // Bắt trùng: phoneNumber, citizenId
+                if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+                {
+                    var existsPhone = await dbContext.Users.AnyAsync(u => u.UserID != userId && u.PhoneNumber == updateDto.PhoneNumber);
+                    if (existsPhone)
+                    {
+                        return Results.BadRequest(new { message = "Số điện thoại đã được sử dụng" });
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
+                {
+                    var existsCid = await dbContext.Users.AnyAsync(u => u.UserID != userId && u.CitizenId == updateDto.CitizenId);
+                    if (existsCid)
+                    {
+                        return Results.BadRequest(new { message = "Số CMND/CCCD đã được sử dụng" });
                     }
                 }
 

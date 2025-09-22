@@ -165,8 +165,8 @@ namespace BE_OPENSKY.Endpoints
             .Produces(200)
             .Produces(500);
 
-            // DELETE /tour_itinerary/{id} - Xóa tour itinerary (soft delete)
-            group.MapDelete("/{id:guid}", async (
+            // PUT /tour_itinerary/delete/{id} - Soft delete tour itinerary
+            group.MapPut("/delete/{id:guid}", async (
                 Guid id,
                 ITourItineraryService tourItineraryService,
                 HttpContext context) =>
@@ -185,16 +185,16 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy tour itinerary hoặc không thể xóa" }, statusCode: 404);
                     }
 
-                    return Results.Json(new { message = "Xóa tour itinerary thành công" });
+                    return Results.Json(new { message = "Xóa (soft delete) tour itinerary thành công" });
                 }
                 catch (Exception ex)
                 {
                     return Results.Json(new { message = $"Lỗi khi xóa tour itinerary: {ex.Message}" }, statusCode: 500);
                 }
             })
-            .WithName("DeleteTourItinerary")
-            .WithSummary("Xóa tour itinerary")
-            .WithDescription("Xóa tour itinerary (soft delete). Chỉ Admin, Supervisor và TourGuide mới được xóa tour itinerary.")
+            .WithName("SoftDeleteTourItinerary")
+            .WithSummary("Soft delete tour itinerary")
+            .WithDescription("Đặt IsDeleted = true cho tour itinerary. Chỉ Admin, Supervisor và TourGuide mới được xóa (mềm).")
             .Produces(200)
             .Produces(403)
             .Produces(404)

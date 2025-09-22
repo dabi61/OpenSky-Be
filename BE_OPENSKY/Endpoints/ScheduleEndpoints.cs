@@ -133,9 +133,10 @@ namespace BE_OPENSKY.Endpoints
             .Produces(404)
             .Produces(500);
 
-            // PUT /schedules - Cập nhật schedule (ID trong body)
-            group.MapPut("/", async (
-                UpdateScheduleWithIdDTO updateScheduleDto,
+            // PUT /schedules/{scheduleId} - Cập nhật schedule (ID trên route)
+            group.MapPut("/{scheduleId:guid}", async (
+                Guid scheduleId,
+                UpdateScheduleDTO updateScheduleDto,
                 IScheduleService scheduleService,
                 HttpContext context) =>
             {
@@ -157,7 +158,7 @@ namespace BE_OPENSKY.Endpoints
                     // Nếu là TourGuide, kiểm tra schedule có được phân công cho họ không
                     if (context.User.IsInRole(RoleConstants.TourGuide))
                     {
-                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(updateScheduleDto.ScheduleID, userId);
+                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(scheduleId, userId);
                         if (!isAssigned)
                         {
                             return Results.Json(new { message = "Bạn chỉ có thể cập nhật schedule được phân công cho bạn" }, statusCode: 403);
@@ -173,12 +174,7 @@ namespace BE_OPENSKY.Endpoints
                         }
                     }
 
-                    var success = await scheduleService.UpdateScheduleAsync(updateScheduleDto.ScheduleID, new UpdateScheduleDTO
-                    {
-                        StartTime = updateScheduleDto.StartTime,
-                        EndTime = updateScheduleDto.EndTime,
-                        Status = updateScheduleDto.Status
-                    });
+                    var success = await scheduleService.UpdateScheduleAsync(scheduleId, updateScheduleDto);
 
                     if (!success)
                     {
@@ -192,9 +188,9 @@ namespace BE_OPENSKY.Endpoints
                     return Results.Json(new { message = $"Lỗi khi cập nhật schedule: {ex.Message}" }, statusCode: 500);
                 }
             })
-            .WithName("UpdateScheduleWithBody")
-            .WithSummary("Cập nhật schedule (ID trong body)")
-            .WithDescription("Cập nhật thời gian và status của schedule. Status là trạng thái của lịch: Active, End, Suspend, Removed. Chỉ Admin, Supervisor và TourGuide mới được cập nhật.")
+            .WithName("UpdateSchedule")
+            .WithSummary("Cập nhật schedule (ID trên route)")
+            .WithDescription("Cập nhật thời gian và status của schedule theo scheduleId trên path. Chỉ Admin, Supervisor và TourGuide mới được cập nhật.")
             .Produces(200)
             .Produces(400)
             .Produces(401)

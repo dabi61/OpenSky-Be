@@ -69,18 +69,18 @@ namespace BE_OPENSKY.Endpoints
                     var tourItinerary = await tourItineraryService.GetTourItineraryByIdAsync(id);
                     if (tourItinerary == null)
                     {
-                        return Results.Json(new { message = "Không tìm thấy tour itinerary" }, statusCode: 404);
+                        return Results.NotFound();
                     }
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy tour itinerary thành công",
-                        data = tourItinerary
-                    });
+                    return Results.Ok(tourItinerary);
                 }
                 catch (Exception ex)
                 {
-                    return Results.Json(new { message = $"Lỗi khi lấy tour itinerary: {ex.Message}" }, statusCode: 500);
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: $"Có lỗi xảy ra khi lấy tour itinerary: {ex.Message}",
+                        statusCode: 500
+                    );
                 }
             })
             .WithName("GetTourItineraryById")
@@ -148,15 +148,15 @@ namespace BE_OPENSKY.Endpoints
                 {
                     var tourItineraries = await tourItineraryService.GetTourItinerariesByTourIdAsync(tourId);
 
-                    return Results.Json(new
-                    {
-                        message = "Lấy danh sách tour itinerary theo tour thành công",
-                        data = tourItineraries
-                    });
+                    return Results.Ok(tourItineraries);
                 }
                 catch (Exception ex)
                 {
-                    return Results.Json(new { message = $"Lỗi khi lấy danh sách tour itinerary theo tour: {ex.Message}" }, statusCode: 500);
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: $"Có lỗi xảy ra khi lấy danh sách tour itinerary theo tour: {ex.Message}",
+                        statusCode: 500
+                    );
                 }
             })
             .WithName("GetTourItinerariesByTourId")

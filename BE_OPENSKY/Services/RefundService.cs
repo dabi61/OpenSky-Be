@@ -35,61 +35,28 @@ namespace BE_OPENSKY.Services
                 if (bill.Booking != null && bill.Booking.CheckInDate <= DateTime.UtcNow)
                     throw new ArgumentException("Không thể hoàn tiền cho booking đã bắt đầu");
 
-                // Kiểm tra đã có refund request chưa
+                // Kiểm tra đã có refund request chưa (Pending)
                 var existingRefund = await _context.Refunds
-                    .FirstOrDefaultAsync(r => r.BillID == createRefundDto.BillID);
+                    .FirstOrDefaultAsync(r => r.BillID == createRefundDto.BillID && r.Status == RefundStatus.Pending);
 
                 if (existingRefund != null)
-                    throw new ArgumentException("Đã có yêu cầu hoàn tiền cho hóa đơn này");
+                    throw new ArgumentException("Đã có yêu cầu hoàn tiền đang chờ duyệt cho hóa đơn này");
 
                 // Tính toán refund theo chính sách thời gian
                 var refundInfo = CalculateRefundAmount(bill);
                 
-                // Tạo refund với status Completed (tự động hoàn tiền)
+                // Tạo refund với status Pending (chờ duyệt)
                 var refund = new Refund
                 {
                     RefundID = Guid.NewGuid(),
                     BillID = createRefundDto.BillID,
                     Description = $"{createRefundDto.Description}\n[Refund Policy: {refundInfo.Percentage}% - {refundInfo.PolicyDescription}]",
-                    Status = RefundStatus.Completed,
+                    Status = RefundStatus.Pending,
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _context.Refunds.Add(refund);
-
-                // Cập nhật bill theo chính sách refund
-                bill.RefundPrice = refundInfo.RefundAmount;
-                bill.UpdatedAt = DateTime.UtcNow;
-
-                // Xác định BillStatus dựa trên % refund
-                if (refundInfo.Percentage == 100)
-                {
-                    // Refund 100% → BillStatus = Cancelled
-                    bill.Status = BillStatus.Cancelled;
-                }
-                else
-                {
-                    // Refund < 100% → BillStatus = Refunded
-                    bill.Status = BillStatus.Refunded;
-                }
-
-                // Cập nhật trạng thái booking và xử lý logic refund
-                if (bill.Booking != null)
-                {
-                    bill.Booking.Status = BookingStatus.Cancelled;
-                    
-                    // Xử lý refund cho Hotel booking
-                    if (bill.Booking.HotelID != null)
-                    {
-                        await ProcessHotelRefundAsync(bill.Booking);
-                    }
-                    
-                    // Xử lý refund cho Tour booking (Schedule)
-                    if (bill.Booking.TourID != null)
-                    {
-                        await ProcessTourRefundAsync(bill.Booking);
-                    }
-                }
+                // KHÔNG cập nhật Bill/Booking ở bước tạo yêu cầu (đợi approve)
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -101,6 +68,104 @@ namespace BE_OPENSKY.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        // Tạo yêu cầu refund: tái sử dụng CreateRefundAsync để tạo Refund Pending trong DB
+        public async Task<Guid> CreateRefundRequestAsync(Guid userId, CreateRefundDTO createRefundDto)
+        {
+            return await CreateRefundAsync(userId, createRefundDto);
+        }
+
+        // Phê duyệt: lấy Refund Pending trong DB, sau đó cập nhật Bill/Booking và set Completed
+        public async Task<Guid> ApproveRefundRequestAsync(Guid billId, Guid approverId)
+        {
+            var pending = await _context.Refunds
+                .Include(r => r.Bill)
+                    .ThenInclude(b => b.Booking)
+                .FirstOrDefaultAsync(r => r.BillID == billId && r.Status == RefundStatus.Pending);
+            if (pending == null) throw new ArgumentException("Không có yêu cầu hoàn tiền đang chờ duyệt");
+
+            // Kiểm tra quyền: chủ Hotel/Tour hoặc Supervisor/Admin
+            var approver = await _context.Users.FindAsync(approverId);
+            var isSupervisorOrAdmin = approver != null && (approver.Role == RoleConstants.Supervisor || approver.Role == RoleConstants.Admin);
+
+            // Xác định owner theo booking
+            Guid? hotelOwnerId = null; Guid? tourOwnerId = null;
+            if (pending.Bill.Booking?.HotelID != null)
+            {
+                var hotel = await _context.Hotels.FindAsync(pending.Bill.Booking.HotelID.Value);
+                hotelOwnerId = hotel?.UserID;
+            }
+            if (pending.Bill.Booking?.TourID != null)
+            {
+                var tour = await _context.Tours.FindAsync(pending.Bill.Booking.TourID.Value);
+                tourOwnerId = tour?.UserID;
+            }
+
+            bool authorized = isSupervisorOrAdmin
+                || (hotelOwnerId.HasValue && hotelOwnerId.Value == approverId)
+                || (tourOwnerId.HasValue && tourOwnerId.Value == approverId);
+
+            if (!authorized)
+                throw new ArgumentException("Bạn không có quyền duyệt yêu cầu hoàn tiền này");
+
+            // Thực hiện hoàn tiền thật sự và cập nhật DB
+            var bill = await _context.Bills
+                .Include(b => b.Booking)
+                .FirstAsync(b => b.BillID == billId);
+
+            var refundInfo = CalculateRefundAmount(bill);
+            bill.RefundPrice = refundInfo.RefundAmount;
+            bill.UpdatedAt = DateTime.UtcNow;
+            bill.Status = refundInfo.Percentage == 100 ? BillStatus.Cancelled : BillStatus.Refunded;
+
+            if (bill.Booking != null)
+            {
+                bill.Booking.Status = BookingStatus.Cancelled;
+                if (bill.Booking.HotelID != null) await ProcessHotelRefundAsync(bill.Booking);
+                if (bill.Booking.TourID != null) await ProcessTourRefundAsync(bill.Booking);
+            }
+
+            pending.Status = RefundStatus.Completed;
+            await _context.SaveChangesAsync();
+            return pending.RefundID;
+        }
+
+        // Từ chối: xóa Refund Pending khỏi DB
+        public async Task<bool> RejectRefundRequestAsync(Guid billId, Guid approverId, string? reason = null)
+        {
+            var pending = await _context.Refunds.FirstOrDefaultAsync(r => r.BillID == billId && r.Status == RefundStatus.Pending);
+            if (pending == null) return false;
+
+            // Kiểm tra quyền tương tự approve
+            var approver = await _context.Users.FindAsync(approverId);
+            var isSupervisorOrAdmin = approver != null && (approver.Role == RoleConstants.Supervisor || approver.Role == RoleConstants.Admin);
+            // Check quyền theo owner booking
+            Guid? hotelOwnerId = null; Guid? tourOwnerId = null;
+            if (pending.BillID != Guid.Empty)
+            {
+                var bill = await _context.Bills.Include(b => b.Booking).FirstOrDefaultAsync(b => b.BillID == billId);
+                if (bill?.Booking?.HotelID != null)
+                {
+                    var hotel = await _context.Hotels.FindAsync(bill.Booking.HotelID.Value);
+                    hotelOwnerId = hotel?.UserID;
+                }
+                if (bill?.Booking?.TourID != null)
+                {
+                    var tour = await _context.Tours.FindAsync(bill.Booking.TourID.Value);
+                    tourOwnerId = tour?.UserID;
+                }
+            }
+
+            bool authorized = isSupervisorOrAdmin
+                || (hotelOwnerId.HasValue && hotelOwnerId.Value == approverId)
+                || (tourOwnerId.HasValue && tourOwnerId.Value == approverId);
+            if (!authorized)
+                throw new ArgumentException("Bạn không có quyền từ chối yêu cầu hoàn tiền này");
+
+            _context.Refunds.Remove(pending);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<RefundResponseDTO?> GetRefundByIdAsync(Guid refundId, Guid userId)
@@ -140,11 +205,14 @@ namespace BE_OPENSKY.Services
             var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalCount / size);
 
-            var refunds = await query
+            var refundEntities = await query
                 .Skip((page - 1) * size)
                 .Take(size)
-                .Select(r => MapToRefundResponseDTO(r))
                 .ToListAsync();
+
+            var refunds = refundEntities
+                .Select(r => MapToRefundResponseDTO(r))
+                .ToList();
 
             return new RefundListResponseDTO
             {
@@ -168,11 +236,14 @@ namespace BE_OPENSKY.Services
             var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalCount / size);
 
-            var refunds = await query
+            var refundEntities = await query
                 .Skip((page - 1) * size)
                 .Take(size)
-                .Select(r => MapToRefundResponseDTO(r))
                 .ToListAsync();
+
+            var refunds = refundEntities
+                .Select(r => MapToRefundResponseDTO(r))
+                .ToList();
 
             return new RefundListResponseDTO
             {

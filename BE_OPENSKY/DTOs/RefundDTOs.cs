@@ -9,6 +9,21 @@ namespace BE_OPENSKY.DTOs
         public string Description { get; set; } = string.Empty;
     }
 
+    // DTO cho pending refund request (lưu Redis)
+    public class PendingRefundRequestDTO
+    {
+        public Guid BillID { get; set; }
+        public Guid RequestedBy { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+        public int RefundPercentage { get; set; }
+        public decimal RefundAmount { get; set; }
+        public string PolicyDescription { get; set; } = string.Empty;
+        public string TargetType { get; set; } = string.Empty; // Hotel hoặc Tour
+        public Guid? HotelOwnerId { get; set; }
+        public Guid? TourOwnerId { get; set; }
+    }
+
 
     // DTO cho response refund
     public class RefundResponseDTO

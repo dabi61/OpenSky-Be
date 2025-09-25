@@ -616,12 +616,6 @@ public static class HotelEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
-                                ["hotelId"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Format = "uuid",
-                                    Description = "ID của khách sạn"
-                                },
                                 ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",

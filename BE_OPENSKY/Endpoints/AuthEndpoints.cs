@@ -1,3 +1,6 @@
+using BE_OPENSKY.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace BE_OPENSKY.Endpoints;
 
 public static class AuthEndpoints
@@ -9,7 +12,7 @@ public static class AuthEndpoints
             .WithOpenApi();
 
         // Đăng ký người dùng
-        authGroup.MapPost("/register", async ([FromBody] UserRegisterDTO userDto, [FromServices] IUserService userService) =>
+        authGroup.MapPost("/register", async ([FromBody] UserRegisterDTO userDto, [FromServices] IUserService userService, [FromServices] ApplicationDbContext dbContext) =>
         {
             try
             {
@@ -28,6 +31,13 @@ public static class AuthEndpoints
 
                 if (!IsValidEmail(userDto.Email))
                     return Results.BadRequest(new { message = "Email không hợp lệ" });
+
+                // Kiểm tra email đã tồn tại
+                var existsEmail = await dbContext.Users.AnyAsync(u => u.Email == userDto.Email);
+                if (existsEmail)
+                {
+                    return Results.BadRequest(new { message = "Email đã được sử dụng" });
+                }
 
                 var user = await userService.CreateAsync(userDto);
                 return Results.Created($"/users/{user.UserID}", user);

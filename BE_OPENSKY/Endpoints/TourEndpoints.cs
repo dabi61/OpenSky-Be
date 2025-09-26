@@ -73,65 +73,19 @@ public static class TourEndpoints
                 // Tạo tour mới
                 var tourId = await tourService.CreateTourAsync(userId, createTourDto);
 
-                // Xử lý upload ảnh nếu có
-                var uploadedImageUrls = new List<string>();
-                var failedUploads = new List<string>();
-
-                if (form.Files.Count > 0)
-                {
-                    foreach (var file in form.Files)
-                    {
-                        try
-                        {
-                            if (!IsImageContentType(file.ContentType))
-                            {
-                                failedUploads.Add($"{file.FileName} (không phải ảnh)");
-                                continue;
-                            }
-
-                            if (file.Length > 5 * 1024 * 1024) // 5MB per file
-                            {
-                                failedUploads.Add($"{file.FileName} (quá lớn)");
-                                continue;
-                            }
-
-                            // Upload lên Cloudinary
-                            var imageUrl = await cloudinaryService.UploadImageAsync(file, "tours");
-                            
-                            // Lưu vào database
-                            var image = new Image
-                            {
-                                TableType = TableTypeImage.Tour,
-                                TypeID = tourId,
-                                URL = imageUrl,
-                                CreatedAt = DateTime.UtcNow
-                            };
-
-                            using var scope = context.RequestServices.CreateScope();
-                            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            dbContext.Images.Add(image);
-                            await dbContext.SaveChangesAsync();
-
-                            uploadedImageUrls.Add(imageUrl);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
-                            failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
-                        }
-                    }
-                }
+                // Xử lý upload ảnh mới (NewImages) - sử dụng logic mới
+                var imageResponse = await ProcessNewTourImagesAsync(tourId, form.Files, cloudinaryService, context);
                 
                 var response = new CreateTourWithImagesResponseDTO
                 {
                     TourID = tourId,
-                    Message = uploadedImageUrls.Count > 0 
-                        ? $"Tạo tour thành công với {uploadedImageUrls.Count} ảnh"
+                    Message = imageResponse.NewImageCount > 0 
+                        ? $"Tạo tour thành công với {imageResponse.NewImageCount} ảnh"
                         : "Tạo tour thành công (không có ảnh)",
-                    UploadedImageUrls = uploadedImageUrls,
-                    FailedUploads = failedUploads,
-                    SuccessImageCount = uploadedImageUrls.Count,
-                    FailedImageCount = failedUploads.Count
+                    UploadedImageUrls = imageResponse.NewImageUrls,
+                    FailedUploads = imageResponse.FailedUploads,
+                    SuccessImageCount = imageResponse.NewImageCount,
+                    FailedImageCount = imageResponse.FailedImageCount
                 };
 
                 return Results.Created($"/tours/{tourId}", response);
@@ -263,112 +217,141 @@ public static class TourEndpoints
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được quản lý tour." }, statusCode: 403);
                 }
 
-                // Kiểm tra content type
-                if (!context.Request.HasFormContentType)
+                // Khởi tạo UpdateTourDTO
+                var updateDto = new UpdateTourDTO();
+
+                // Xử lý multipart form data
+                if (context.Request.HasFormContentType)
                 {
-                    return Results.BadRequest(new { message = "Request phải là multipart/form-data để upload ảnh cùng lúc" });
-                }
-
-                // Đọc form data
-                var form = await context.Request.ReadFormAsync();
-                
-                // tourId đã có từ route; không cần lấy từ form
-
-                // Tạo DTO cho tour
-                var updateDto = new UpdateTourDTO
-                {
-                    TourName = form["tourName"].ToString(),
-                    Description = form["description"].ToString(),
-                    Address = form["address"].ToString(),
-                    Province = form["province"].ToString(),
-                    Price = decimal.TryParse(form["price"], out var price) ? price : null,
-                    MaxPeople = int.TryParse(form["maxPeople"], out var maxPeople) ? maxPeople : null
-                };
-
-                // Cập nhật tour
-                var success = await tourService.UpdateTourAsync(tourId, userId, updateDto);
-                
-                if (!success)
-                {
-                    return Results.NotFound(new { message = "Không tìm thấy tour hoặc bạn không có quyền cập nhật" });
-                }
-
-                // Xử lý upload ảnh nếu có
-                var uploadedImageUrls = new List<string>();
-                var failedUploads = new List<string>();
-                var imageAction = form["imageAction"].ToString().ToLower();
-
-                if (form.Files.Count > 0)
-                {
-                    // Xóa ảnh cũ nếu replace
-                    if (imageAction == "replace")
+                    try
                     {
-                        using var scope = context.RequestServices.CreateScope();
-                        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                        var existingImages = await dbContext.Images
-                            .Where(i => i.TableType == TableTypeImage.Tour && i.TypeID == tourId)
-                            .ToListAsync();
+                        var form = await context.Request.ReadFormAsync();
                         
-                        dbContext.Images.RemoveRange(existingImages);
-                        await dbContext.SaveChangesAsync();
+                        // Lấy thông tin text từ form
+                        if (form.ContainsKey("tourName") && !string.IsNullOrWhiteSpace(form["tourName"].FirstOrDefault()))
+                            updateDto.TourName = form["tourName"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("description") && !string.IsNullOrWhiteSpace(form["description"].FirstOrDefault()))
+                            updateDto.Description = form["description"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
+                            updateDto.Address = form["address"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("province") && !string.IsNullOrWhiteSpace(form["province"].FirstOrDefault()))
+                            updateDto.Province = form["province"].FirstOrDefault();
+
+                        if (form.ContainsKey("price") && decimal.TryParse(form["price"].FirstOrDefault(), out var price))
+                        {
+                            if (price > 0)
+                                updateDto.Price = price;
+                            else
+                                return Results.BadRequest(new { message = "Giá tour phải lớn hơn 0" });
+                        }
+
+                        if (form.ContainsKey("maxPeople") && int.TryParse(form["maxPeople"].FirstOrDefault(), out var maxPeople))
+                        {
+                            if (maxPeople >= 1 && maxPeople <= 100)
+                                updateDto.MaxPeople = maxPeople;
+                            else
+                                return Results.BadRequest(new { message = "Số lượng người phải từ 1 đến 100" });
+                        }
+
+                        // Lấy ExistingImageIds (IDs của ảnh muốn giữ lại)
+                        var existingImageIds = new List<int>();
+                        if (form.ContainsKey("existingImageIds"))
+                        {
+                            var existingIdsString = form["existingImageIds"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(existingIdsString))
+                            {
+                                existingImageIds = existingIdsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(id => int.TryParse(id.Trim(), out _))
+                                    .Select(int.Parse)
+                                    .ToList();
+                            }
+                        }
+
+                        // Lấy DeleteImageIds (IDs của ảnh muốn xóa)
+                        var deleteImageIds = new List<int>();
+                        if (form.ContainsKey("deleteImageIds"))
+                        {
+                            var deleteIdsString = form["deleteImageIds"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(deleteIdsString))
+                            {
+                                deleteImageIds = deleteIdsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(id => int.TryParse(id.Trim(), out _))
+                                    .Select(int.Parse)
+                                    .ToList();
+                            }
+                        }
+
+                        // Cập nhật thông tin tour
+                        var success = await tourService.UpdateTourAsync(tourId, userId, updateDto);
+                        if (!success)
+                        {
+                            return Results.NotFound(new { message = "Không tìm thấy tour hoặc bạn không có quyền cập nhật" });
+                        }
+
+                        // Xử lý ảnh theo logic mới
+                        var imageUpdateDto = new TourImageUpdateDTO
+                        {
+                            TourId = tourId,
+                            TourName = updateDto.TourName,
+                            Description = updateDto.Description,
+                            Address = updateDto.Address,
+                            Province = updateDto.Province,
+                            Price = updateDto.Price,
+                            MaxPeople = updateDto.MaxPeople,
+                            ExistingImageIds = existingImageIds.Any() ? existingImageIds : null,
+                            DeleteImageIds = deleteImageIds.Any() ? deleteImageIds : null
+                        };
+
+                        var imageResponse = await ProcessTourImagesAsync(tourId, imageUpdateDto, form.Files, cloudinaryService, context);
+
+                        return Results.Ok(imageResponse);
                     }
-
-                    foreach (var file in form.Files)
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            if (!IsImageContentType(file.ContentType))
-                            {
-                                failedUploads.Add($"{file.FileName} (không phải ảnh)");
-                                continue;
-                            }
-
-                            if (file.Length > 5 * 1024 * 1024) // 5MB per file
-                            {
-                                failedUploads.Add($"{file.FileName} (quá lớn)");
-                                continue;
-                            }
-
-                            // Upload lên Cloudinary
-                            var imageUrl = await cloudinaryService.UploadImageAsync(file, "tours");
-                            
-                            // Lưu vào database
-                            var image = new Image
-                            {
-                                TableType = TableTypeImage.Tour,
-                                TypeID = tourId,
-                                URL = imageUrl,
-                                CreatedAt = DateTime.UtcNow
-                            };
-
-                            using var scope = context.RequestServices.CreateScope();
-                            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            dbContext.Images.Add(image);
-                            await dbContext.SaveChangesAsync();
-
-                            uploadedImageUrls.Add(imageUrl);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
-                            failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
-                        }
+                        Console.WriteLine($"Multipart parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
                     }
                 }
-                
-                var response = new UpdateTourWithImagesResponseDTO
+                else
                 {
-                    TourID = tourId,
-                    Message = uploadedImageUrls.Count > 0 
-                        ? $"Cập nhật tour thành công với {uploadedImageUrls.Count} ảnh"
-                        : "Cập nhật tour thành công (không có ảnh)",
-                    UploadedImageUrls = uploadedImageUrls,
-                    FailedUploads = failedUploads,
-                    SuccessImageCount = uploadedImageUrls.Count,
-                    FailedImageCount = failedUploads.Count
-                };
-
-                return Results.Ok(response);
+                    // Nếu không phải multipart, thử parse JSON
+                    try
+                    {
+                        context.Request.EnableBuffering();
+                        context.Request.Body.Position = 0;
+                        
+                        using var reader = new StreamReader(context.Request.Body);
+                        var jsonString = await reader.ReadToEndAsync();
+                        
+                        if (!string.IsNullOrEmpty(jsonString))
+                        {
+                            var updateTourDto = System.Text.Json.JsonSerializer.Deserialize<UpdateTourDTO>(jsonString);
+                            if (updateTourDto == null)
+                                return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
+                            
+                            updateDto = updateTourDto;
+                            
+                            // Cập nhật thông tin tour
+                            var success = await tourService.UpdateTourAsync(tourId, userId, updateDto);
+                            
+                            return success 
+                                ? Results.Ok(new { message = "Cập nhật thông tin tour thành công" })
+                                : Results.NotFound(new { message = "Không tìm thấy tour hoặc bạn không có quyền cập nhật" });
+                        }
+                        else
+                        {
+                            return Results.BadRequest(new { message = "Dữ liệu JSON không được để trống" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"JSON parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu JSON" });
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -384,9 +367,23 @@ public static class TourEndpoints
         })
         .WithName("UpdateTourWithImages")
         .WithSummary("Cập nhật tour với ảnh")
-        .WithDescription("Cập nhật thông tin tour và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được cập nhật tour. Sử dụng multipart/form-data với fields: tourName, address, province, price, maxPeople, description, imageAction và files. tourId nằm trên path.")
+        .WithDescription("Cập nhật thông tin tour và upload ảnh cùng lúc. Chỉ Admin và Supervisor mới được cập nhật tour. Sử dụng multipart/form-data với fields: tourName, address, province, price, maxPeople, description, existingImageIds, deleteImageIds và files. Hoặc application/json với các trường cần cập nhật.")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
+            Parameters = new List<Microsoft.OpenApi.Models.OpenApiParameter>
+            {
+                new Microsoft.OpenApi.Models.OpenApiParameter
+                {
+                    Name = "tourId",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Path,
+                    Required = true,
+                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                        Format = "uuid"
+                    }
+                }
+            },
             RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
             {
                 Content = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
@@ -421,7 +418,7 @@ public static class TourEndpoints
                                 ["price"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "number",
-                                    Format = "double",
+                                    Format = "decimal",
                                     Description = "Giá tour"
                                 },
                                 ["maxPeople"] = new Microsoft.OpenApi.Models.OpenApiSchema
@@ -430,10 +427,15 @@ public static class TourEndpoints
                                     Format = "int32",
                                     Description = "Số người tối đa (1-100)"
                                 },
-                                ["imageAction"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                ["existingImageIds"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
-                                    Description = "Hành động ảnh: add (thêm), replace (thay thế), remove (xóa)"
+                                    Description = "IDs của ảnh muốn giữ lại (cách nhau bởi dấu phẩy), ví dụ: '1,2,3'"
+                                },
+                                ["deleteImageIds"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "IDs của ảnh muốn xóa (cách nhau bởi dấu phẩy), ví dụ: '4,5'"
                                 },
                                 ["files"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
@@ -443,16 +445,57 @@ public static class TourEndpoints
                                         Type = "string",
                                         Format = "binary"
                                     },
-                                    Description = "Danh sách ảnh tour (JPEG, PNG, GIF, WebP, max 5MB/file)"
+                                    Description = "Danh sách ảnh tour mới (JPEG, PNG, GIF, WebP, max 5MB/file)"
                                 }
-                            },
-                            Required = new HashSet<string>()
+                            }
+                        }
+                    },
+                    ["application/json"] = new Microsoft.OpenApi.Models.OpenApiMediaType
+                    {
+                        Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                            {
+                                ["tourName"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Tên tour"
+                                },
+                                ["description"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Mô tả tour"
+                                },
+                                ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Địa chỉ tour"
+                                },
+                                ["province"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "Tỉnh/Thành phố"
+                                },
+                                ["price"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "number",
+                                    Format = "decimal",
+                                    Description = "Giá tour"
+                                },
+                                ["maxPeople"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "integer",
+                                    Format = "int32",
+                                    Description = "Số người tối đa (1-100)"
+                                }
+                            }
                         }
                     }
                 }
             }
         })
-        .Produces<UpdateTourWithImagesResponseDTO>(200)
+        .Produces<TourImageUpdateResponseDTO>(200)
         .Produces(400)
         .Produces(401)
         .Produces(403)
@@ -709,5 +752,282 @@ public static class TourEndpoints
             return false;
             
         return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Helper method để xử lý ảnh mới cho tour (POST endpoint)
+    private static async Task<TourImageUpdateResponseDTO> ProcessNewTourImagesAsync(
+        Guid tourId, 
+        IFormFileCollection files, 
+        ICloudinaryService cloudinaryService, 
+        HttpContext context)
+    {
+        var response = new TourImageUpdateResponseDTO();
+        var newImageUrls = new List<string>();
+        var failedUploads = new List<string>();
+
+        using var scope = context.RequestServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        try
+        {
+            // Xử lý NewImages (upload ảnh mới)
+            if (files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        if (!IsImageContentType(file.ContentType))
+                        {
+                            failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                            continue;
+                        }
+
+                        if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                        {
+                            failedUploads.Add($"{file.FileName} (quá lớn)");
+                            continue;
+                        }
+
+                        // Upload lên Cloudinary
+                        var imageUrl = await cloudinaryService.UploadImageAsync(file, "tours");
+                        
+                        // Lưu vào database
+                        var image = new Image
+                        {
+                            TableType = TableTypeImage.Tour,
+                            TypeID = tourId,
+                            URL = imageUrl,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        dbContext.Images.Add(image);
+                        newImageUrls.Add(imageUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                        failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                    }
+                }
+
+                response.NewImageCount = newImageUrls.Count;
+            }
+
+            // Lưu tất cả thay đổi vào database
+            await dbContext.SaveChangesAsync();
+
+            // Cập nhật response
+            response.NewImageUrls = newImageUrls;
+            response.UploadedImageUrls = newImageUrls; // Backward compatibility
+            response.FailedUploads = failedUploads;
+            response.FailedImageCount = failedUploads.Count;
+            response.SuccessImageCount = newImageUrls.Count; // Backward compatibility
+            response.TotalImageCount = newImageUrls.Count;
+
+            // Tạo message
+            if (response.NewImageCount > 0)
+            {
+                response.Message = $"Upload thành công {response.NewImageCount} ảnh mới.";
+            }
+            else
+            {
+                response.Message = "Không có ảnh nào được upload.";
+            }
+
+            if (response.FailedImageCount > 0)
+            {
+                response.Message += $" {response.FailedImageCount} ảnh upload thất bại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in ProcessNewTourImagesAsync: {ex.Message}");
+            response.Message = $"Có lỗi xảy ra khi upload ảnh: {ex.Message}";
+        }
+
+        return response;
+    }
+
+    // Helper method để xử lý ảnh theo logic mới cho tour (PUT endpoint)
+    private static async Task<TourImageUpdateResponseDTO> ProcessTourImagesAsync(
+        Guid tourId, 
+        TourImageUpdateDTO imageUpdateDto, 
+        IFormFileCollection files, 
+        ICloudinaryService cloudinaryService, 
+        HttpContext context)
+    {
+        var response = new TourImageUpdateResponseDTO();
+        var existingImageUrls = new List<string>();
+        var newImageUrls = new List<string>();
+        var deletedImageUrls = new List<string>();
+        var failedUploads = new List<string>();
+
+        using var scope = context.RequestServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        try
+        {
+            // 1. Lấy danh sách ảnh hiện tại của tour
+            var currentImages = await dbContext.Images
+                .Where(img => img.TableType == TableTypeImage.Tour && img.TypeID == tourId)
+                .ToListAsync();
+
+            // 2. Xử lý ExistingImages (giữ lại ảnh được chỉ định)
+            if (imageUpdateDto.ExistingImageIds != null && imageUpdateDto.ExistingImageIds.Any())
+            {
+                var existingImages = currentImages
+                    .Where(img => imageUpdateDto.ExistingImageIds.Contains(img.ImgID))
+                    .ToList();
+                
+                existingImageUrls = existingImages.Select(img => img.URL).ToList();
+                response.ExistingImageCount = existingImages.Count;
+            }
+            else
+            {
+                // Nếu không chỉ định ExistingImages, giữ tất cả ảnh cũ
+                existingImageUrls = currentImages.Select(img => img.URL).ToList();
+                response.ExistingImageCount = currentImages.Count;
+            }
+
+            // 3. Xử lý DeleteImages (xóa ảnh được chỉ định)
+            if (imageUpdateDto.DeleteImageIds != null && imageUpdateDto.DeleteImageIds.Any())
+            {
+                var imagesToDelete = currentImages
+                    .Where(img => imageUpdateDto.DeleteImageIds.Contains(img.ImgID))
+                    .ToList();
+
+                foreach (var image in imagesToDelete)
+                {
+                    try
+                    {
+                        // Xóa từ Cloudinary
+                        var publicId = ExtractPublicIdFromUrl(image.URL);
+                        if (!string.IsNullOrEmpty(publicId))
+                        {
+                            await cloudinaryService.DeleteImageAsync(publicId);
+                        }
+
+                        // Xóa từ database
+                        dbContext.Images.Remove(image);
+                        deletedImageUrls.Add(image.URL);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to delete image {image.URL}: {ex.Message}");
+                        failedUploads.Add($"Xóa ảnh {image.URL} thất bại: {ex.Message}");
+                    }
+                }
+
+                response.DeletedImageCount = deletedImageUrls.Count;
+            }
+
+            // 4. Xử lý NewImages (upload ảnh mới)
+            if (files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        if (!IsImageContentType(file.ContentType))
+                        {
+                            failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                            continue;
+                        }
+
+                        if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                        {
+                            failedUploads.Add($"{file.FileName} (quá lớn)");
+                            continue;
+                        }
+
+                        // Upload lên Cloudinary
+                        var imageUrl = await cloudinaryService.UploadImageAsync(file, "tours");
+                        
+                        // Lưu vào database
+                        var image = new Image
+                        {
+                            TableType = TableTypeImage.Tour,
+                            TypeID = tourId,
+                            URL = imageUrl,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        dbContext.Images.Add(image);
+                        newImageUrls.Add(imageUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                        failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                    }
+                }
+
+                response.NewImageCount = newImageUrls.Count;
+            }
+
+            // 5. Lưu tất cả thay đổi vào database
+            await dbContext.SaveChangesAsync();
+
+            // 6. Cập nhật response
+            response.ExistingImageUrls = existingImageUrls;
+            response.NewImageUrls = newImageUrls;
+            response.UploadedImageUrls = newImageUrls; // Backward compatibility
+            response.DeletedImageUrls = deletedImageUrls;
+            response.FailedUploads = failedUploads;
+            response.FailedImageCount = failedUploads.Count;
+            response.SuccessImageCount = newImageUrls.Count; // Backward compatibility
+            response.TotalImageCount = existingImageUrls.Count + newImageUrls.Count;
+
+            // 7. Tạo message
+            var messageParts = new List<string>();
+            if (response.ExistingImageCount > 0)
+                messageParts.Add($"Giữ lại {response.ExistingImageCount} ảnh cũ");
+            if (response.NewImageCount > 0)
+                messageParts.Add($"Thêm {response.NewImageCount} ảnh mới");
+            if (response.DeletedImageCount > 0)
+                messageParts.Add($"Xóa {response.DeletedImageCount} ảnh cũ");
+
+            response.Message = messageParts.Any() 
+                ? $"Cập nhật ảnh tour thành công. {string.Join(", ", messageParts)}."
+                : "Cập nhật ảnh tour thành công (không có thay đổi).";
+
+            if (response.FailedImageCount > 0)
+            {
+                response.Message += $" {response.FailedImageCount} ảnh xử lý thất bại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in ProcessTourImagesAsync: {ex.Message}");
+            response.Message = $"Có lỗi xảy ra khi xử lý ảnh: {ex.Message}";
+        }
+
+        return response;
+    }
+
+    // Helper method để extract public ID từ Cloudinary URL
+    private static string ExtractPublicIdFromUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            var path = uri.AbsolutePath;
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            
+            if (segments.Length >= 2)
+            {
+                // Cloudinary URL format: /v1234567890/folder/public_id.extension
+                var publicIdWithExtension = segments[^1]; // Lấy phần cuối cùng
+                var publicId = Path.GetFileNameWithoutExtension(publicIdWithExtension);
+                return publicId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error extracting public ID from URL {url}: {ex.Message}");
+        }
+        
+        return string.Empty;
     }
 }

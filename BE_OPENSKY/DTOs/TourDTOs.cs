@@ -52,6 +52,13 @@ namespace BE_OPENSKY.DTOs
         public int? MaxPeople { get; set; }
     }
 
+    // DTO cho thông tin ảnh tour
+    public class TourImageDTO
+    {
+        public int ImageId { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+    }
+
     // DTO cho response tour
     public class TourResponseDTO
     {
@@ -68,7 +75,7 @@ namespace BE_OPENSKY.DTOs
         public int MaxPeople { get; set; }
         public TourStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<string> Images { get; set; } = new();
+        public List<TourImageDTO> Images { get; set; } = new();
     }
 
     // DTO cho tóm tắt tour (trong danh sách)
@@ -171,44 +178,53 @@ namespace BE_OPENSKY.DTOs
         public int FailedImageCount { get; set; }
     }
 
-    // DTO cho cập nhật tour với ảnh (multipart form data)
-    public class UpdateTourWithImagesDTO
+
+    // DTO mới cho cập nhật ảnh tour theo logic mới
+    public class TourImageUpdateDTO
     {
         [Required]
-        public Guid TourID { get; set; }
-
+        public Guid TourId { get; set; }
+        
         [StringLength(200, ErrorMessage = "Tên tour không được quá 200 ký tự")]
         public string? TourName { get; set; }
-
+        
         [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
         public string? Description { get; set; }
-
+        
         [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
         public string? Address { get; set; }
-
+        
         [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
         public string? Province { get; set; }
-
-        [Range(0.01, double.MaxValue, ErrorMessage = "Giá tour phải lớn hơn 0")]
+        
         public decimal? Price { get; set; }
-
-        [Range(1, 100, ErrorMessage = "Số người tối đa phải từ 1 đến 100")]
         public int? MaxPeople { get; set; }
-
-        [StringLength(10, ErrorMessage = "Hành động ảnh không được quá 10 ký tự")]
-        public string? ImageAction { get; set; } // "add", "replace", "remove"
-
-        // Files sẽ được xử lý từ form.Files
+        
+        // ExistingImages: Giữ nguyên các ảnh không muốn xóa (IDs của ảnh hiện tại)
+        public List<int>? ExistingImageIds { get; set; } = new();
+        
+        // NewImages: Thêm ảnh mới (sẽ được xử lý từ form.Files)
+        // DeleteImages: Xóa ảnh (IDs của ảnh cần xóa)
+        public List<int>? DeleteImageIds { get; set; } = new();
     }
 
-    // DTO phản hồi khi cập nhật tour với ảnh
-    public class UpdateTourWithImagesResponseDTO
+    // DTO phản hồi cho cập nhật ảnh tour theo logic mới
+    public class TourImageUpdateResponseDTO
     {
-        public Guid TourID { get; set; }
         public string Message { get; set; } = string.Empty;
-        public List<string> UploadedImageUrls { get; set; } = new();
+        public List<string> ExistingImageUrls { get; set; } = new();
+        public List<string> NewImageUrls { get; set; } = new();
+        public List<string> DeletedImageUrls { get; set; } = new();
         public List<string> FailedUploads { get; set; } = new();
-        public int SuccessImageCount { get; set; }
+        public int ExistingImageCount { get; set; }
+        public int NewImageCount { get; set; }
+        public int DeletedImageCount { get; set; }
         public int FailedImageCount { get; set; }
+        public int TotalImageCount { get; set; }
+        
+        // Properties cho backward compatibility với code cũ
+        public List<string> UploadedImageUrls { get; set; } = new();
+        public int SuccessImageCount { get; set; }
+        public string ImageAction { get; set; } = "keep";
     }
 }

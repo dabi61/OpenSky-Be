@@ -56,25 +56,41 @@ public class HotelService : IHotelService
             .Include(h => h.User)
             .Where(h => h.Status == HotelStatus.Inactive)
             .OrderByDescending(h => h.CreatedAt)
-            .Select(h => new PendingHotelResponseDTO
-            {
-                HotelID = h.HotelID,
-                UserID = h.UserID,
-                UserEmail = h.User.Email,
-                UserFullName = h.User.FullName,
-                HotelName = h.HotelName,
-                Address = h.Address,
-                Province = h.Province,
-                Latitude = h.Latitude,
-                Longitude = h.Longitude,
-                Description = h.Description,
-                Star = h.Star,
-                Status = h.Status.ToString(),
-                CreatedAt = h.CreatedAt
-            })
             .ToListAsync();
 
-        return pendingHotels;
+        var result = new List<PendingHotelResponseDTO>();
+        foreach (var hotel in pendingHotels)
+        {
+            // Lấy ảnh của hotel với cả ID và URL
+            var images = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotel.HotelID)
+                .Select(i => new HotelImageDTO
+                {
+                    ImageId = i.ImgID,
+                    ImageUrl = i.URL
+                })
+                .ToListAsync();
+
+            result.Add(new PendingHotelResponseDTO
+            {
+                HotelID = hotel.HotelID,
+                UserID = hotel.UserID,
+                UserEmail = hotel.User.Email,
+                UserFullName = hotel.User.FullName,
+                HotelName = hotel.HotelName,
+                Address = hotel.Address,
+                Province = hotel.Province,
+                Latitude = hotel.Latitude,
+                Longitude = hotel.Longitude,
+                Description = hotel.Description,
+                Star = hotel.Star,
+                Status = hotel.Status.ToString(),
+                CreatedAt = hotel.CreatedAt,
+                Images = images
+            });
+        }
+
+        return result;
     }
 
     public async Task<PendingHotelResponseDTO?> GetHotelByIdAsync(Guid hotelId)
@@ -84,6 +100,16 @@ public class HotelService : IHotelService
             .FirstOrDefaultAsync(h => h.HotelID == hotelId);
 
         if (hotel == null) return null;
+
+        // Lấy ảnh của hotel với cả ID và URL
+        var images = await _context.Images
+            .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotelId)
+            .Select(i => new HotelImageDTO
+            {
+                ImageId = i.ImgID,
+                ImageUrl = i.URL
+            })
+            .ToListAsync();
 
         return new PendingHotelResponseDTO
         {
@@ -99,7 +125,8 @@ public class HotelService : IHotelService
             Description = hotel.Description,
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
-            CreatedAt = hotel.CreatedAt
+            CreatedAt = hotel.CreatedAt,
+            Images = images
         };
     }
 
@@ -166,7 +193,11 @@ public class HotelService : IHotelService
             var images = await _context.Images
                 .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotel.HotelID)
                 .OrderBy(i => i.CreatedAt)
-                .Select(i => i.URL)
+                .Select(i => new HotelImageDTO
+                {
+                    ImageId = i.ImgID,
+                    ImageUrl = i.URL
+                })
                 .ToListAsync();
             
             hotel.Images = images;
@@ -306,11 +337,15 @@ public class HotelService : IHotelService
 
             Console.WriteLine($"[DEBUG] Room found: {room.RoomName}, Hotel: {room.Hotel?.HotelName ?? "NULL"}");
 
-            // Get room images
+            // Get room images with both ID and URL
             var images = await _context.Images
                 .Where(i => i.TableType == TableTypeImage.RoomHotel && i.TypeID == roomId)
                 .OrderBy(i => i.CreatedAt)
-                .Select(i => i.URL)
+                .Select(i => new RoomImageDTO
+                {
+                    ImageId = i.ImgID,
+                    ImageUrl = i.URL
+                })
                 .ToListAsync();
 
             Console.WriteLine($"[DEBUG] Found {images.Count} images for room");
@@ -328,7 +363,7 @@ public class HotelService : IHotelService
                 Status = room.Status.ToString(),
                 CreatedAt = DateTime.UtcNow, // Using current time since CreatedAt doesn't exist in current model
                 UpdatedAt = DateTime.UtcNow, // Using current time since UpdatedAt doesn't exist in current model
-                Images = images ?? new List<string>()
+                Images = images ?? new List<RoomImageDTO>()
             };
 
             Console.WriteLine($"[DEBUG] Successfully created RoomDetailResponseDTO");

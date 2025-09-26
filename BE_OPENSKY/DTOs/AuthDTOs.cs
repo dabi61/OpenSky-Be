@@ -214,6 +214,13 @@ public class HotelApplicationWithImagesResponseDTO
     public string Status { get; set; } = "Inactive";
 }
 
+// DTO cho thông tin ảnh hotel
+public class HotelImageDTO
+{
+    public int ImageId { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+}
+
 // DTO trả về thông tin khách sạn chờ duyệt
 public class PendingHotelResponseDTO
 {
@@ -230,7 +237,7 @@ public class PendingHotelResponseDTO
     public int Star { get; set; }
     public string Status { get; set; } = string.Empty; // Inactive, Active, Suspend, Removed
     public DateTime CreatedAt { get; set; }
-    public List<string> Images { get; set; } = new(); // URLs của ảnh khách sạn
+    public List<HotelImageDTO> Images { get; set; } = new(); // Ảnh khách sạn với ID và URL
 }
 
     // DTO đăng nhập

@@ -70,65 +70,19 @@ public static class HotelRoomEndpoints
                 // Tạo phòng mới
                 var roomId = await hotelService.CreateRoomAsync(hotelId, userId, createRoomDto);
 
-                // Xử lý upload ảnh nếu có
-                var uploadedImageUrls = new List<string>();
-                var failedUploads = new List<string>();
-
-                if (form.Files.Count > 0)
-                {
-                    foreach (var file in form.Files)
-                    {
-                        try
-                        {
-                            if (!IsImageContentType(file.ContentType))
-                            {
-                                failedUploads.Add($"{file.FileName} (không phải ảnh)");
-                                continue;
-                            }
-
-                            if (file.Length > 5 * 1024 * 1024) // 5MB per file
-                            {
-                                failedUploads.Add($"{file.FileName} (quá lớn)");
-                                continue;
-                            }
-
-                            // Upload lên Cloudinary
-                            var imageUrl = await cloudinaryService.UploadImageAsync(file, "rooms");
-                            
-                            // Lưu vào database
-                            var image = new Image
-                            {
-                                TableType = TableTypeImage.RoomHotel,
-                                TypeID = roomId,
-                                URL = imageUrl,
-                                CreatedAt = DateTime.UtcNow
-                            };
-
-                            using var scope = context.RequestServices.CreateScope();
-                            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            dbContext.Images.Add(image);
-                            await dbContext.SaveChangesAsync();
-
-                            uploadedImageUrls.Add(imageUrl);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
-                            failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
-                        }
-                    }
-                }
+                // Xử lý upload ảnh mới (NewImages) - sử dụng logic mới
+                var imageResponse = await ProcessNewRoomImagesAsync(roomId, form.Files, cloudinaryService, context);
                 
                 var response = new CreateRoomWithImagesResponseDTO
                 {
                     RoomID = roomId,
-                    Message = uploadedImageUrls.Count > 0 
-                        ? $"Tạo phòng thành công với {uploadedImageUrls.Count} ảnh"
+                    Message = imageResponse.NewImageCount > 0 
+                        ? $"Tạo phòng thành công với {imageResponse.NewImageCount} ảnh"
                         : "Tạo phòng thành công (không có ảnh)",
-                    UploadedImageUrls = uploadedImageUrls,
-                    FailedUploads = failedUploads,
-                    SuccessImageCount = uploadedImageUrls.Count,
-                    FailedImageCount = failedUploads.Count
+                    UploadedImageUrls = imageResponse.NewImageUrls,
+                    FailedUploads = imageResponse.FailedUploads,
+                    SuccessImageCount = imageResponse.NewImageCount,
+                    FailedImageCount = imageResponse.FailedImageCount
                 };
 
                 return Results.Created($"/rooms/{roomId}", response);
@@ -333,18 +287,32 @@ public static class HotelRoomEndpoints
                                 return Results.BadRequest(new { message = "Số lượng người phải từ 1 đến 20" });
                         }
 
-                        // Lấy image action
-                        var imageAction = form["imageAction"].FirstOrDefault() ?? "keep";
-                        if (imageAction != "keep" && imageAction != "replace")
+                        // Lấy ExistingImageIds (IDs của ảnh muốn giữ lại)
+                        var existingImageIds = new List<int>();
+                        if (form.ContainsKey("existingImageIds"))
                         {
-                            return Results.BadRequest(new { message = "ImageAction phải là: keep hoặc replace" });
+                            var existingIdsString = form["existingImageIds"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(existingIdsString))
+                            {
+                                existingImageIds = existingIdsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(id => int.TryParse(id.Trim(), out _))
+                                    .Select(int.Parse)
+                                    .ToList();
+                            }
                         }
 
-                        // Xử lý ảnh cũ trước khi upload ảnh mới
-                        var deletedImageUrls = new List<string>();
-                        if (imageAction == "replace")
+                        // Lấy DeleteImageIds (IDs của ảnh muốn xóa)
+                        var deleteImageIds = new List<int>();
+                        if (form.ContainsKey("deleteImageIds"))
                         {
-                            deletedImageUrls = await hotelService.DeleteRoomImagesAsync(roomId, userId, imageAction);
+                            var deleteIdsString = form["deleteImageIds"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(deleteIdsString))
+                            {
+                                deleteImageIds = deleteIdsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(id => int.TryParse(id.Trim(), out _))
+                                    .Select(int.Parse)
+                                    .ToList();
+                            }
                         }
 
                         // Cập nhật thông tin phòng
@@ -354,81 +322,22 @@ public static class HotelRoomEndpoints
                             return Results.NotFound(new { message = "Không tìm thấy phòng hoặc bạn không có quyền cập nhật" });
                         }
 
-                        // Xử lý upload ảnh mới nếu có
-                        var uploadedImageUrls = new List<string>();
-                        var failedUploads = new List<string>();
-
-                        if (form.Files.Count > 0)
+                        // Xử lý ảnh theo logic mới
+                        var imageUpdateDto = new RoomImageUpdateDTO
                         {
-                            foreach (var file in form.Files)
-                            {
-                                try
-                                {
-                                    if (!IsImageContentType(file.ContentType))
-                                    {
-                                        failedUploads.Add($"{file.FileName} (không phải ảnh)");
-                                        continue;
-                                    }
-
-                                    if (file.Length > 5 * 1024 * 1024) // 5MB per file
-                                    {
-                                        failedUploads.Add($"{file.FileName} (quá lớn)");
-                                        continue;
-                                    }
-
-                                    // Upload lên Cloudinary
-                                    var imageUrl = await cloudinaryService.UploadImageAsync(file, "rooms");
-                                    
-                                    // Lưu vào database
-                                    var image = new Image
-                                    {
-                                        TableType = TableTypeImage.RoomHotel,
-                                        TypeID = roomId,
-                                        URL = imageUrl,
-                                        CreatedAt = DateTime.UtcNow
-                                    };
-
-                                    using var scope = context.RequestServices.CreateScope();
-                                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                                    dbContext.Images.Add(image);
-                                    await dbContext.SaveChangesAsync();
-
-                                    uploadedImageUrls.Add(imageUrl);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
-                                    failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
-                                }
-                            }
-                        }
-
-                        // Tạo message dựa trên action
-                        string message;
-                        if (imageAction == "replace")
-                        {
-                            message = $"Cập nhật thông tin phòng thành công. Thay thế {deletedImageUrls.Count} ảnh cũ với {uploadedImageUrls.Count} ảnh mới.";
-                        }
-                        else // keep
-                        {
-                            message = uploadedImageUrls.Count > 0 
-                                ? $"Cập nhật thông tin phòng thành công. Thêm {uploadedImageUrls.Count} ảnh mới (giữ nguyên ảnh cũ)."
-                                : "Cập nhật thông tin phòng thành công (không có ảnh mới).";
-                        }
-
-                        var response = new UpdateRoomWithImagesResponseDTO
-                        {
-                            Message = message,
-                            UploadedImageUrls = uploadedImageUrls,
-                            FailedUploads = failedUploads,
-                            DeletedImageUrls = deletedImageUrls,
-                            SuccessImageCount = uploadedImageUrls.Count,
-                            FailedImageCount = failedUploads.Count,
-                            DeletedImageCount = deletedImageUrls.Count,
-                            ImageAction = imageAction
+                            RoomId = roomId,
+                            RoomName = updateDto.RoomName,
+                            RoomType = updateDto.RoomType,
+                            Address = updateDto.Address,
+                            Price = updateDto.Price,
+                            MaxPeople = updateDto.MaxPeople,
+                            ExistingImageIds = existingImageIds.Any() ? existingImageIds : null,
+                            DeleteImageIds = deleteImageIds.Any() ? deleteImageIds : null
                         };
 
-                        return Results.Ok(response);
+                        var imageResponse = await ProcessRoomImagesAsync(roomId, imageUpdateDto, form.Files, cloudinaryService, context);
+
+                        return Results.Ok(imageResponse);
                     }
                     catch (Exception ex)
                     {
@@ -488,7 +397,7 @@ public static class HotelRoomEndpoints
         })
         .WithName("UpdateRoomWithImages")
         .WithSummary("Cập nhật thông tin phòng với ảnh")
-        .WithDescription("Cập nhật thông tin phòng và upload ảnh cùng lúc. Sử dụng multipart/form-data với fields: roomName, roomType, address, price, maxPeople, imageAction và files. Hoặc application/json với các trường cần cập nhật.")
+        .WithDescription("Cập nhật thông tin phòng và upload ảnh cùng lúc. Sử dụng multipart/form-data với fields: roomName, roomType, address, price, maxPeople, existingImageIds, deleteImageIds và files. Hoặc application/json với các trường cần cập nhật.")
         .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
         {
             Parameters = new List<Microsoft.OpenApi.Models.OpenApiParameter>
@@ -516,12 +425,6 @@ public static class HotelRoomEndpoints
                             Type = "object",
                             Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
                             {
-                                ["roomId"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Format = "uuid",
-                                    Description = "ID của phòng cần cập nhật"
-                                },
                                 ["roomName"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
@@ -549,19 +452,15 @@ public static class HotelRoomEndpoints
                                     Format = "int32",
                                     Description = "Số người tối đa (1-20)"
                                 },
-                                ["imageAction"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                ["existingImageIds"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
                                     Type = "string",
-                                    Description = "Hành động với ảnh cũ (BẮT BUỘC khi upload files):\n" +
-                                                 "• keep: Giữ ảnh cũ + thêm ảnh mới\n" +
-                                                 "• replace: Xóa ảnh cũ + thay thế bằng ảnh mới",
-                                    Default = new Microsoft.OpenApi.Any.OpenApiString("keep"),
-                                    Example = new Microsoft.OpenApi.Any.OpenApiString("replace"),
-                                    Enum = new List<Microsoft.OpenApi.Any.IOpenApiAny>
-                                    {
-                                        new Microsoft.OpenApi.Any.OpenApiString("keep"),
-                                        new Microsoft.OpenApi.Any.OpenApiString("replace")
-                                    }
+                                    Description = "IDs của ảnh muốn giữ lại (cách nhau bởi dấu phẩy), ví dụ: '1,2,3'"
+                                },
+                                ["deleteImageIds"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "string",
+                                    Description = "IDs của ảnh muốn xóa (cách nhau bởi dấu phẩy), ví dụ: '4,5'"
                                 },
                                 ["files"] = new Microsoft.OpenApi.Models.OpenApiSchema
                                 {
@@ -616,7 +515,7 @@ public static class HotelRoomEndpoints
                 }
             }
         })
-        .Produces<UpdateRoomWithImagesResponseDTO>(200)
+        .Produces<RoomImageUpdateResponseDTO>(200)
         .Produces(400)
         .Produces(401)
         .Produces(403)
@@ -767,5 +666,282 @@ public static class HotelRoomEndpoints
             return false;
             
         return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Helper method để xử lý ảnh mới cho room (POST endpoint)
+    private static async Task<RoomImageUpdateResponseDTO> ProcessNewRoomImagesAsync(
+        Guid roomId, 
+        IFormFileCollection files, 
+        ICloudinaryService cloudinaryService, 
+        HttpContext context)
+    {
+        var response = new RoomImageUpdateResponseDTO();
+        var newImageUrls = new List<string>();
+        var failedUploads = new List<string>();
+
+        using var scope = context.RequestServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        try
+        {
+            // Xử lý NewImages (upload ảnh mới)
+            if (files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        if (!IsImageContentType(file.ContentType))
+                        {
+                            failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                            continue;
+                        }
+
+                        if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                        {
+                            failedUploads.Add($"{file.FileName} (quá lớn)");
+                            continue;
+                        }
+
+                        // Upload lên Cloudinary
+                        var imageUrl = await cloudinaryService.UploadImageAsync(file, "rooms");
+                        
+                        // Lưu vào database
+                        var image = new Image
+                        {
+                            TableType = TableTypeImage.RoomHotel,
+                            TypeID = roomId,
+                            URL = imageUrl,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        dbContext.Images.Add(image);
+                        newImageUrls.Add(imageUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                        failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                    }
+                }
+
+                response.NewImageCount = newImageUrls.Count;
+            }
+
+            // Lưu tất cả thay đổi vào database
+            await dbContext.SaveChangesAsync();
+
+            // Cập nhật response
+            response.NewImageUrls = newImageUrls;
+            response.UploadedImageUrls = newImageUrls; // Backward compatibility
+            response.FailedUploads = failedUploads;
+            response.FailedImageCount = failedUploads.Count;
+            response.SuccessImageCount = newImageUrls.Count; // Backward compatibility
+            response.TotalImageCount = newImageUrls.Count;
+
+            // Tạo message
+            if (response.NewImageCount > 0)
+            {
+                response.Message = $"Upload thành công {response.NewImageCount} ảnh mới.";
+            }
+            else
+            {
+                response.Message = "Không có ảnh nào được upload.";
+            }
+
+            if (response.FailedImageCount > 0)
+            {
+                response.Message += $" {response.FailedImageCount} ảnh upload thất bại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in ProcessNewRoomImagesAsync: {ex.Message}");
+            response.Message = $"Có lỗi xảy ra khi upload ảnh: {ex.Message}";
+        }
+
+        return response;
+    }
+
+    // Helper method để xử lý ảnh theo logic mới cho room (PUT endpoint)
+    private static async Task<RoomImageUpdateResponseDTO> ProcessRoomImagesAsync(
+        Guid roomId, 
+        RoomImageUpdateDTO imageUpdateDto, 
+        IFormFileCollection files, 
+        ICloudinaryService cloudinaryService, 
+        HttpContext context)
+    {
+        var response = new RoomImageUpdateResponseDTO();
+        var existingImageUrls = new List<string>();
+        var newImageUrls = new List<string>();
+        var deletedImageUrls = new List<string>();
+        var failedUploads = new List<string>();
+
+        using var scope = context.RequestServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        try
+        {
+            // 1. Lấy danh sách ảnh hiện tại của room
+            var currentImages = await dbContext.Images
+                .Where(img => img.TableType == TableTypeImage.RoomHotel && img.TypeID == roomId)
+                .ToListAsync();
+
+            // 2. Xử lý ExistingImages (giữ lại ảnh được chỉ định)
+            if (imageUpdateDto.ExistingImageIds != null && imageUpdateDto.ExistingImageIds.Any())
+            {
+                var existingImages = currentImages
+                    .Where(img => imageUpdateDto.ExistingImageIds.Contains(img.ImgID))
+                    .ToList();
+                
+                existingImageUrls = existingImages.Select(img => img.URL).ToList();
+                response.ExistingImageCount = existingImages.Count;
+            }
+            else
+            {
+                // Nếu không chỉ định ExistingImages, giữ tất cả ảnh cũ
+                existingImageUrls = currentImages.Select(img => img.URL).ToList();
+                response.ExistingImageCount = currentImages.Count;
+            }
+
+            // 3. Xử lý DeleteImages (xóa ảnh được chỉ định)
+            if (imageUpdateDto.DeleteImageIds != null && imageUpdateDto.DeleteImageIds.Any())
+            {
+                var imagesToDelete = currentImages
+                    .Where(img => imageUpdateDto.DeleteImageIds.Contains(img.ImgID))
+                    .ToList();
+
+                foreach (var image in imagesToDelete)
+                {
+                    try
+                    {
+                        // Xóa từ Cloudinary
+                        var publicId = ExtractPublicIdFromUrl(image.URL);
+                        if (!string.IsNullOrEmpty(publicId))
+                        {
+                            await cloudinaryService.DeleteImageAsync(publicId);
+                        }
+
+                        // Xóa từ database
+                        dbContext.Images.Remove(image);
+                        deletedImageUrls.Add(image.URL);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to delete image {image.URL}: {ex.Message}");
+                        failedUploads.Add($"Xóa ảnh {image.URL} thất bại: {ex.Message}");
+                    }
+                }
+
+                response.DeletedImageCount = deletedImageUrls.Count;
+            }
+
+            // 4. Xử lý NewImages (upload ảnh mới)
+            if (files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        if (!IsImageContentType(file.ContentType))
+                        {
+                            failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                            continue;
+                        }
+
+                        if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                        {
+                            failedUploads.Add($"{file.FileName} (quá lớn)");
+                            continue;
+                        }
+
+                        // Upload lên Cloudinary
+                        var imageUrl = await cloudinaryService.UploadImageAsync(file, "rooms");
+                        
+                        // Lưu vào database
+                        var image = new Image
+                        {
+                            TableType = TableTypeImage.RoomHotel,
+                            TypeID = roomId,
+                            URL = imageUrl,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        dbContext.Images.Add(image);
+                        newImageUrls.Add(imageUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                        failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                    }
+                }
+
+                response.NewImageCount = newImageUrls.Count;
+            }
+
+            // 5. Lưu tất cả thay đổi vào database
+            await dbContext.SaveChangesAsync();
+
+            // 6. Cập nhật response
+            response.ExistingImageUrls = existingImageUrls;
+            response.NewImageUrls = newImageUrls;
+            response.UploadedImageUrls = newImageUrls; // Backward compatibility
+            response.DeletedImageUrls = deletedImageUrls;
+            response.FailedUploads = failedUploads;
+            response.FailedImageCount = failedUploads.Count;
+            response.SuccessImageCount = newImageUrls.Count; // Backward compatibility
+            response.TotalImageCount = existingImageUrls.Count + newImageUrls.Count;
+
+            // 7. Tạo message
+            var messageParts = new List<string>();
+            if (response.ExistingImageCount > 0)
+                messageParts.Add($"Giữ lại {response.ExistingImageCount} ảnh cũ");
+            if (response.NewImageCount > 0)
+                messageParts.Add($"Thêm {response.NewImageCount} ảnh mới");
+            if (response.DeletedImageCount > 0)
+                messageParts.Add($"Xóa {response.DeletedImageCount} ảnh cũ");
+
+            response.Message = messageParts.Any() 
+                ? $"Cập nhật ảnh phòng thành công. {string.Join(", ", messageParts)}."
+                : "Cập nhật ảnh phòng thành công (không có thay đổi).";
+
+            if (response.FailedImageCount > 0)
+            {
+                response.Message += $" {response.FailedImageCount} ảnh xử lý thất bại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in ProcessRoomImagesAsync: {ex.Message}");
+            response.Message = $"Có lỗi xảy ra khi xử lý ảnh: {ex.Message}";
+        }
+
+        return response;
+    }
+
+    // Helper method để extract public ID từ Cloudinary URL
+    private static string ExtractPublicIdFromUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            var path = uri.AbsolutePath;
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            
+            if (segments.Length >= 2)
+            {
+                // Cloudinary URL format: /v1234567890/folder/public_id.extension
+                var publicIdWithExtension = segments[^1]; // Lấy phần cuối cùng
+                var publicId = Path.GetFileNameWithoutExtension(publicIdWithExtension);
+                return publicId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error extracting public ID from URL {url}: {ex.Message}");
+        }
+        
+        return string.Empty;
     }
 }

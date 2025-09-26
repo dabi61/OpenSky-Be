@@ -97,10 +97,14 @@ namespace BE_OPENSKY.Services
             if (tour == null)
                 return null;
 
-            // Lấy ảnh của tour
+            // Lấy ảnh của tour với cả ID và URL
             var images = await _context.Images
                 .Where(i => i.TableType == TableTypeImage.Tour && i.TypeID == tourId)
-                .Select(i => i.URL)
+                .Select(i => new TourImageDTO
+                {
+                    ImageId = i.ImgID,
+                    ImageUrl = i.URL
+                })
                 .ToListAsync();
 
             return new TourResponseDTO

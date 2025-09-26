@@ -23,45 +23,6 @@ namespace BE_OPENSKY.DTOs
         public decimal? Longitude { get; set; }
     }
 
-    // DTO cho cập nhật thông tin khách sạn với ảnh (multipart/form-data)
-    public class UpdateHotelWithImagesDTO
-    {
-        [Required]
-        public Guid HotelId { get; set; }
-        
-        [StringLength(200, ErrorMessage = "Tên khách sạn không được quá 200 ký tự")]
-        public string? HotelName { get; set; }
-        
-        [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
-        public string? Description { get; set; }
-        
-        [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
-        public string? Address { get; set; }
-        
-        [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
-        public string? Province { get; set; }
-        
-        public decimal? Latitude { get; set; }
-        public decimal? Longitude { get; set; }
-        
-        [StringLength(10, ErrorMessage = "ImageAction không được quá 10 ký tự")]
-        public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
-        // Files sẽ được xử lý từ form.Files
-    }
-
-    // DTO phản hồi khi cập nhật khách sạn với ảnh
-    public class UpdateHotelWithImagesResponseDTO
-    {
-        public string Message { get; set; } = string.Empty;
-        public List<string> UploadedImageUrls { get; set; } = new();
-        public List<string> FailedUploads { get; set; } = new();
-        public List<string> DeletedImageUrls { get; set; } = new(); // Ảnh đã xóa
-        public int SuccessImageCount { get; set; }
-        public int FailedImageCount { get; set; }
-        public int DeletedImageCount { get; set; }
-        public string ImageAction { get; set; } = "keep"; // Hành động đã thực hiện
-    }
-
     // DTO cho phản hồi chi tiết khách sạn
     public class HotelDetailResponseDTO
     {
@@ -169,37 +130,12 @@ namespace BE_OPENSKY.DTOs
         public int? MaxPeople { get; set; }
     }
 
-    // DTO cho cập nhật thông tin phòng với ảnh (multipart/form-data)
-    public class UpdateRoomWithImagesDTO
-    {
-        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
-        public string? RoomName { get; set; }
-        
-        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
-        public string? RoomType { get; set; }
-        
-        [StringLength(500, ErrorMessage = "Địa chỉ phòng không được quá 500 ký tự")]
-        public string? Address { get; set; }
-        
-        public decimal? Price { get; set; }
-        public int? MaxPeople { get; set; }
-        
-        [StringLength(10, ErrorMessage = "ImageAction không được quá 10 ký tự")]
-        public string? ImageAction { get; set; } = "keep"; // "keep", "replace"
-        // Files sẽ được xử lý từ form.Files
-    }
 
-    // DTO phản hồi khi cập nhật phòng với ảnh
-    public class UpdateRoomWithImagesResponseDTO
+    // DTO cho thông tin ảnh phòng
+    public class RoomImageDTO
     {
-        public string Message { get; set; } = string.Empty;
-        public List<string> UploadedImageUrls { get; set; } = new();
-        public List<string> FailedUploads { get; set; } = new();
-        public List<string> DeletedImageUrls { get; set; } = new(); // Ảnh đã xóa
-        public int SuccessImageCount { get; set; }
-        public int FailedImageCount { get; set; }
-        public int DeletedImageCount { get; set; }
-        public string ImageAction { get; set; } = "keep"; // Hành động đã thực hiện
+        public int ImageId { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
     }
 
     // DTO cho phản hồi chi tiết phòng
@@ -216,7 +152,7 @@ namespace BE_OPENSKY.DTOs
         public string Status { get; set; } = string.Empty; // Trạng thái phòng
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public List<string> Images { get; set; } = new(); // URLs của ảnh phòng
+        public List<RoomImageDTO> Images { get; set; } = new(); // Ảnh phòng với ID và URL
     }
 
     // DTO cho upload ảnh trong Swagger UI
@@ -378,5 +314,94 @@ namespace BE_OPENSKY.DTOs
 
         [Range(1, 20, ErrorMessage = "Số lượng người phải từ 1 đến 20")]
         public int? MaxPeople { get; set; }
+    }
+
+    // DTO cho xử lý ảnh theo cách mới (ExistingImages, NewImages, DeleteImages)
+    public class HotelImageUpdateDTO
+    {
+        [Required]
+        public Guid HotelId { get; set; }
+        
+        [StringLength(200, ErrorMessage = "Tên khách sạn không được quá 200 ký tự")]
+        public string? HotelName { get; set; }
+        
+        [StringLength(2000, ErrorMessage = "Mô tả không được quá 2000 ký tự")]
+        public string? Description { get; set; }
+        
+        [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
+        public string? Address { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Tỉnh/Thành phố không được quá 100 ký tự")]
+        public string? Province { get; set; }
+        
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        
+        // ExistingImages: Giữ nguyên các ảnh không muốn xóa (IDs của ảnh hiện tại)
+        public List<int>? ExistingImageIds { get; set; } = new();
+        
+        // NewImages: Thêm ảnh mới (sẽ được xử lý từ form.Files)
+        // DeleteImages: Xóa ảnh (IDs của ảnh cần xóa)
+        public List<int>? DeleteImageIds { get; set; } = new();
+    }
+
+    // DTO phản hồi cho việc cập nhật ảnh theo cách mới
+    public class HotelImageUpdateResponseDTO
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<string> ExistingImageUrls { get; set; } = new(); // Ảnh được giữ lại
+        public List<string> NewImageUrls { get; set; } = new(); // Ảnh mới được thêm
+        public List<string> DeletedImageUrls { get; set; } = new(); // Ảnh đã xóa
+        public List<string> FailedUploads { get; set; } = new(); // Ảnh upload thất bại
+        public int ExistingImageCount { get; set; }
+        public int NewImageCount { get; set; }
+        public int DeletedImageCount { get; set; }
+        public int FailedImageCount { get; set; }
+        public int TotalImageCount { get; set; } // Tổng số ảnh sau khi cập nhật
+    }
+
+    // DTO tương tự cho Room
+    public class RoomImageUpdateDTO
+    {
+        [Required]
+        public Guid RoomId { get; set; }
+        
+        [StringLength(200, ErrorMessage = "Tên phòng không được quá 200 ký tự")]
+        public string? RoomName { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Loại phòng không được quá 100 ký tự")]
+        public string? RoomType { get; set; }
+        
+        [StringLength(500, ErrorMessage = "Địa chỉ không được quá 500 ký tự")]
+        public string? Address { get; set; }
+        
+        public decimal? Price { get; set; }
+        public int? MaxPeople { get; set; }
+        
+        // ExistingImages: Giữ nguyên các ảnh không muốn xóa
+        public List<int>? ExistingImageIds { get; set; } = new();
+        
+        // DeleteImages: Xóa ảnh
+        public List<int>? DeleteImageIds { get; set; } = new();
+    }
+
+    // DTO phản hồi cho việc cập nhật ảnh phòng theo cách mới
+    public class RoomImageUpdateResponseDTO
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<string> ExistingImageUrls { get; set; } = new();
+        public List<string> NewImageUrls { get; set; } = new();
+        public List<string> DeletedImageUrls { get; set; } = new();
+        public List<string> FailedUploads { get; set; } = new();
+        public int ExistingImageCount { get; set; }
+        public int NewImageCount { get; set; }
+        public int DeletedImageCount { get; set; }
+        public int FailedImageCount { get; set; }
+        public int TotalImageCount { get; set; }
+        
+        // Properties cho backward compatibility với code cũ
+        public List<string> UploadedImageUrls { get; set; } = new();
+        public int SuccessImageCount { get; set; }
+        public string ImageAction { get; set; } = "keep";
     }
 }

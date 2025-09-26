@@ -38,13 +38,13 @@ namespace BE_OPENSKY.Services
         {
             var voucher = await _context.Vouchers
                 .Include(v => v.UserVouchers)
-                .FirstOrDefaultAsync(v => v.VoucherID == voucherId);
+                .FirstOrDefaultAsync(v => v.VoucherID == voucherId && !v.IsDeleted);
 
             if (voucher == null) return null;
 
             var usedCount = voucher.UserVouchers.Count(uv => uv.IsUsed);
             var isExpired = DateTime.UtcNow > voucher.EndDate;
-            var isAvailable = !isExpired; // Không xét MaxUsage từ API
+            var isAvailable = !isExpired; // Chỉ dựa vào thời gian
 
             return new VoucherResponseDTO
             {
@@ -55,7 +55,7 @@ namespace BE_OPENSKY.Services
                 StartDate = voucher.StartDate,
                 EndDate = voucher.EndDate,
                 Description = voucher.Description,
-                // MaxUsage bỏ khỏi response API,
+                IsDeleted = voucher.IsDeleted,
                 UsedCount = usedCount,
                 IsExpired = isExpired,
                 IsAvailable = isAvailable
@@ -66,6 +66,7 @@ namespace BE_OPENSKY.Services
         {
             var query = _context.Vouchers
                 .Include(v => v.UserVouchers)
+                .Where(v => !v.IsDeleted)
                 .OrderByDescending(v => v.StartDate);
 
             var totalCount = await query.CountAsync();
@@ -83,10 +84,10 @@ namespace BE_OPENSKY.Services
                     StartDate = v.StartDate,
                     EndDate = v.EndDate,
                     Description = v.Description,
-                    // MaxUsage bỏ khỏi response API,
+                    IsDeleted = v.IsDeleted,
                     UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
                     IsExpired = DateTime.UtcNow > v.EndDate,
-                    IsAvailable = !(DateTime.UtcNow > v.EndDate) && v.UserVouchers.Count(uv => uv.IsUsed) < v.MaxUsage
+                    IsAvailable = !(DateTime.UtcNow > v.EndDate)
                 })
                 .ToListAsync();
 
@@ -122,10 +123,10 @@ namespace BE_OPENSKY.Services
                     StartDate = v.StartDate,
                     EndDate = v.EndDate,
                     Description = v.Description,
-                    // MaxUsage bỏ khỏi response API,
+                    IsDeleted = v.IsDeleted,
                     UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
                     IsExpired = DateTime.UtcNow > v.EndDate,
-                    IsAvailable = !(DateTime.UtcNow > v.EndDate) && v.UserVouchers.Count(uv => uv.IsUsed) < v.MaxUsage
+                    IsAvailable = !(DateTime.UtcNow > v.EndDate)
                 })
                 .ToListAsync();
 
@@ -144,7 +145,7 @@ namespace BE_OPENSKY.Services
             var now = DateTime.UtcNow;
             var query = _context.Vouchers
                 .Include(v => v.UserVouchers)
-                .Where(v => v.StartDate <= now && v.EndDate >= now)
+                .Where(v => !v.IsDeleted && v.StartDate <= now && v.EndDate >= now)
                 .OrderByDescending(v => v.StartDate);
 
             var totalCount = await query.CountAsync();
@@ -162,10 +163,10 @@ namespace BE_OPENSKY.Services
                     StartDate = v.StartDate,
                     EndDate = v.EndDate,
                     Description = v.Description,
-                    // MaxUsage bỏ khỏi response API,
+                    IsDeleted = v.IsDeleted,
                     UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
                     IsExpired = false,
-                    IsAvailable = v.UserVouchers.Count(uv => uv.IsUsed) < v.MaxUsage
+                    IsAvailable = true
                 })
                 .ToListAsync();
 
@@ -182,7 +183,7 @@ namespace BE_OPENSKY.Services
         public async Task<bool> UpdateVoucherAsync(Guid voucherId, UpdateVoucherDTO updateVoucherDto)
         {
             var voucher = await _context.Vouchers
-                .FirstOrDefaultAsync(v => v.VoucherID == voucherId);
+                .FirstOrDefaultAsync(v => v.VoucherID == voucherId && !v.IsDeleted);
 
             if (voucher == null) return false;
 
@@ -204,7 +205,6 @@ namespace BE_OPENSKY.Services
             if (updateVoucherDto.Description != null)
                 voucher.Description = updateVoucherDto.Description;
 
-            // Không cập nhật MaxUsage từ API
 
             await _context.SaveChangesAsync();
             return true;
@@ -213,11 +213,11 @@ namespace BE_OPENSKY.Services
         public async Task<bool> DeleteVoucherAsync(Guid voucherId)
         {
             var voucher = await _context.Vouchers
-                .FirstOrDefaultAsync(v => v.VoucherID == voucherId);
+                .FirstOrDefaultAsync(v => v.VoucherID == voucherId && !v.IsDeleted);
 
             if (voucher == null) return false;
 
-            _context.Vouchers.Remove(voucher);
+            voucher.IsDeleted = true;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -225,7 +225,7 @@ namespace BE_OPENSKY.Services
         public async Task<bool> IsVoucherCodeExistsAsync(string code)
         {
             return await _context.Vouchers
-                .AnyAsync(v => v.Code == code);
+                .AnyAsync(v => v.Code == code && !v.IsDeleted);
         }
     }
 }

@@ -242,8 +242,8 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization("AdminOnly");
 
-            // DELETE /vouchers/{id} - Xóa voucher (chỉ Admin)
-            group.MapDelete("/{id:guid}", async (
+            // PUT /vouchers/{id}/delete - Soft delete voucher (chỉ Admin)
+            group.MapPut("/{id:guid}/delete", async (
                 Guid id,
                 IVoucherService voucherService,
                 HttpContext context) =>
@@ -270,8 +270,8 @@ namespace BE_OPENSKY.Endpoints
                 }
             })
             .WithName("DeleteVoucher")
-            .WithSummary("Xóa voucher")
-            .WithDescription("Xóa voucher. Chỉ Admin mới được xóa voucher.")
+            .WithSummary("Xóa voucher (soft delete)")
+            .WithDescription("Xóa voucher (soft delete). Chỉ Admin mới được xóa voucher.")
             .Produces(200)
             .Produces(403)
             .Produces(404)

@@ -20,6 +20,8 @@ namespace BE_OPENSKY.Models
         [Required]
         public bool IsDeleted { get; set; } = false;
         
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
         // Navigation properties
         public virtual Tour Tour { get; set; } = null!;
         public virtual ICollection<ScheduleItinerary> ScheduleItineraries { get; set; } = new List<ScheduleItinerary>();

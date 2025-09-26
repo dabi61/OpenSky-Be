@@ -13,6 +13,8 @@ public class UpdateRoomStatusDTO
     public class RoomStatusResponseDTO
     {
         public Guid RoomID { get; set; }
+        public Guid HotelID { get; set; }
+        public string HotelName { get; set; } = string.Empty;
         public string RoomName { get; set; } = string.Empty;
         public string RoomType { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

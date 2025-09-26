@@ -204,7 +204,7 @@ public class UserService : IUserService
 
     public Task<User?> GetByEmailAsync(string email)
     {
-        return _context.Users.FirstOrDefaultAsync(u => u.Email == email)!;
+        return _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.Status != UserStatus.Banned)!;
     }
 
     public async Task<bool> ChangeUserRoleAsync(Guid userId, string newRole)
@@ -228,7 +228,7 @@ public class UserService : IUserService
 
     public async Task<List<UserResponseDTO>> GetUsersAsync(string? role = null)
     {
-        var query = _context.Users.AsQueryable();
+        var query = _context.Users.Where(u => u.Status != UserStatus.Banned).AsQueryable();
 
         // Lọc theo role nếu có
         if (!string.IsNullOrEmpty(role))
@@ -258,7 +258,7 @@ public class UserService : IUserService
         page = Math.Max(1, page);
         limit = Math.Max(1, Math.Min(100, limit));
 
-        var query = _context.Users.AsQueryable();
+        var query = _context.Users.Where(u => u.Status != UserStatus.Banned).AsQueryable();
 
         // Lọc theo nhiều roles
         if (roles != null && roles.Any())
@@ -310,7 +310,7 @@ public class UserService : IUserService
         page = Math.Max(1, page);
         limit = Math.Max(1, Math.Min(100, limit));
 
-        var query = _context.Users.AsQueryable();
+        var query = _context.Users.Where(u => u.Status != UserStatus.Banned).AsQueryable();
 
         // Lọc theo nhiều roles
         if (roles != null && roles.Any())
@@ -351,7 +351,7 @@ public class UserService : IUserService
 
     public async Task<ProfileResponseDTO?> GetProfileAsync(Guid userId)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserID == userId && u.Status != UserStatus.Banned);
         if (user == null)
             return null;
 
@@ -371,7 +371,7 @@ public class UserService : IUserService
 
     public async Task<ProfileResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileDTO updateDto)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserID == userId && u.Status != UserStatus.Banned);
         if (user == null)
             throw new InvalidOperationException("Không tìm thấy tài khoản người dùng");
 
@@ -406,7 +406,7 @@ public class UserService : IUserService
 
     public async Task<ProfileResponseDTO> UpdateAvatarAsync(Guid userId, string avatarUrl)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserID == userId && u.Status != UserStatus.Banned);
         if (user == null)
             throw new InvalidOperationException("Không tìm thấy tài khoản người dùng");
 
@@ -437,7 +437,7 @@ public class UserService : IUserService
             if (string.IsNullOrWhiteSpace(newPassword))
                 throw new ArgumentException("Mật khẩu mới không được để trống", nameof(newPassword));
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserID == userId && u.Status != UserStatus.Banned);
             if (user == null)
                 throw new InvalidOperationException("Không tìm thấy tài khoản người dùng");
 
@@ -456,7 +456,7 @@ public class UserService : IUserService
     // Admin methods
     public async Task<UserResponseDTO?> GetUserByIdAsync(Guid userId)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserID == userId && u.Status != UserStatus.Banned);
         if (user == null)
             return null;
 

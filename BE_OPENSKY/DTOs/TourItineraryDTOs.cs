@@ -29,5 +29,6 @@ namespace BE_OPENSKY.DTOs
         public string? Description { get; set; }
         public bool IsDeleted { get; set; }
         public string? TourName { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

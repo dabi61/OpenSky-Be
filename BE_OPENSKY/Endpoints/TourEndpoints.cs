@@ -225,8 +225,8 @@ public static class TourEndpoints
                 {
                     try
                     {
-                        var form = await context.Request.ReadFormAsync();
-                        
+                var form = await context.Request.ReadFormAsync();
+                
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("tourName") && !string.IsNullOrWhiteSpace(form["tourName"].FirstOrDefault()))
                             updateDto.TourName = form["tourName"].FirstOrDefault();
@@ -308,9 +308,9 @@ public static class TourEndpoints
                         var imageResponse = await ProcessTourImagesAsync(tourId, imageUpdateDto, form.Files, cloudinaryService, context);
 
                         return Results.Ok(imageResponse);
-                    }
-                    catch (Exception ex)
-                    {
+                        }
+                        catch (Exception ex)
+                        {
                         Console.WriteLine($"Multipart parsing failed: {ex.Message}");
                         return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
                     }

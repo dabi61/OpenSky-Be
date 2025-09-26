@@ -36,10 +36,10 @@ namespace BE_OPENSKY.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? Description { get; set; }
-        // MaxUsage removed from response DTO display
+        public bool IsDeleted { get; set; }
         public int UsedCount { get; set; } // Số lần đã sử dụng
         public bool IsExpired { get; set; } // Đã hết hạn chưa
-        public bool IsAvailable { get; set; } // Còn sử dụng được không
+        public bool IsAvailable { get; set; } // Còn sử dụng được không (chỉ dựa vào thời gian)
     }
 
     // DTO cho danh sách voucher có phân trang

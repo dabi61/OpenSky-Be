@@ -290,7 +290,10 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.StartDate).IsRequired(); // Ngày bắt đầu (bắt buộc)
                 entity.Property(e => e.EndDate).IsRequired(); // Ngày hết hạn (bắt buộc)
                 entity.Property(e => e.Description).HasMaxLength(1000); // Mô tả voucher
-                entity.Property(e => e.MaxUsage).IsRequired(); // Số lần sử dụng tối đa (bắt buộc)
+                entity.Property(e => e.IsDeleted).IsRequired(); // Soft delete (bắt buộc)
+
+                // Indexes for performance
+                entity.HasIndex(e => e.IsDeleted);
             });
 
             // UserVoucher - Cấu hình bảng voucher đã lưu của khách hàng

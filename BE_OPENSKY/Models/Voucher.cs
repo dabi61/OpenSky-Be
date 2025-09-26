@@ -10,7 +10,7 @@
         public DateTime StartDate { get; set; } // Ngày bắt đầu hiệu lực
         public DateTime EndDate { get; set; }   // Ngày hết hạn
         public string? Description { get; set; } // Mô tả voucher
-        public int MaxUsage { get; set; }       // Số lần sử dụng tối đa
+        public bool IsDeleted { get; set; } = false; // Soft delete
 
         // Thuộc tính điều hướng - Danh sách khách hàng đã lưu voucher này
         public ICollection<UserVoucher> UserVouchers { get; set; }

@@ -167,7 +167,7 @@ public class HotelService : IHotelService
     public async Task<List<PendingHotelResponseDTO>> GetUserHotelsAsync(Guid userId)
     {
         var userHotels = await _context.Hotels
-            .Where(h => h.UserID == userId)
+            .Where(h => h.UserID == userId && h.Status != HotelStatus.Removed)
             .OrderByDescending(h => h.CreatedAt)
             .Select(h => new PendingHotelResponseDTO
             {
@@ -211,7 +211,7 @@ public class HotelService : IHotelService
     {
         var hotel = await _context.Hotels
             .Include(h => h.User)
-            .FirstOrDefaultAsync(h => h.HotelID == hotelId);
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.Status != HotelStatus.Removed);
 
         if (hotel == null) return null;
 
@@ -327,7 +327,7 @@ public class HotelService : IHotelService
             
             var room = await _context.HotelRooms
                 .Include(r => r.Hotel)
-                .FirstOrDefaultAsync(r => r.RoomID == roomId);
+                .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Status != RoomStatus.Removed);
 
             if (room == null) 
             {
@@ -407,12 +407,12 @@ public class HotelService : IHotelService
 
     public async Task<PaginatedRoomsResponseDTO> GetHotelRoomsAsync(Guid hotelId, int page = 1, int limit = 10)
     {
-        var totalRooms = await _context.HotelRooms.CountAsync(r => r.HotelID == hotelId);
+        var totalRooms = await _context.HotelRooms.CountAsync(r => r.HotelID == hotelId && r.Status != RoomStatus.Removed);
         var totalPages = (int)Math.Ceiling((double)totalRooms / limit);
 
         var rooms = await _context.HotelRooms
             .Include(r => r.Hotel)
-            .Where(r => r.HotelID == hotelId)
+            .Where(r => r.HotelID == hotelId && r.Status != RoomStatus.Removed)
             .OrderBy(r => r.RoomName)
             .Skip((page - 1) * limit)
             .Take(limit)
@@ -653,6 +653,7 @@ public class HotelService : IHotelService
         }
 
         var rooms = await query
+            .Include(r => r.Hotel)
             .OrderBy(r => r.RoomName)
             .ToListAsync();
 
@@ -666,6 +667,8 @@ public class HotelService : IHotelService
             Rooms = rooms.Select(r => new RoomStatusResponseDTO
             {
                 RoomID = r.RoomID,
+                HotelID = r.HotelID,
+                HotelName = r.Hotel.HotelName,
                 RoomName = r.RoomName,
                 RoomType = r.RoomType,
                 Status = r.Status.ToString(),

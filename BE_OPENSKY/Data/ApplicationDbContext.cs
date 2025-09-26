@@ -207,19 +207,6 @@ namespace BE_OPENSKY.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // TourItinerary
-            modelBuilder.Entity<TourItinerary>(entity =>
-            {
-                entity.HasKey(e => e.ItineraryID);
-                entity.Property(e => e.Location).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.DayNumber).IsRequired();
-
-                entity.HasOne(e => e.Tour)
-                    .WithMany(e => e.TourItineraries)
-                    .HasForeignKey(e => e.TourID)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
 
             // ScheduleItinerary
             modelBuilder.Entity<ScheduleItinerary>(entity =>
@@ -377,11 +364,18 @@ namespace BE_OPENSKY.Data
                 entity.Property(e => e.DayNumber).IsRequired();
                 entity.Property(e => e.IsDeleted).IsRequired();
                 entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.CreatedAt).IsRequired();
+
+                entity.HasOne(e => e.Tour)
+                    .WithMany(e => e.TourItineraries)
+                    .HasForeignKey(e => e.TourID)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 // Indexes for performance
                 entity.HasIndex(e => e.TourID);
                 entity.HasIndex(e => e.DayNumber);
                 entity.HasIndex(e => e.IsDeleted);
+                entity.HasIndex(e => e.CreatedAt);
             });
 
             // ScheduleItinerary

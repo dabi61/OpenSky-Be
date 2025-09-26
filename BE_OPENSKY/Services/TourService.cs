@@ -92,7 +92,7 @@ namespace BE_OPENSKY.Services
             var tour = await _context.Tours
                 .Include(t => t.User)
                 .Include(t => t.TourItineraries)
-                .FirstOrDefaultAsync(t => t.TourID == tourId);
+                .FirstOrDefaultAsync(t => t.TourID == tourId && t.Status != TourStatus.Removed);
 
             if (tour == null)
                 return null;

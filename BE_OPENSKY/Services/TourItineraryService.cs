@@ -48,7 +48,8 @@ namespace BE_OPENSKY.Services
                 Location = tourItinerary.Location,
                 Description = tourItinerary.Description,
                 IsDeleted = tourItinerary.IsDeleted,
-                TourName = tourItinerary.Tour?.TourName
+                TourName = tourItinerary.Tour?.TourName,
+                CreatedAt = tourItinerary.CreatedAt
             };
         }
 
@@ -57,7 +58,7 @@ namespace BE_OPENSKY.Services
             var tourItineraries = await _context.TourItineraries
                 .Include(ti => ti.Tour)
                 .Where(ti => ti.TourID == tourId && !ti.IsDeleted)
-                .OrderBy(ti => ti.DayNumber)
+                .OrderBy(ti => ti.CreatedAt)
                 .Select(ti => new TourItineraryResponseDTO
                 {
                     ItineraryID = ti.ItineraryID,
@@ -66,7 +67,8 @@ namespace BE_OPENSKY.Services
                     Location = ti.Location,
                     Description = ti.Description,
                     IsDeleted = ti.IsDeleted,
-                    TourName = ti.Tour!.TourName
+                    TourName = ti.Tour!.TourName,
+                    CreatedAt = ti.CreatedAt
                 })
                 .ToListAsync();
 

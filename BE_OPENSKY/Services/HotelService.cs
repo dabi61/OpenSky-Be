@@ -215,11 +215,15 @@ public class HotelService : IHotelService
 
         if (hotel == null) return null;
 
-        // Get hotel images
+        // Get hotel images with both ID and URL
         var images = await _context.Images
             .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotelId)
             .OrderBy(i => i.CreatedAt)
-            .Select(i => i.URL)
+            .Select(i => new HotelImageDTO
+            {
+                ImageId = i.ImgID,
+                ImageUrl = i.URL
+            })
             .ToListAsync();
 
         return new HotelDetailResponseDTO

@@ -105,7 +105,8 @@ public static class ServiceExtensions
                     "https://localhost:3001",
                     "https://localhost:4200",
                     "https://localhost:5173",
-                    "https://localhost:8080"
+                    "https://localhost:8080",
+                    "https://opesky.vercel.app"          // Frontend production URL
                 )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
@@ -117,7 +118,7 @@ public static class ServiceExtensions
             options.AddPolicy("Production", policy =>
             {
                 policy.WithOrigins(
-                    "https://your-frontend-domain.com", // Thay bằng domain frontend thực tế
+                    "https://opesky.vercel.app",         // Frontend production URL
                     "http://localhost:3000",             // React dev server
                     "http://localhost:3001",             // Cổng thay thế
                     "http://localhost:4200",             // Angular dev server

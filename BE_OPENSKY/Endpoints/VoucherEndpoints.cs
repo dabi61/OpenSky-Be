@@ -152,6 +152,41 @@ namespace BE_OPENSKY.Endpoints
             .Produces(200)
             .Produces(500);
 
+            // GET /vouchers/active/not-saved?page=1&size=10 - Lấy voucher đang hoạt động chưa lưu bởi user hiện tại
+            group.MapGet("/active/not-saved", async (
+                IVoucherService voucherService,
+                HttpContext context,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
+                    }
+
+                    var result = await voucherService.GetActiveVouchersExcludingSavedByUserAsync(userId, page, size);
+
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { message = $"Lỗi khi lấy danh sách voucher đang hoạt động chưa lưu: {ex.Message}" }, statusCode: 500);
+                }
+            })
+            .WithName("GetActiveVouchersNotSaved")
+            .WithSummary("Lấy voucher đang hoạt động chưa lưu")
+            .WithDescription("Trả về danh sách voucher đang hoạt động ngoại trừ những voucher người dùng hiện tại đã lưu")
+            .Produces(200)
+            .Produces(401)
+            .Produces(500)
+            .RequireAuthorization("AuthenticatedOnly");
+
             // GET /vouchers/type/{tableType}?page=1&size=10 - Lấy voucher theo loại
             group.MapGet("/type/{tableType}", async (
                 TableType tableType,

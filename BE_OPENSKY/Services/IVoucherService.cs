@@ -9,6 +9,7 @@ namespace BE_OPENSKY.Services
         Task<VoucherListResponseDTO> GetVouchersAsync(int page = 1, int size = 10);
         Task<VoucherListResponseDTO> GetVouchersByTableTypeAsync(TableType tableType, int page = 1, int size = 10);
         Task<VoucherListResponseDTO> GetActiveVouchersAsync(int page = 1, int size = 10);
+        Task<VoucherListResponseDTO> GetActiveVouchersExcludingSavedByUserAsync(Guid userId, int page = 1, int size = 10);
         Task<bool> UpdateVoucherAsync(Guid voucherId, UpdateVoucherDTO updateVoucherDto);
         Task<bool> DeleteVoucherAsync(Guid voucherId);
         Task<bool> IsVoucherCodeExistsAsync(string code);

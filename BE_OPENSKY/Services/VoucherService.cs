@@ -180,6 +180,50 @@ namespace BE_OPENSKY.Services
             };
         }
 
+        public async Task<VoucherListResponseDTO> GetActiveVouchersExcludingSavedByUserAsync(Guid userId, int page = 1, int size = 10)
+        {
+            var now = DateTime.UtcNow;
+            var savedVoucherIdsQuery = _context.UserVouchers
+                .Where(uv => uv.UserID == userId)
+                .Select(uv => uv.VoucherID);
+
+            var query = _context.Vouchers
+                .Include(v => v.UserVouchers)
+                .Where(v => !v.IsDeleted && v.StartDate <= now && v.EndDate >= now && !savedVoucherIdsQuery.Contains(v.VoucherID))
+                .OrderByDescending(v => v.StartDate);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
+
+            var vouchers = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .Select(v => new VoucherResponseDTO
+                {
+                    VoucherID = v.VoucherID,
+                    Code = v.Code,
+                    Percent = v.Percent,
+                    TableType = v.TableType,
+                    StartDate = v.StartDate,
+                    EndDate = v.EndDate,
+                    Description = v.Description,
+                    IsDeleted = v.IsDeleted,
+                    UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
+                    IsExpired = false,
+                    IsAvailable = true
+                })
+                .ToListAsync();
+
+            return new VoucherListResponseDTO
+            {
+                Vouchers = vouchers,
+                TotalCount = totalCount,
+                Page = page,
+                Size = size,
+                TotalPages = totalPages
+            };
+        }
+
         public async Task<bool> UpdateVoucherAsync(Guid voucherId, UpdateVoucherDTO updateVoucherDto)
         {
             var voucher = await _context.Vouchers

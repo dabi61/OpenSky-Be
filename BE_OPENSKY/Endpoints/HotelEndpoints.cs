@@ -10,359 +10,6 @@ public static class HotelEndpoints
             .WithTags("Hotel")
             .WithOpenApi();
 
-        // 1. Cập nhật thông tin khách sạn với ảnh
-        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
-        {
-            try
-            {
-                // Lấy user ID từ JWT token
-                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                {
-                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
-                }
-
-                // Kiểm tra quyền Hotel
-                if (!context.User.IsInRole(RoleConstants.Hotel))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
-
-                // Khởi tạo UpdateHotelDTO
-                var updateDto = new UpdateHotelDTO();
-
-                // Xử lý multipart form data
-                if (context.Request.HasFormContentType)
-                {
-                    try
-                    {
-                        var form = await context.Request.ReadFormAsync();
-                        
-                        // Lấy thông tin text từ form
-                        if (form.ContainsKey("hotelName") && !string.IsNullOrWhiteSpace(form["hotelName"].FirstOrDefault()))
-                            updateDto.HotelName = form["hotelName"].FirstOrDefault();
-                        
-                        if (form.ContainsKey("description"))
-                            updateDto.Description = form["description"].FirstOrDefault();
-                        
-                        if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
-                            updateDto.Address = form["address"].FirstOrDefault();
-                        
-                        if (form.ContainsKey("province") && !string.IsNullOrWhiteSpace(form["province"].FirstOrDefault()))
-                            updateDto.Province = form["province"].FirstOrDefault();
-
-                        if (form.ContainsKey("latitude") && decimal.TryParse(form["latitude"].FirstOrDefault(), out var latitude))
-                        {
-                            if (latitude >= -90 && latitude <= 90)
-                                updateDto.Latitude = latitude;
-                            else
-                                return Results.BadRequest(new { message = "Vĩ độ phải từ -90 đến 90" });
-                        }
-
-                        if (form.ContainsKey("longitude") && decimal.TryParse(form["longitude"].FirstOrDefault(), out var longitude))
-                        {
-                            if (longitude >= -180 && longitude <= 180)
-                                updateDto.Longitude = longitude;
-                            else
-                                return Results.BadRequest(new { message = "Kinh độ phải từ -180 đến 180" });
-                        }
-
-                        // Lấy image action
-                        var imageAction = form["imageAction"].FirstOrDefault() ?? "keep";
-                        if (imageAction != "keep" && imageAction != "replace")
-                        {
-                            return Results.BadRequest(new { message = "ImageAction phải là: keep hoặc replace" });
-                        }
-
-                        // Xử lý ảnh cũ trước khi upload ảnh mới
-                        var deletedImageUrls = new List<string>();
-                        if (imageAction == "replace")
-                        {
-                            deletedImageUrls = await hotelService.DeleteHotelImagesAsync(hotelId, userId, imageAction);
-                        }
-
-                        // Cập nhật thông tin khách sạn
-                        var success = await hotelService.UpdateHotelAsync(hotelId, userId, updateDto);
-                        if (!success)
-                        {
-                            return Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc bạn không có quyền cập nhật" });
-                        }
-
-                        // Xử lý upload ảnh mới nếu có
-                        var uploadedImageUrls = new List<string>();
-                        var failedUploads = new List<string>();
-
-                        if (form.Files.Count > 0)
-                        {
-                            foreach (var file in form.Files)
-                            {
-                                try
-                                {
-                                    if (!IsImageContentType(file.ContentType))
-                                    {
-                                        failedUploads.Add($"{file.FileName} (không phải ảnh)");
-                                        continue;
-                                    }
-
-                                    if (file.Length > 5 * 1024 * 1024) // 5MB per file
-                                    {
-                                        failedUploads.Add($"{file.FileName} (quá lớn)");
-                                        continue;
-                                    }
-
-                                    // Upload lên Cloudinary
-                                    var imageUrl = await cloudinaryService.UploadImageAsync(file, "hotels");
-                                    
-                                    // Lưu vào database
-                                    var image = new Image
-                                    {
-                                        TableType = TableTypeImage.Hotel,
-                                        TypeID = hotelId,
-                                        URL = imageUrl,
-                                        CreatedAt = DateTime.UtcNow
-                                    };
-
-                                    using var scope = context.RequestServices.CreateScope();
-                                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                                    dbContext.Images.Add(image);
-                                    await dbContext.SaveChangesAsync();
-
-                                    uploadedImageUrls.Add(imageUrl);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
-                                    failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
-                                }
-                            }
-                        }
-
-                        // Tạo message dựa trên action
-                        string message;
-                        if (imageAction == "replace")
-                        {
-                            message = $"Cập nhật thông tin khách sạn thành công. Thay thế {deletedImageUrls.Count} ảnh cũ với {uploadedImageUrls.Count} ảnh mới.";
-                        }
-                        else // keep
-                        {
-                            message = uploadedImageUrls.Count > 0 
-                                ? $"Cập nhật thông tin khách sạn thành công. Thêm {uploadedImageUrls.Count} ảnh mới (giữ nguyên ảnh cũ)."
-                                : "Cập nhật thông tin khách sạn thành công (không có ảnh mới).";
-                        }
-
-                        var response = new UpdateHotelWithImagesResponseDTO
-                        {
-                            Message = message,
-                            UploadedImageUrls = uploadedImageUrls,
-                            FailedUploads = failedUploads,
-                            DeletedImageUrls = deletedImageUrls,
-                            SuccessImageCount = uploadedImageUrls.Count,
-                            FailedImageCount = failedUploads.Count,
-                            DeletedImageCount = deletedImageUrls.Count,
-                            ImageAction = imageAction
-                        };
-
-                        return Results.Ok(response);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Multipart parsing failed: {ex.Message}");
-                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
-                    }
-                }
-                else
-                {
-                    // Nếu không phải multipart, thử parse JSON
-                    try
-                    {
-                        context.Request.EnableBuffering();
-                        context.Request.Body.Position = 0;
-                        
-                        using var reader = new StreamReader(context.Request.Body);
-                        var jsonString = await reader.ReadToEndAsync();
-                        
-                        if (!string.IsNullOrEmpty(jsonString))
-                        {
-                            var updateHotelDto = System.Text.Json.JsonSerializer.Deserialize<UpdateHotelDTO>(jsonString);
-                            if (updateHotelDto == null)
-                                return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
-                            
-                            updateDto = updateHotelDto;
-                        }
-                        else
-                        {
-                            return Results.BadRequest(new { message = "Request body không được để trống" });
-                        }
-
-                        // Cập nhật thông tin khách sạn
-                        var success = await hotelService.UpdateHotelAsync(hotelId, userId, updateDto);
-                        
-                        return success 
-                            ? Results.Ok(new { message = "Cập nhật thông tin khách sạn thành công" })
-                            : Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc bạn không có quyền cập nhật" });
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"JSON parsing failed: {ex.Message}");
-                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu JSON" });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating hotel with images: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                
-                return Results.Problem(
-                    title: "Lỗi hệ thống",
-                    detail: $"Có lỗi xảy ra khi cập nhật thông tin khách sạn: {ex.Message}",
-                    statusCode: 500
-                );
-            }
-        })
-        .WithName("UpdateHotelWithImages")
-        .WithSummary("Cập nhật thông tin khách sạn với ảnh")
-        .WithDescription("Cập nhật thông tin khách sạn với ảnh. imageAction: files. keep: Giữ ảnh cũ + thêm ảnh mới • replace: Xóa ảnh cũ + thay thế bằng ảnh mới")
-        .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
-        {
-            Parameters = new List<Microsoft.OpenApi.Models.OpenApiParameter>
-            {
-                new Microsoft.OpenApi.Models.OpenApiParameter
-                {
-                    Name = "hotelId",
-                    In = Microsoft.OpenApi.Models.ParameterLocation.Path,
-                    Required = true,
-                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
-                    {
-                        Type = "string",
-                        Format = "uuid"
-                    }
-                }
-            },
-            RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
-            {
-                Content = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
-                {
-                    ["multipart/form-data"] = new Microsoft.OpenApi.Models.OpenApiMediaType
-                    {
-                        Schema = new Microsoft.OpenApi.Models.OpenApiSchema
-                        {
-                            Type = "object",
-                            Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
-                            {
-                                ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Tên khách sạn"
-                                },
-                                ["description"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Mô tả khách sạn"
-                                },
-                                ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Địa chỉ khách sạn"
-                                },
-                                ["province"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Tỉnh/Thành phố"
-                                },
-                                ["latitude"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "number",
-                                    Format = "decimal",
-                                    Description = "Vĩ độ (-90 đến 90)"
-                                },
-                                ["longitude"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "number",
-                                    Format = "decimal",
-                                    Description = "Kinh độ (-180 đến 180)"
-                                },
-                                ["imageAction"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Hành động với ảnh cũ (BẮT BUỘC khi upload files):\n" +
-                                                 "• keep: Giữ ảnh cũ + thêm ảnh mới\n" +
-                                                 "• replace: Xóa ảnh cũ + thay thế bằng ảnh mới",
-                                    Default = new Microsoft.OpenApi.Any.OpenApiString("keep"),
-                                    Example = new Microsoft.OpenApi.Any.OpenApiString("replace"),
-                                    Enum = new List<Microsoft.OpenApi.Any.IOpenApiAny>
-                                    {
-                                        new Microsoft.OpenApi.Any.OpenApiString("keep"),
-                                        new Microsoft.OpenApi.Any.OpenApiString("replace")
-                                    }
-                                },
-                                ["files"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "array",
-                                    Items = new Microsoft.OpenApi.Models.OpenApiSchema
-                                    {
-                                        Type = "string",
-                                        Format = "binary"
-                                    },
-                                    Description = "Danh sách ảnh khách sạn mới (JPEG, PNG, GIF, WebP, max 5MB/file)"
-                                }
-                            }
-                        }
-                    },
-                    ["application/json"] = new Microsoft.OpenApi.Models.OpenApiMediaType
-                    {
-                        Schema = new Microsoft.OpenApi.Models.OpenApiSchema
-                        {
-                            Type = "object",
-                            Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
-                            {
-                                ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Tên khách sạn"
-                                },
-                                ["description"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Mô tả khách sạn"
-                                },
-                                ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Địa chỉ khách sạn"
-                                },
-                                ["province"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "string",
-                                    Description = "Tỉnh/Thành phố"
-                                },
-                                ["latitude"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "number",
-                                    Format = "decimal",
-                                    Description = "Vĩ độ (-90 đến 90)"
-                                },
-                                ["longitude"] = new Microsoft.OpenApi.Models.OpenApiSchema
-                                {
-                                    Type = "number",
-                                    Format = "decimal",
-                                    Description = "Kinh độ (-180 đến 180)"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        })
-        .Produces<UpdateHotelWithImagesResponseDTO>(200)
-        .Produces(400)
-        .Produces(401)
-        .Produces(403)
-        .Produces(404)
-        .RequireAuthorization("HotelOnly");
-
-
-
         // 2. Tìm kiếm và lọc khách sạn (Public - không cần auth)
         hotelGroup.MapGet("/search", async (
             IHotelService hotelService,
@@ -520,65 +167,19 @@ public static class HotelEndpoints
                 // Tạo đơn đăng ký khách sạn
                 var hotelId = await hotelService.CreateHotelApplicationAsync(userId, applicationDto);
 
-                // Xử lý upload ảnh nếu có
-                var uploadedImageUrls = new List<string>();
-                var failedUploads = new List<string>();
-
-                if (form.Files.Count > 0)
-                {
-                    foreach (var file in form.Files)
-                    {
-                        try
-                        {
-                            if (!IsImageContentType(file.ContentType))
-                            {
-                                failedUploads.Add($"{file.FileName} (không phải ảnh)");
-                                continue;
-                            }
-
-                            if (file.Length > 5 * 1024 * 1024) // 5MB per file
-                            {
-                                failedUploads.Add($"{file.FileName} (quá lớn)");
-                                continue;
-                            }
-
-                            // Upload lên Cloudinary
-                            var imageUrl = await cloudinaryService.UploadImageAsync(file, "hotels");
-                            
-                            // Lưu vào database
-                            var image = new Image
-                            {
-                                TableType = TableTypeImage.Hotel,
-                                TypeID = hotelId,
-                                URL = imageUrl,
-                                CreatedAt = DateTime.UtcNow
-                            };
-
-                            using var scope = context.RequestServices.CreateScope();
-                            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            dbContext.Images.Add(image);
-                            await dbContext.SaveChangesAsync();
-
-                            uploadedImageUrls.Add(imageUrl);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
-                            failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
-                        }
-                    }
-                }
+                // Xử lý upload ảnh mới (NewImages) - sử dụng logic mới
+                var imageResponse = await ProcessNewHotelImagesAsync(hotelId, form.Files, cloudinaryService, context);
                 
                 var response = new HotelApplicationWithImagesResponseDTO
                 {
                     HotelID = hotelId,
-                    Message = uploadedImageUrls.Count > 0 
-                        ? $"Đơn đăng ký khách sạn đã được gửi thành công với {uploadedImageUrls.Count} ảnh. Vui lòng chờ Admin duyệt."
+                    Message = imageResponse.NewImageCount > 0 
+                        ? $"Đơn đăng ký khách sạn đã được gửi thành công với {imageResponse.NewImageCount} ảnh. Vui lòng chờ Admin duyệt."
                         : "Đơn đăng ký khách sạn đã được gửi thành công (không có ảnh). Vui lòng chờ Admin duyệt.",
-                    UploadedImageUrls = uploadedImageUrls,
-                    FailedUploads = failedUploads,
-                    SuccessImageCount = uploadedImageUrls.Count,
-                    FailedImageCount = failedUploads.Count,
+                    UploadedImageUrls = imageResponse.NewImageUrls,
+                    FailedUploads = imageResponse.FailedUploads,
+                    SuccessImageCount = imageResponse.NewImageCount,
+                    FailedImageCount = imageResponse.FailedImageCount,
                     Status = "Inactive"
                 };
 
@@ -1002,6 +603,197 @@ public static class HotelEndpoints
         .Produces(403)
         .Produces(404)
         .RequireAuthorization("SupervisorOrAdmin");
+
+        // 12. Cập nhật ảnh khách sạn theo cách mới (ExistingImages, NewImages, DeleteImages)
+        hotelGroup.MapPut("/{hotelId:guid}", async (Guid hotelId, HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>
+        {
+            try
+            {
+                // Lấy user ID từ JWT token
+                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                }
+
+                // Kiểm tra quyền Hotel
+                if (!context.User.IsInRole(RoleConstants.Hotel))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
+
+                // Khởi tạo HotelImageUpdateDTO
+                var imageUpdateDto = new HotelImageUpdateDTO { HotelId = hotelId };
+
+                // Xử lý multipart form data
+                if (context.Request.HasFormContentType)
+                {
+                    try
+                    {
+                        var form = await context.Request.ReadFormAsync();
+                        
+                        // Lấy thông tin text từ form
+                        if (form.ContainsKey("hotelName") && !string.IsNullOrWhiteSpace(form["hotelName"].FirstOrDefault()))
+                            imageUpdateDto.HotelName = form["hotelName"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("description"))
+                            imageUpdateDto.Description = form["description"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
+                            imageUpdateDto.Address = form["address"].FirstOrDefault();
+                        
+                        if (form.ContainsKey("province") && !string.IsNullOrWhiteSpace(form["province"].FirstOrDefault()))
+                            imageUpdateDto.Province = form["province"].FirstOrDefault();
+
+                        if (form.ContainsKey("latitude") && decimal.TryParse(form["latitude"].FirstOrDefault(), out var latitude))
+                        {
+                            if (latitude >= -90 && latitude <= 90)
+                                imageUpdateDto.Latitude = latitude;
+                            else
+                                return Results.BadRequest(new { message = "Vĩ độ phải từ -90 đến 90" });
+                        }
+
+                        if (form.ContainsKey("longitude") && decimal.TryParse(form["longitude"].FirstOrDefault(), out var longitude))
+                        {
+                            if (longitude >= -180 && longitude <= 180)
+                                imageUpdateDto.Longitude = longitude;
+                            else
+                                return Results.BadRequest(new { message = "Kinh độ phải từ -180 đến 180" });
+                        }
+
+                        // Lấy ExistingImageIds (IDs của ảnh muốn giữ lại)
+                        if (form.ContainsKey("existingImageIds"))
+                        {
+                            var existingIdsString = form["existingImageIds"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(existingIdsString))
+                            {
+                                var existingIds = existingIdsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(id => int.TryParse(id.Trim(), out _))
+                                    .Select(int.Parse)
+                                    .ToList();
+                                imageUpdateDto.ExistingImageIds = existingIds;
+                            }
+                        }
+
+                        // Lấy DeleteImageIds (IDs của ảnh muốn xóa)
+                        if (form.ContainsKey("deleteImageIds"))
+                        {
+                            var deleteIdsString = form["deleteImageIds"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(deleteIdsString))
+                            {
+                                var deleteIds = deleteIdsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(id => int.TryParse(id.Trim(), out _))
+                                    .Select(int.Parse)
+                                    .ToList();
+                                imageUpdateDto.DeleteImageIds = deleteIds;
+                            }
+                        }
+
+                        // Cập nhật thông tin khách sạn (nếu có)
+                        if (!string.IsNullOrEmpty(imageUpdateDto.HotelName) || 
+                            !string.IsNullOrEmpty(imageUpdateDto.Description) || 
+                            !string.IsNullOrEmpty(imageUpdateDto.Address) || 
+                            !string.IsNullOrEmpty(imageUpdateDto.Province) ||
+                            imageUpdateDto.Latitude.HasValue || 
+                            imageUpdateDto.Longitude.HasValue)
+                        {
+                            var updateDto = new UpdateHotelDTO
+                            {
+                                HotelName = imageUpdateDto.HotelName,
+                                Description = imageUpdateDto.Description,
+                                Address = imageUpdateDto.Address,
+                                Province = imageUpdateDto.Province,
+                                Latitude = imageUpdateDto.Latitude,
+                                Longitude = imageUpdateDto.Longitude
+                            };
+
+                            var success = await hotelService.UpdateHotelAsync(hotelId, userId, updateDto);
+                            if (!success)
+                            {
+                                return Results.NotFound(new { message = "Không tìm thấy khách sạn hoặc bạn không có quyền cập nhật" });
+                            }
+                        }
+
+                        // Xử lý ảnh theo logic mới
+                        var response = await ProcessHotelImagesAsync(hotelId, imageUpdateDto, form.Files, cloudinaryService, context);
+
+                        return Results.Ok(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Multipart parsing failed: {ex.Message}");
+                        return Results.BadRequest(new { message = "Lỗi khi xử lý dữ liệu form" });
+                    }
+                }
+                else
+                {
+                    return Results.BadRequest(new { message = "Chỉ hỗ trợ multipart/form-data cho endpoint này" });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating hotel images: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi cập nhật ảnh khách sạn: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("UpdateHotelImages")
+        .WithSummary("Cập nhật ảnh khách sạn theo cách mới")
+        .WithDescription("Cập nhật ảnh khách sạn với logic: ExistingImages (giữ lại), NewImages (thêm mới), DeleteImages (xóa bỏ)")
+        .WithOpenApi(operation => new Microsoft.OpenApi.Models.OpenApiOperation(operation)
+        {
+            Parameters = new List<Microsoft.OpenApi.Models.OpenApiParameter>
+            {
+                new Microsoft.OpenApi.Models.OpenApiParameter
+                {
+                    Name = "hotelId",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Path,
+                    Required = true,
+                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "string",
+                        Format = "uuid"
+                    }
+                }
+            },
+            RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
+            {
+                Content = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
+                {
+                    ["multipart/form-data"] = new Microsoft.OpenApi.Models.OpenApiMediaType
+                    {
+                        Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                            {
+                                ["hotelName"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" },
+                                ["description"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" },
+                                ["address"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" },
+                                ["province"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" },
+                                ["latitude"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "number", Format = "decimal" },
+                                ["longitude"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "number", Format = "decimal" },
+                                ["existingImageIds"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Description = "IDs của ảnh muốn giữ lại (phân cách bằng dấu phẩy)" },
+                                ["deleteImageIds"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Description = "IDs của ảnh muốn xóa (phân cách bằng dấu phẩy)" },
+                                ["files"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "array", Items = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Format = "binary" }, Description = "Ảnh mới cần upload" }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        .Produces<HotelImageUpdateResponseDTO>(200)
+        .Produces(400)
+        .Produces(401)
+        .Produces(403)
+        .Produces(404)
+        .Produces(500)
+        .RequireAuthorization("HotelOnly");
         }
 
         private static bool IsImageContentType(string? contentType)
@@ -1010,5 +802,278 @@ public static class HotelEndpoints
                 return false;
                 
             return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Helper method để xử lý ảnh theo logic mới
+        private static async Task<HotelImageUpdateResponseDTO> ProcessHotelImagesAsync(
+            Guid hotelId, 
+            HotelImageUpdateDTO imageUpdateDto, 
+            IFormFileCollection files, 
+            ICloudinaryService cloudinaryService, 
+            HttpContext context)
+        {
+            var response = new HotelImageUpdateResponseDTO();
+            var existingImageUrls = new List<string>();
+            var newImageUrls = new List<string>();
+            var deletedImageUrls = new List<string>();
+            var failedUploads = new List<string>();
+
+            using var scope = context.RequestServices.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            try
+            {
+                // 1. Lấy danh sách ảnh hiện tại của hotel
+                var currentImages = await dbContext.Images
+                    .Where(img => img.TableType == TableTypeImage.Hotel && img.TypeID == hotelId)
+                    .ToListAsync();
+
+                // 2. Xử lý ExistingImages (giữ lại ảnh được chỉ định)
+                if (imageUpdateDto.ExistingImageIds != null && imageUpdateDto.ExistingImageIds.Any())
+                {
+                    var existingImages = currentImages
+                        .Where(img => imageUpdateDto.ExistingImageIds.Contains(img.ImgID))
+                        .ToList();
+                    
+                    existingImageUrls = existingImages.Select(img => img.URL).ToList();
+                    response.ExistingImageCount = existingImages.Count;
+                }
+                else
+                {
+                    // Nếu không chỉ định ExistingImages, giữ tất cả ảnh cũ
+                    existingImageUrls = currentImages.Select(img => img.URL).ToList();
+                    response.ExistingImageCount = currentImages.Count;
+                }
+
+                // 3. Xử lý DeleteImages (xóa ảnh được chỉ định)
+                if (imageUpdateDto.DeleteImageIds != null && imageUpdateDto.DeleteImageIds.Any())
+                {
+                    var imagesToDelete = currentImages
+                        .Where(img => imageUpdateDto.DeleteImageIds.Contains(img.ImgID))
+                        .ToList();
+
+                    foreach (var image in imagesToDelete)
+                    {
+                        try
+                        {
+                            // Xóa từ Cloudinary
+                            var publicId = ExtractPublicIdFromUrl(image.URL);
+                            if (!string.IsNullOrEmpty(publicId))
+                            {
+                                await cloudinaryService.DeleteImageAsync(publicId);
+                            }
+
+                            // Xóa từ database
+                            dbContext.Images.Remove(image);
+                            deletedImageUrls.Add(image.URL);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to delete image {image.URL}: {ex.Message}");
+                            failedUploads.Add($"Xóa ảnh {image.URL} thất bại: {ex.Message}");
+                        }
+                    }
+
+                    response.DeletedImageCount = deletedImageUrls.Count;
+                }
+
+                // 4. Xử lý NewImages (upload ảnh mới)
+                if (files.Count > 0)
+                {
+                    foreach (var file in files)
+                    {
+                        try
+                        {
+                            if (!IsImageContentType(file.ContentType))
+                            {
+                                failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                                continue;
+                            }
+
+                            if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                            {
+                                failedUploads.Add($"{file.FileName} (quá lớn)");
+                                continue;
+                            }
+
+                            // Upload lên Cloudinary
+                            var imageUrl = await cloudinaryService.UploadImageAsync(file, "hotels");
+                            
+                            // Lưu vào database
+                            var image = new Image
+                            {
+                                TableType = TableTypeImage.Hotel,
+                                TypeID = hotelId,
+                                URL = imageUrl,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            dbContext.Images.Add(image);
+                            newImageUrls.Add(imageUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                            failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                        }
+                    }
+
+                    response.NewImageCount = newImageUrls.Count;
+                }
+
+                // 5. Lưu tất cả thay đổi vào database
+                await dbContext.SaveChangesAsync();
+
+                // 6. Cập nhật response
+                response.ExistingImageUrls = existingImageUrls;
+                response.NewImageUrls = newImageUrls;
+                response.DeletedImageUrls = deletedImageUrls;
+                response.FailedUploads = failedUploads;
+                response.FailedImageCount = failedUploads.Count;
+                response.TotalImageCount = existingImageUrls.Count + newImageUrls.Count;
+
+                // 7. Tạo message
+                var messageParts = new List<string>();
+                if (response.ExistingImageCount > 0)
+                    messageParts.Add($"Giữ lại {response.ExistingImageCount} ảnh cũ");
+                if (response.NewImageCount > 0)
+                    messageParts.Add($"Thêm {response.NewImageCount} ảnh mới");
+                if (response.DeletedImageCount > 0)
+                    messageParts.Add($"Xóa {response.DeletedImageCount} ảnh cũ");
+
+                response.Message = messageParts.Any() 
+                    ? $"Cập nhật ảnh khách sạn thành công. {string.Join(", ", messageParts)}."
+                    : "Cập nhật ảnh khách sạn thành công (không có thay đổi).";
+
+                if (response.FailedImageCount > 0)
+                {
+                    response.Message += $" {response.FailedImageCount} ảnh xử lý thất bại.";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ProcessHotelImagesAsync: {ex.Message}");
+                response.Message = $"Có lỗi xảy ra khi xử lý ảnh: {ex.Message}";
+            }
+
+            return response;
+        }
+
+        // Helper method để extract public ID từ Cloudinary URL
+        private static string ExtractPublicIdFromUrl(string url)
+        {
+            try
+            {
+                var uri = new Uri(url);
+                var path = uri.AbsolutePath;
+                var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                
+                if (segments.Length >= 2)
+                {
+                    // Cloudinary URL format: /v1234567890/folder/public_id.extension
+                    var publicIdWithExtension = segments[^1]; // Lấy phần cuối cùng
+                    var publicId = Path.GetFileNameWithoutExtension(publicIdWithExtension);
+                    return publicId;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error extracting public ID from URL {url}: {ex.Message}");
+            }
+            
+            return string.Empty;
+        }
+
+        // Helper method để xử lý ảnh mới cho hotel (POST endpoint)
+        private static async Task<HotelImageUpdateResponseDTO> ProcessNewHotelImagesAsync(
+            Guid hotelId, 
+            IFormFileCollection files, 
+            ICloudinaryService cloudinaryService, 
+            HttpContext context)
+        {
+            var response = new HotelImageUpdateResponseDTO();
+            var newImageUrls = new List<string>();
+            var failedUploads = new List<string>();
+
+            using var scope = context.RequestServices.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            try
+            {
+                // Xử lý NewImages (upload ảnh mới)
+                if (files.Count > 0)
+                {
+                    foreach (var file in files)
+                    {
+                        try
+                        {
+                            if (!IsImageContentType(file.ContentType))
+                            {
+                                failedUploads.Add($"{file.FileName} (không phải ảnh)");
+                                continue;
+                            }
+
+                            if (file.Length > 5 * 1024 * 1024) // 5MB per file
+                            {
+                                failedUploads.Add($"{file.FileName} (quá lớn)");
+                                continue;
+                            }
+
+                            // Upload lên Cloudinary
+                            var imageUrl = await cloudinaryService.UploadImageAsync(file, "hotels");
+                            
+                            // Lưu vào database
+                            var image = new Image
+                            {
+                                TableType = TableTypeImage.Hotel,
+                                TypeID = hotelId,
+                                URL = imageUrl,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            dbContext.Images.Add(image);
+                            newImageUrls.Add(imageUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to upload {file.FileName}: {ex.Message}");
+                            failedUploads.Add($"{file.FileName} (lỗi upload: {ex.Message})");
+                        }
+                    }
+
+                    response.NewImageCount = newImageUrls.Count;
+                }
+
+                // Lưu tất cả thay đổi vào database
+                await dbContext.SaveChangesAsync();
+
+                // Cập nhật response
+                response.NewImageUrls = newImageUrls;
+                response.FailedUploads = failedUploads;
+                response.FailedImageCount = failedUploads.Count;
+                response.TotalImageCount = newImageUrls.Count;
+
+                // Tạo message
+                if (response.NewImageCount > 0)
+                {
+                    response.Message = $"Upload thành công {response.NewImageCount} ảnh mới.";
+                }
+                else
+                {
+                    response.Message = "Không có ảnh nào được upload.";
+                }
+
+                if (response.FailedImageCount > 0)
+                {
+                    response.Message += $" {response.FailedImageCount} ảnh upload thất bại.";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ProcessNewHotelImagesAsync: {ex.Message}");
+                response.Message = $"Có lỗi xảy ra khi upload ảnh: {ex.Message}";
+            }
+
+            return response;
         }
     }

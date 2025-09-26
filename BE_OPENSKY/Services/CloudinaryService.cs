@@ -43,8 +43,6 @@ public class CloudinaryService : ICloudinaryService
             File = new FileDescription(file.FileName, stream),
             Folder = folder,
             Transformation = new Transformation()
-                .Width(400).Height(400)
-                .Crop("fill")
                 .Quality("auto")
                 .FetchFormat("auto"),
             PublicId = $"{folder}_{Guid.NewGuid()}"

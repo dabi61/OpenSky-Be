@@ -1,3 +1,6 @@
+using BE_OPENSKY.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace BE_OPENSKY.Endpoints;
 
 public static class UserEndpoints
@@ -405,11 +408,45 @@ public static class UserEndpoints
                     return Results.BadRequest(new { message = $"Role không hợp lệ: {createUserDto.Role}" });
                 }
 
-                // Parse DateOnly nếu có
+                // Parse DateOnly nếu có và validate ngày sinh
                 DateOnly? dob = null;
-                if (!string.IsNullOrWhiteSpace(createUserDto.dob) && DateOnly.TryParse(createUserDto.dob, out var parsedDob))
+                if (!string.IsNullOrWhiteSpace(createUserDto.dob))
                 {
-                    dob = parsedDob;
+                    if (DateOnly.TryParse(createUserDto.dob, out var parsedDob))
+                    {
+                        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                        if (parsedDob >= today)
+                        {
+                            return Results.BadRequest(new { message = "Ngày sinh phải nhỏ hơn ngày hiện tại" });
+                        }
+                        dob = parsedDob;
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { message = "Ngày sinh không hợp lệ" });
+                    }
+                }
+
+                // Kiểm tra trùng số điện thoại và CMND/CCCD
+                using var scope = context.RequestServices.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                if (!string.IsNullOrWhiteSpace(createUserDto.PhoneNumber))
+                {
+                    var existsPhone = await dbContext.Users.AnyAsync(u => u.PhoneNumber == createUserDto.PhoneNumber);
+                    if (existsPhone)
+                    {
+                        return Results.BadRequest(new { message = "Số điện thoại đã được sử dụng" });
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(createUserDto.CitizenId))
+                {
+                    var existsCid = await dbContext.Users.AnyAsync(u => u.CitizenId == createUserDto.CitizenId);
+                    if (existsCid)
+                    {
+                        return Results.BadRequest(new { message = "Số CMND/CCCD đã được sử dụng" });
+                    }
                 }
 
                 // Tạo DTO cho service

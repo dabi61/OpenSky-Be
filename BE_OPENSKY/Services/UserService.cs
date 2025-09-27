@@ -18,11 +18,17 @@ public class UserService : IUserService
 
     public async Task<UserResponseDTO> CreateGoogleUserAsync(GoogleUserRegisterDTO userDto)
     {
+        // Kiểm tra email phải kết thúc bằng @gmail.com
+        if (!userDto.Email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Email phải sử dụng @gmail.com");
+        }
+
         // Kiểm tra email đã tồn tại chưa
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         if (existingUser != null)
         {
-            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+            throw new ArgumentException("Email đã được sử dụng bởi tài khoản khác");
         }
 
         var user = new User
@@ -56,11 +62,17 @@ public class UserService : IUserService
 
     public async Task<UserResponseDTO> CreateWithRoleAsync(UserRegisterDTO userDto, string role)
     {
+        // Kiểm tra email phải kết thúc bằng @gmail.com
+        if (!userDto.Email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Email phải sử dụng @gmail.com");
+        }
+
         // Kiểm tra email đã tồn tại chưa
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         if (existingUser != null)
         {
-            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+            throw new ArgumentException("Email đã được sử dụng bởi tài khoản khác");
         }
 
         var user = new User
@@ -94,11 +106,17 @@ public class UserService : IUserService
 
     public async Task<UserResponseDTO> CreateAdminUserAsync(AdminCreateUserDTO userDto)
     {
+        // Kiểm tra email phải kết thúc bằng @gmail.com
+        if (!userDto.Email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Email phải sử dụng @gmail.com");
+        }
+
         // Kiểm tra email đã tồn tại chưa
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         if (existingUser != null)
         {
-            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+            throw new ArgumentException("Email đã được sử dụng bởi tài khoản khác");
         }
 
         var user = new User
@@ -136,11 +154,17 @@ public class UserService : IUserService
 
     public async Task<UserResponseDTO> CreateAdminUserWithAvatarAsync(AdminCreateUserDTO userDto, string? avatarUrl)
     {
+        // Kiểm tra email phải kết thúc bằng @gmail.com
+        if (!userDto.Email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Email phải sử dụng @gmail.com");
+        }
+
         // Kiểm tra email đã tồn tại chưa
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         if (existingUser != null)
         {
-            throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác");
+            throw new ArgumentException("Email đã được sử dụng bởi tài khoản khác");
         }
 
         var user = new User

@@ -427,9 +427,22 @@ public static class UserEndpoints
                     }
                 }
 
-                // Kiểm tra trùng số điện thoại và CMND/CCCD
+                // Kiểm tra trùng email, số điện thoại và CMND/CCCD
                 using var scope = context.RequestServices.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                // Kiểm tra email phải kết thúc bằng @gmail.com
+                if (!createUserDto.Email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Results.BadRequest(new { message = "Email phải sử dụng @gmail.com" });
+                }
+
+                // Kiểm tra email trùng lặp
+                var existsEmail = await dbContext.Users.AnyAsync(u => u.Email == createUserDto.Email);
+                if (existsEmail)
+                {
+                    return Results.BadRequest(new { message = "Email đã được sử dụng" });
+                }
 
                 if (!string.IsNullOrWhiteSpace(createUserDto.PhoneNumber))
                 {

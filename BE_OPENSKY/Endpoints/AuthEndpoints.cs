@@ -32,6 +32,12 @@ public static class AuthEndpoints
                 if (!IsValidEmail(userDto.Email))
                     return Results.BadRequest(new { message = "Email không hợp lệ" });
 
+                // Kiểm tra email phải kết thúc bằng @gmail.com
+                if (!userDto.Email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Results.BadRequest(new { message = "Email phải sử dụng @gmail.com" });
+                }
+
                 // Kiểm tra email đã tồn tại
                 var existsEmail = await dbContext.Users.AnyAsync(u => u.Email == userDto.Email);
                 if (existsEmail)

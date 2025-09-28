@@ -587,7 +587,15 @@ public class UserService : IUserService
         }
 
         if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
-            user.PhoneNumber = updateDto.PhoneNumber;
+        {
+            var phone = updateDto.PhoneNumber.Trim();
+            var isValidPhone = System.Text.RegularExpressions.Regex.IsMatch(phone, "^0(3[2-9]|5[6|8|9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$");
+            if (!isValidPhone)
+            {
+                throw new ArgumentException("Số điện thoại không hợp lệ. Số điện thoại phải bắt đầu bằng 0 và theo định dạng Việt Nam");
+            }
+            user.PhoneNumber = phone;
+        }
 
         if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
             user.CitizenId = updateDto.CitizenId;

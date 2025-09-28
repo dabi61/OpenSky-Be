@@ -11,35 +11,38 @@ erDiagram
         string Email UK
         string Password
         string FullName
+        string ProviderId
         string Role
+        UserStatus Status
         string PhoneNumber
         string CitizenId
+        DateOnly dob
         string AvatarURL
-        string UserStatus
         DateTime CreatedAt
-        DateTime UpdatedAt
     }
 
     Session {
         Guid SessionID PK
         Guid UserID FK
         string RefreshToken UK
-        DateTime ExpiresAt
-        bool IsActive
         DateTime CreatedAt
+        DateTime ExpiresAt
+        DateTime LastUsedAt
+        bool IsActive
     }
 
     Tour {
         Guid TourID PK
         Guid UserID FK
-        string Name
-        string Address
+        string TourName
         string Description
-        string Status
+        string Address
+        string Province
         int Star
         decimal Price
+        int MaxPeople
+        TourStatus Status
         DateTime CreatedAt
-        DateTime UpdatedAt
     }
 
     Hotel {
@@ -52,10 +55,9 @@ erDiagram
         decimal Longitude
         string HotelName
         string Description
-        string Status
+        HotelStatus Status
         int Star
         DateTime CreatedAt
-        DateTime UpdatedAt
     }
 
     HotelRoom {
@@ -66,10 +68,7 @@ erDiagram
         string Address
         decimal Price
         int MaxPeople
-        string Status
-        string RoomStatus
-        DateTime CreatedAt
-        DateTime UpdatedAt
+        RoomStatus Status
     }
 
     Message {
@@ -77,8 +76,8 @@ erDiagram
         Guid Sender FK
         Guid Receiver FK
         string MessageText
-        bool IsReaded
         DateTime CreatedAt
+        bool IsReaded
     }
 
     Booking {
@@ -88,7 +87,7 @@ erDiagram
         Guid TourID FK
         DateTime CheckInDate
         DateTime CheckOutDate
-        string Status
+        BookingStatus Status
         string Notes
         string PaymentMethod
         string PaymentStatus
@@ -104,7 +103,7 @@ erDiagram
         decimal Deposit
         decimal RefundPrice
         decimal TotalPrice
-        string Status
+        BillStatus Status
         DateTime CreatedAt
         DateTime UpdatedAt
     }
@@ -112,7 +111,7 @@ erDiagram
     BillDetail {
         Guid BillDetailID PK
         Guid BillID FK
-        string ItemType
+        TableType ItemType
         Guid ItemID
         Guid RoomID FK
         Guid ScheduleID FK
@@ -132,15 +131,19 @@ erDiagram
         DateTime StartTime
         DateTime EndTime
         int NumberPeople
+        int CurrentBookings
+        ScheduleStatus Status
         DateTime CreatedAt
     }
 
     TourItinerary {
         Guid ItineraryID PK
         Guid TourID FK
+        int DayNumber
         string Location
         string Description
-        int DayNumber
+        bool IsDeleted
+        DateTime CreatedAt
     }
 
     ScheduleItinerary {
@@ -154,9 +157,9 @@ erDiagram
     FeedBack {
         Guid FeedBackID PK
         Guid UserID FK
-        Guid TypeID
-        string TableType
-        string Rate
+        TableType TableType
+        Guid TableID
+        int Rate
         string Description
         DateTime CreatedAt
     }
@@ -165,6 +168,7 @@ erDiagram
         Guid RefundID PK
         Guid BillID FK
         string Description
+        RefundStatus Status
         DateTime CreatedAt
     }
 
@@ -176,9 +180,9 @@ erDiagram
     }
 
     Image {
-        Guid ImgID PK
+        int ImgID PK
+        TableTypeImage TableType
         Guid TypeID FK
-        string TableType
         string URL
         DateTime CreatedAt
     }
@@ -187,12 +191,11 @@ erDiagram
         Guid VoucherID PK
         string Code UK
         int Percent
-        string TableType
+        TableType TableType
         DateTime StartDate
         DateTime EndDate
         string Description
-        int MaxUsage
-        DateTime CreatedAt
+        bool IsDeleted
     }
 
     UserVoucher {
@@ -239,6 +242,7 @@ erDiagram
     Image }o--|| User : "user avatar"
     Image }o--|| Hotel : "hotel images"
     Image }o--|| HotelRoom : "room images"
+    Image }o--|| Tour : "tour images"
 ```
 
 Ghi chú: PK = Primary Key, FK = Foreign Key, UK = Unique Key

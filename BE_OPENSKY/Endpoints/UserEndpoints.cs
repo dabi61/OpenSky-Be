@@ -253,12 +253,11 @@ public static class UserEndpoints
                 // Validate định dạng: phoneNumber, citizenId, dob
                 if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
                 {
-                    // Cho phép 9-15 chữ số, có thể bắt đầu bằng +
                     var phone = updateDto.PhoneNumber.Trim();
-                    var isValidPhone = System.Text.RegularExpressions.Regex.IsMatch(phone, "^\\+?[0-9]{9,15}$");
+                    var isValidPhone = System.Text.RegularExpressions.Regex.IsMatch(phone, "^0(3[2-9]|5[6|8|9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$");
                     if (!isValidPhone)
                     {
-                        return Results.BadRequest(new { message = "Số điện thoại không hợp lệ" });
+                        return Results.BadRequest(new { message = "Số điện thoại không hợp lệ. Số điện thoại phải bắt đầu bằng 0 và theo định dạng Việt Nam" });
                     }
                 }
 
@@ -446,7 +445,14 @@ public static class UserEndpoints
 
                 if (!string.IsNullOrWhiteSpace(createUserDto.PhoneNumber))
                 {
-                    var existsPhone = await dbContext.Users.AnyAsync(u => u.PhoneNumber == createUserDto.PhoneNumber);
+                    var phone = createUserDto.PhoneNumber.Trim();
+                    var isValidPhone = System.Text.RegularExpressions.Regex.IsMatch(phone, "^0(3[2-9]|5[6|8|9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$");
+                    if (!isValidPhone)
+                    {
+                        return Results.BadRequest(new { message = "Số điện thoại không hợp lệ. Số điện thoại phải bắt đầu bằng 0 và theo định dạng Việt Nam" });
+                    }
+
+                    var existsPhone = await dbContext.Users.AnyAsync(u => u.PhoneNumber == phone);
                     if (existsPhone)
                     {
                         return Results.BadRequest(new { message = "Số điện thoại đã được sử dụng" });

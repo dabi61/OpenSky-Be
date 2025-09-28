@@ -268,7 +268,10 @@ public class UserService : IUserService
                 Email = u.Email,
                 FullName = u.FullName,
                 Role = u.Role,
+                Status = u.Status,
                 PhoneNumber = u.PhoneNumber,
+                CitizenId = u.CitizenId,
+                dob = u.dob,
                 AvatarURL = u.AvatarURL,
                 CreatedAt = u.CreatedAt
             })
@@ -312,7 +315,10 @@ public class UserService : IUserService
                 Email = u.Email,
                 FullName = u.FullName,
                 Role = u.Role,
+                Status = u.Status,
                 PhoneNumber = u.PhoneNumber,
+                CitizenId = u.CitizenId,
+                dob = u.dob,
                 AvatarURL = u.AvatarURL,
                 CreatedAt = u.CreatedAt
             })
@@ -355,7 +361,10 @@ public class UserService : IUserService
                 Email = u.Email,
                 FullName = u.FullName,
                 Role = u.Role,
+                Status = u.Status,
                 PhoneNumber = u.PhoneNumber,
+                CitizenId = u.CitizenId,
+                dob = u.dob,
                 AvatarURL = u.AvatarURL,
                 CreatedAt = u.CreatedAt
             })

@@ -363,8 +363,9 @@ namespace BE_OPENSKY.Services
                 UserInfo = new UserInfoDTO
                 {
                     UserID = refund.Bill.UserID,
-                    UserName = refund.Bill.User.FullName,
-                    Email = refund.Bill.User.Email
+                    Email = refund.Bill.User.Email,
+                    FullName = refund.Bill.User.FullName,
+                    PhoneNumber = refund.Bill.User.PhoneNumber
                 }
             };
         }

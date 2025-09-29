@@ -49,13 +49,31 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Số lượng người phải lớn hơn 0" }, statusCode: 400);
                     }
 
-                    // Kiểm tra TourGuideID có tồn tại và có role TourGuide không
+                    // Kiểm tra UserID có tồn tại và có role TourGuide không
                     var tourGuide = await dbContext.Users
-                        .FirstOrDefaultAsync(u => u.UserID == createScheduleDto.TourGuideID && u.Role == RoleConstants.TourGuide);
+                        .FirstOrDefaultAsync(u => u.UserID == createScheduleDto.UserID && u.Role == RoleConstants.TourGuide);
                     
                     if (tourGuide == null)
                     {
                         return Results.Json(new { message = "TourGuide không tồn tại hoặc không có quyền TourGuide" }, statusCode: 400);
+                    }
+
+                    // Kiểm tra xung đột thời gian - TourGuide đã có schedule khác trong khoảng thời gian này chưa
+                    var conflictingSchedule = await dbContext.Schedules
+                        .FirstOrDefaultAsync(s => s.UserID == createScheduleDto.UserID 
+                            && s.Status != ScheduleStatus.Removed
+                            && ((createScheduleDto.StartTime >= s.StartTime && createScheduleDto.StartTime < s.EndTime)
+                                || (createScheduleDto.EndTime > s.StartTime && createScheduleDto.EndTime <= s.EndTime)
+                                || (createScheduleDto.StartTime <= s.StartTime && createScheduleDto.EndTime >= s.EndTime)));
+
+                    if (conflictingSchedule != null)
+                    {
+                        return Results.Json(new { 
+                            message = $"TourGuide đang có schedule khác trong khoảng thời gian này. Vui lòng chọn thời gian khác.",
+                            conflictingScheduleId = conflictingSchedule.ScheduleID,
+                            conflictingStartTime = conflictingSchedule.StartTime,
+                            conflictingEndTime = conflictingSchedule.EndTime
+                        }, statusCode: 400);
                     }
 
                     var scheduleId = await scheduleService.CreateScheduleAsync(userId, createScheduleDto);
@@ -72,7 +90,7 @@ namespace BE_OPENSKY.Endpoints
             })
             .WithName("CreateSchedule")
             .WithSummary("Tạo schedule mới")
-            .WithDescription("Tạo schedule mới và phân công cho TourGuide. Chỉ Admin và Supervisor mới được tạo schedule. Cần cung cấp TourGuideID để phân công.")
+            .WithDescription("Tạo schedule mới và phân công cho TourGuide. Chỉ Admin và Supervisor mới được tạo schedule. Cần cung cấp UserID để phân công. Kiểm tra xung đột thời gian với schedule khác của TourGuide.")
             .Produces(201)
             .Produces(400)
             .Produces(401)
@@ -138,6 +156,7 @@ namespace BE_OPENSKY.Endpoints
                 Guid scheduleId,
                 UpdateScheduleDTO updateScheduleDto,
                 IScheduleService scheduleService,
+                ApplicationDbContext dbContext,
                 HttpContext context) =>
             {
                 try
@@ -171,6 +190,44 @@ namespace BE_OPENSKY.Endpoints
                         if (updateScheduleDto.StartTime.Value >= updateScheduleDto.EndTime.Value)
                         {
                             return Results.Json(new { message = "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc" }, statusCode: 400);
+                        }
+                    }
+
+                    if (updateScheduleDto.NumberPeople.HasValue && updateScheduleDto.NumberPeople.Value <= 0)
+                    {
+                        return Results.Json(new { message = "Số lượng người phải lớn hơn 0" }, statusCode: 400);
+                    }
+
+                    // Kiểm tra xung đột thời gian nếu có cập nhật thời gian
+                    if (updateScheduleDto.StartTime.HasValue || updateScheduleDto.EndTime.HasValue)
+                    {
+                        // Lấy thông tin schedule hiện tại để biết UserID
+                        var currentSchedule = await dbContext.Schedules
+                            .FirstOrDefaultAsync(s => s.ScheduleID == scheduleId && s.Status != ScheduleStatus.Removed);
+                        
+                        if (currentSchedule != null)
+                        {
+                            var startTime = updateScheduleDto.StartTime ?? currentSchedule.StartTime;
+                            var endTime = updateScheduleDto.EndTime ?? currentSchedule.EndTime;
+
+                            // Kiểm tra xung đột với schedule khác (trừ schedule hiện tại)
+                            var conflictingSchedule = await dbContext.Schedules
+                                .FirstOrDefaultAsync(s => s.UserID == currentSchedule.UserID 
+                                    && s.ScheduleID != scheduleId
+                                    && s.Status != ScheduleStatus.Removed
+                                    && ((startTime >= s.StartTime && startTime < s.EndTime)
+                                        || (endTime > s.StartTime && endTime <= s.EndTime)
+                                        || (startTime <= s.StartTime && endTime >= s.EndTime)));
+
+                            if (conflictingSchedule != null)
+                            {
+                                return Results.Json(new { 
+                                    message = $"TourGuide đang có schedule khác trong khoảng thời gian này. Vui lòng chọn thời gian khác.",
+                                    conflictingScheduleId = conflictingSchedule.ScheduleID,
+                                    conflictingStartTime = conflictingSchedule.StartTime,
+                                    conflictingEndTime = conflictingSchedule.EndTime
+                                }, statusCode: 400);
+                            }
                         }
                     }
 
@@ -222,7 +279,34 @@ namespace BE_OPENSKY.Endpoints
             })
             .WithName("GetSchedulesByTourId")
             .WithSummary("Lấy schedule theo tour")
-            .WithDescription("Lấy danh sách schedule theo tour ID có phân trang")
+            .WithDescription("Lấy danh sách schedule theo tour ID có phân trang (tất cả trừ trạng thái Removed)")
+            .Produces(200)
+            .Produces(500);
+
+            // GET /schedules/status/{status}?page=1&size=10 - Lấy schedule theo status
+            group.MapGet("/status/{status}", async (
+                ScheduleStatus status,
+                IScheduleService scheduleService,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    var result = await scheduleService.GetSchedulesByStatusAsync(status, page, size);
+
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { message = $"Lỗi khi lấy danh sách schedule theo status: {ex.Message}" }, statusCode: 500);
+                }
+            })
+            .WithName("GetSchedulesByStatus")
+            .WithSummary("Lấy schedule theo status")
+            .WithDescription("Lấy danh sách schedule theo status có phân trang")
             .Produces(200)
             .Produces(500);
 

@@ -21,7 +21,7 @@ namespace BE_OPENSKY.Services
             {
                 ScheduleID = Guid.NewGuid(),
                 TourID = createScheduleDto.TourID,
-                UserID = createScheduleDto.TourGuideID, // Sử dụng TourGuideID được phân công
+                UserID = createScheduleDto.UserID, // Sử dụng UserID được phân công
                 StartTime = createScheduleDto.StartTime,
                 EndTime = createScheduleDto.EndTime,
                 NumberPeople = createScheduleDto.NumberPeople,
@@ -55,7 +55,13 @@ namespace BE_OPENSKY.Services
                 Status = schedule.Status,
                 CreatedAt = schedule.CreatedAt,
                 TourName = schedule.Tour?.TourName,
-                UserName = schedule.User?.FullName
+                User = schedule.User != null ? new UserInfoDTO
+                {
+                    UserID = schedule.User.UserID,
+                    Email = schedule.User.Email,
+                    FullName = schedule.User.FullName,
+                    PhoneNumber = schedule.User.PhoneNumber
+                } : null
             };
         }
 
@@ -84,7 +90,13 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName,
+                    User = s.User != null ? new UserInfoDTO
+                    {
+                        UserID = s.User.UserID,
+                        Email = s.User.Email,
+                        FullName = s.User.FullName,
+                        PhoneNumber = s.User.PhoneNumber
+                    } : null,
                     RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();
@@ -124,7 +136,13 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName,
+                    User = s.User != null ? new UserInfoDTO
+                    {
+                        UserID = s.User.UserID,
+                        Email = s.User.Email,
+                        FullName = s.User.FullName,
+                        PhoneNumber = s.User.PhoneNumber
+                    } : null,
                     RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();
@@ -151,6 +169,9 @@ namespace BE_OPENSKY.Services
 
             if (updateScheduleDto.EndTime.HasValue)
                 schedule.EndTime = updateScheduleDto.EndTime.Value;
+
+            if (updateScheduleDto.NumberPeople.HasValue)
+                schedule.NumberPeople = updateScheduleDto.NumberPeople.Value;
 
             if (updateScheduleDto.Status.HasValue)
                 schedule.Status = updateScheduleDto.Status.Value;
@@ -196,7 +217,59 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName,
+                    User = s.User != null ? new UserInfoDTO
+                    {
+                        UserID = s.User.UserID,
+                        Email = s.User.Email,
+                        FullName = s.User.FullName,
+                        PhoneNumber = s.User.PhoneNumber
+                    } : null,
+                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                })
+                .ToListAsync();
+
+            return new ScheduleListResponseDTO
+            {
+                Schedules = schedules,
+                TotalCount = totalCount,
+                Page = page,
+                Size = size,
+                TotalPages = totalPages
+            };
+        }
+
+        public async Task<ScheduleListResponseDTO> GetSchedulesByStatusAsync(ScheduleStatus status, int page = 1, int size = 10)
+        {
+            var query = _context.Schedules
+                .Include(s => s.Tour)
+                .Include(s => s.User)
+                .Where(s => s.Status == status)
+                .OrderByDescending(s => s.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
+
+            var schedules = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .Select(s => new ScheduleResponseDTO
+                {
+                    ScheduleID = s.ScheduleID,
+                    TourID = s.TourID,
+                    UserID = s.UserID,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    NumberPeople = s.NumberPeople,
+                    Status = s.Status,
+                    CreatedAt = s.CreatedAt,
+                    TourName = s.Tour!.TourName,
+                    User = s.User != null ? new UserInfoDTO
+                    {
+                        UserID = s.User.UserID,
+                        Email = s.User.Email,
+                        FullName = s.User.FullName,
+                        PhoneNumber = s.User.PhoneNumber
+                    } : null,
                     RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();
@@ -252,7 +325,13 @@ namespace BE_OPENSKY.Services
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
-                    UserName = s.User!.FullName,
+                    User = s.User != null ? new UserInfoDTO
+                    {
+                        UserID = s.User.UserID,
+                        Email = s.User.Email,
+                        FullName = s.User.FullName,
+                        PhoneNumber = s.User.PhoneNumber
+                    } : null,
                     RemainingSlots = s.NumberPeople - s.CurrentBookings
                 })
                 .ToListAsync();

@@ -57,12 +57,13 @@ namespace BE_OPENSKY.DTOs
         public DateTime CreatedAt { get; set; }
     }
 
-    // DTO cho thông tin User trong refund
+    // DTO cho thông tin User trong refund và schedule
     public class UserInfoDTO
     {
         public Guid UserID { get; set; }
-        public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
     }
 
     // DTO cho danh sách refund với phân trang

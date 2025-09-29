@@ -392,6 +392,9 @@ public static class UserEndpoints
                 if (string.IsNullOrWhiteSpace(createUserDto.Password))
                     return Results.BadRequest(new { message = "Mật khẩu không được để trống" });
                 
+                if (createUserDto.Password.Length < 6)
+                    return Results.BadRequest(new { message = "Mật khẩu phải có ít nhất 6 ký tự" });
+                
                 if (string.IsNullOrWhiteSpace(createUserDto.FullName))
                     return Results.BadRequest(new { message = "Họ tên không được để trống" });
 

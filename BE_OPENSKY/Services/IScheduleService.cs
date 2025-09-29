@@ -9,6 +9,7 @@ namespace BE_OPENSKY.Services
         Task<ScheduleListResponseDTO> GetSchedulesAsync(int page = 1, int size = 10);
         Task<ScheduleListResponseDTO> GetSchedulesByTourIdAsync(Guid tourId, int page = 1, int size = 10);
         Task<ScheduleListResponseDTO> GetSchedulesByTourGuideIdAsync(Guid tourGuideId, int page = 1, int size = 10);
+        Task<ScheduleListResponseDTO> GetSchedulesByStatusAsync(ScheduleStatus status, int page = 1, int size = 10);
         Task<bool> UpdateScheduleAsync(Guid scheduleId, UpdateScheduleDTO updateScheduleDto);
         Task<bool> SoftDeleteScheduleAsync(Guid scheduleId);
         Task<bool> IsScheduleAssignedToTourGuideAsync(Guid scheduleId, Guid tourGuideId);

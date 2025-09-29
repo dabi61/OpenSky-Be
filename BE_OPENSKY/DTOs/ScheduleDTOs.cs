@@ -7,17 +7,18 @@ namespace BE_OPENSKY.DTOs
     public class CreateScheduleDTO
     {
         public Guid TourID { get; set; }
-        public Guid TourGuideID { get; set; } // ID của TourGuide được phân công
+        public Guid UserID { get; set; } // ID của TourGuide được phân công
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public int NumberPeople { get; set; }
     }
 
-    // DTO cho cập nhật schedule (chỉ thời gian và status)
+    // DTO cho cập nhật schedule (thời gian, status và số lượng người)
     public class UpdateScheduleDTO
     {
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        public int? NumberPeople { get; set; }
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public ScheduleStatus? Status { get; set; }
     }
@@ -28,6 +29,7 @@ namespace BE_OPENSKY.DTOs
         public Guid ScheduleID { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        public int? NumberPeople { get; set; }
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public ScheduleStatus? Status { get; set; }
     }
@@ -44,7 +46,7 @@ namespace BE_OPENSKY.DTOs
         public ScheduleStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? TourName { get; set; }
-        public string? UserName { get; set; }
+        public UserInfoDTO? User { get; set; }
         public int? RemainingSlots { get; set; } // Số chỗ còn lại (NumberPeople - CurrentBookings)
     }
 

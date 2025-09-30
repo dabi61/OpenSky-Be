@@ -10,7 +10,7 @@ namespace BE_OPENSKY.Services
         }
 
 
-        public async Task<Guid> CreateMultipleRoomBookingAsync(Guid userId, CreateMultipleRoomBookingDTO createBookingDto)
+        public async Task<BookingCreateResult> CreateMultipleRoomBookingAsync(Guid userId, CreateMultipleRoomBookingDTO createBookingDto)
         {
             // Validate input
             if (createBookingDto.Rooms == null || !createBookingDto.Rooms.Any())
@@ -140,7 +140,11 @@ namespace BE_OPENSKY.Services
 
             await _context.SaveChangesAsync();
 
-            return booking.BookingID;
+            return new BookingCreateResult
+            {
+                BookingID = booking.BookingID,
+                BillID = bill.BillID
+            };
         }
 
         // Removed: legacy GetMyBookingsAsync (replaced by GetBookingsPaginatedAsync)

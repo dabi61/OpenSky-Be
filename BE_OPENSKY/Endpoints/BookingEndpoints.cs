@@ -32,13 +32,14 @@ namespace BE_OPENSKY.Endpoints
                         CheckOutDate = requestDto.CheckOutDate.Date, // Chỉ lấy ngày, bỏ thời gian
                     };
 
-                    var bookingId = await bookingService.CreateMultipleRoomBookingAsync(userIdGuid, createDto);
+                    var result = await bookingService.CreateMultipleRoomBookingAsync(userIdGuid, createDto);
                     var totalRooms = requestDto.Rooms.Count; // Số RoomID = số phòng
                     var message = totalRooms == 1 ? "Đặt phòng thành công" : $"Đặt {totalRooms} phòng thành công";
                     
                     return Results.Ok(new { 
-                        message = message, 
-                        bookingId,
+                        message = message,
+                        bookingId = result.BookingID,
+                        billId = result.BillID,
                         totalRooms = totalRooms
                     });
                 }

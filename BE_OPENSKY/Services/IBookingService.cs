@@ -3,7 +3,7 @@ namespace BE_OPENSKY.Services
     public interface IBookingService
     {
         // Customer đặt phòng (1 hoặc nhiều phòng)
-        Task<Guid> CreateMultipleRoomBookingAsync(Guid userId, CreateMultipleRoomBookingDTO createBookingDto);
+        Task<BookingCreateResult> CreateMultipleRoomBookingAsync(Guid userId, CreateMultipleRoomBookingDTO createBookingDto);
         
         // Customer hủy booking
         Task<bool> CustomerCancelBookingAsync(Guid bookingId, Guid userId, string? reason = null);

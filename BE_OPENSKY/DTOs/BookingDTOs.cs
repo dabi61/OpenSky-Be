@@ -38,6 +38,11 @@ namespace BE_OPENSKY.DTOs
         public DateTime CheckOutDate { get; set; }
     }
 
+    public class BookingCreateResult
+    {
+        public Guid BookingID { get; set; }
+        public Guid BillID { get; set; }
+    }
 
     // DTO cho chi tiết booking với BillDetail
     public class BookingDetailResponseDTO

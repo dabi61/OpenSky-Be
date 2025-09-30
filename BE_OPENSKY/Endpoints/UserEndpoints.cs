@@ -409,7 +409,7 @@ public static class UserEndpoints
                     var regex = new Regex(@"^\d{12}$");
                     if (!regex.IsMatch(createUserDto.CitizenId))
                     {
-                        return Results.BadRequest(new { message = "CCCD phải có đúng 12 chữ số" });
+                        return Results.BadRequest(new { message = "Số CMND/CCCD không hợp lệ" });
                     }
                 }
 
@@ -647,12 +647,13 @@ public static class UserEndpoints
                         // Validate phoneNumber: 10 chữ số
                         if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
                         {
-                            var phoneRegex = new Regex(@"^\d{10}$");
+                            var phoneRegex = new Regex(@"^0(3[2-9]|5[6|8|9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$");
                             if (!phoneRegex.IsMatch(updateDto.PhoneNumber))
                             {
-                                return Results.BadRequest(new { message = "Số điện thoại phải có đúng 10 chữ số" });
+                                return Results.BadRequest(new { message = "Số điện thoại không hợp lệ. Số điện thoại phải bắt đầu bằng 0 và theo định dạng Việt Nam" });
                             }
                         }
+ 
 
                         // Validate citizenId: 12 chữ số
                         if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
@@ -660,7 +661,7 @@ public static class UserEndpoints
                             var citizenRegex = new Regex(@"^\d{12}$");
                             if (!citizenRegex.IsMatch(updateDto.CitizenId))
                             {
-                                return Results.BadRequest(new { message = "CCCD phải có đúng 12 chữ số" });
+                                return Results.BadRequest(new { message = "Số CMND/CCCD không hợp lệ" });
                             }
                         }
 

@@ -21,6 +21,8 @@ namespace BE_OPENSKY.DTOs
         public decimal? Latitude { get; set; }
         [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
         public decimal? Longitude { get; set; }
+
+        public HotelStatus? Status { get; set; }
     }
 
     // DTO cho phản hồi chi tiết khách sạn
@@ -336,6 +338,8 @@ namespace BE_OPENSKY.DTOs
         
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
+
+        public HotelStatus? Status { get; set; }
         
         // ExistingImages: Giữ nguyên các ảnh không muốn xóa (IDs của ảnh hiện tại)
         public List<int>? ExistingImageIds { get; set; } = new();

@@ -704,7 +704,9 @@ public static class HotelEndpoints
                                 Address = imageUpdateDto.Address,
                                 Province = imageUpdateDto.Province,
                                 Latitude = imageUpdateDto.Latitude,
-                                Longitude = imageUpdateDto.Longitude
+                                Longitude = imageUpdateDto.Longitude,
+                                Status = imageUpdateDto.Status,
+                                
                             };
 
                             var success = await hotelService.UpdateHotelAsync(hotelId, userId, updateDto);

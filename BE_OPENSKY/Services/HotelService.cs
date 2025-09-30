@@ -258,7 +258,7 @@ public class HotelService : IHotelService
     public async Task<bool> UpdateHotelAsync(Guid hotelId, Guid userId, UpdateHotelDTO updateDto)
     {
         var hotel = await _context.Hotels
-            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status == HotelStatus.Active);
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status != HotelStatus.Removed);
 
         if (hotel == null) return false;
 
@@ -280,6 +280,9 @@ public class HotelService : IHotelService
         
         if (updateDto.Longitude.HasValue)
             hotel.Longitude = updateDto.Longitude.Value;
+
+        if (updateDto.Status != null)
+            hotel.Status = (HotelStatus)updateDto.Status;
         
         // Star is no longer updated by owner
         // if (updateDto.Star.HasValue)
@@ -300,7 +303,7 @@ public class HotelService : IHotelService
     {
         // Verify hotel ownership
         var hotel = await _context.Hotels
-            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status == HotelStatus.Active);
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status != HotelStatus.Removed);
 
         if (hotel == null)
             throw new UnauthorizedAccessException("Bạn không có quyền thêm phòng cho khách sạn này");
@@ -385,7 +388,7 @@ public class HotelService : IHotelService
     {
         var room = await _context.HotelRooms
             .Include(r => r.Hotel)
-            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status == HotelStatus.Active);
+            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status != HotelStatus.Removed);
 
         if (room == null) return false;
 

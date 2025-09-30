@@ -205,6 +205,8 @@ public static class UserEndpoints
                             }
                         }
 
+
+
                         // Lấy file avatar từ form
                         var avatarFile = form.Files.FirstOrDefault() ?? 
                                        form.Files.GetFile("file") ?? 
@@ -407,7 +409,7 @@ public static class UserEndpoints
                     var regex = new Regex(@"^\d{12}$");
                     if (!regex.IsMatch(createUserDto.CitizenId))
                     {
-                        return Results.BadRequest("CCCD phải có đúng 12 chữ số");
+                        return Results.BadRequest(new { message = "CCCD phải có đúng 12 chữ số" });
                     }
                 }
 

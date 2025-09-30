@@ -1,5 +1,6 @@
 using BE_OPENSKY.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace BE_OPENSKY.Endpoints;
 
@@ -401,6 +402,15 @@ public static class UserEndpoints
                 if (string.IsNullOrWhiteSpace(createUserDto.Role))
                     return Results.BadRequest(new { message = "Role không được để trống" });
 
+                if (!string.IsNullOrWhiteSpace(createUserDto.CitizenId))
+                {
+                    var regex = new Regex(@"^\d{12}$");
+                    if (!regex.IsMatch(createUserDto.CitizenId))
+                    {
+                        return Results.BadRequest("CCCD phải có đúng 12 chữ số");
+                    }
+                }
+
                 // Admin có thể tạo tất cả role
                 var allowedRoles = new[] { RoleConstants.Admin, RoleConstants.Supervisor, RoleConstants.TourGuide, RoleConstants.Customer, RoleConstants.Hotel };
 
@@ -629,6 +639,29 @@ public static class UserEndpoints
                                 updateDto.dob = DateOnly.FromDateTime(doB);
                             }
                         }
+
+                        // ... parse form/json xong và gán dữ liệu vào updateDto ở đây
+
+                        // Validate phoneNumber: 10 chữ số
+                        if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+                        {
+                            var phoneRegex = new Regex(@"^\d{10}$");
+                            if (!phoneRegex.IsMatch(updateDto.PhoneNumber))
+                            {
+                                return Results.BadRequest(new { message = "Số điện thoại phải có đúng 10 chữ số" });
+                            }
+                        }
+
+                        // Validate citizenId: 12 chữ số
+                        if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
+                        {
+                            var citizenRegex = new Regex(@"^\d{12}$");
+                            if (!citizenRegex.IsMatch(updateDto.CitizenId))
+                            {
+                                return Results.BadRequest(new { message = "CCCD phải có đúng 12 chữ số" });
+                            }
+                        }
+
 
                         // Lấy file avatar từ form
                         var avatarFile = form.Files.FirstOrDefault() ?? 

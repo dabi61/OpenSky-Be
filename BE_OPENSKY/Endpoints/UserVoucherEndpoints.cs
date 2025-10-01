@@ -125,6 +125,55 @@ namespace BE_OPENSKY.Endpoints
             .Produces(401)
             .Produces(500)
             .RequireAuthorization("AuthenticatedOnly");
+
+            // GET /user_vouchers/my-vouchers/active?type=Tour|Hotel|... - Lấy voucher đang hoạt động của tôi (lọc theo type tùy chọn)
+            group.MapGet("/my-vouchers/active", async (
+                IUserVoucherService userVoucherService,
+                HttpContext context,
+                string? type,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
+                    }
+
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    TableType? tableType = null;
+                    if (!string.IsNullOrWhiteSpace(type))
+                    {
+                        if (Enum.TryParse<TableType>(type, true, out var parsed))
+                        {
+                            tableType = parsed;
+                        }
+                        else
+                        {
+                            return Results.BadRequest(new { message = $"Giá trị type không hợp lệ. Hợp lệ: {string.Join(", ", Enum.GetNames<TableType>())}" });
+                        }
+                    }
+
+                    var result = await userVoucherService.GetActiveUserVouchersAsync(userId, tableType, page, size);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { message = $"Lỗi khi lấy danh sách voucher đang hoạt động của tôi: {ex.Message}" }, statusCode: 500);
+                }
+            })
+            .WithName("GetMyActiveVouchers")
+            .WithSummary("Lấy voucher đang hoạt động của tôi")
+            .WithDescription("Trả về các voucher người dùng đã lưu, còn hạn, chưa dùng. Có thể lọc theo type (TableType).")
+            .Produces<UserVoucherListResponseDTO>(200)
+            .Produces(400)
+            .Produces(401)
+            .Produces(500)
+            .RequireAuthorization("AuthenticatedOnly");
             
         }
     }

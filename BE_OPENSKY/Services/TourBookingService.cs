@@ -37,8 +37,9 @@ namespace BE_OPENSKY.Services
                 if (createBookingDto.NumberOfGuests <= 0)
                     throw new ArgumentException("Số người phải lớn hơn 0");
 
-                if (schedule.CurrentBookings + createBookingDto.NumberOfGuests > schedule.NumberPeople)
-                    throw new ArgumentException($"Schedule không còn đủ chỗ. Còn lại: {schedule.NumberPeople - schedule.CurrentBookings} chỗ");
+                var capacity = tour.MaxPeople;
+                if (schedule.CurrentBookings + createBookingDto.NumberOfGuests > capacity)
+                    throw new ArgumentException($"Schedule không còn đủ chỗ. Còn lại: {capacity - schedule.CurrentBookings} chỗ");
 
                 // KHÔNG cộng capacity ở bước đặt. Chỉ cộng sau khi thanh toán thành công.
 

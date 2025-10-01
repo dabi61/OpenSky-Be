@@ -13,6 +13,37 @@ namespace BE_OPENSKY.Endpoints
                 .WithTags("Bill")
                 .WithOpenApi();
 
+            // GET /bills/my - Lấy danh sách hóa đơn của user đang đăng nhập
+            billGroup.MapGet("/my", async ([FromServices] IBillService billService, HttpContext context) =>
+            {
+                try
+                {
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
+                    }
+
+                    var bills = await billService.GetUserBillsAsync(userId);
+                    return Results.Ok(bills);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetMyBills")
+            .WithSummary("Lấy danh sách hóa đơn của tôi")
+            .WithDescription("Trả về danh sách hóa đơn thuộc về user đang đăng nhập, sắp xếp mới nhất trước")
+            .Produces<List<BillResponseDTO>>(200)
+            .Produces(401)
+            .Produces(500)
+            .RequireAuthorization("AuthenticatedOnly");
+
             // PUT /bills/apply-voucher - Áp dụng voucher vào bill đã có (billId trong body)
             billGroup.MapPut("/apply-voucher", async (
                 ApplyVoucherToBillDTO applyVoucherDto,
@@ -169,12 +200,23 @@ namespace BE_OPENSKY.Endpoints
             .Produces<QRPaymentStatusDTO>(200)
             .Produces(500);
 
-            // 4. Lấy thông tin hóa đơn theo ID
+            // 4. Lấy thông tin hóa đơn theo ID (User chỉ lấy bill của mình, Admin lấy được mọi bill)
             billGroup.MapGet("/{billId:guid}", async (Guid billId, [FromServices] IBillService billService, HttpContext context) =>
             {
                 try
                 {
                     var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var isAdmin = context.User.IsInRole(RoleConstants.Admin);
+                    if (isAdmin)
+                    {
+                        var adminBill = await billService.GetBillByIdAsAdminAsync(billId);
+                        if (adminBill == null)
+                        {
+                            return Results.NotFound(new { message = "Không tìm thấy hóa đơn" });
+                        }
+                        return Results.Ok(adminBill);
+                    }
+
                     if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
                     {
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);

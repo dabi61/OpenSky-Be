@@ -121,6 +121,60 @@ namespace BE_OPENSKY.Services
                 .AnyAsync(uv => uv.UserID == userId && uv.VoucherID == voucherId);
         }
 
+        public async Task<UserVoucherListResponseDTO> GetActiveUserVouchersAsync(Guid userId, TableType? tableType, int page = 1, int size = 10)
+        {
+            var now = DateTime.UtcNow;
+            var query = _context.UserVouchers
+                .Include(uv => uv.Voucher)
+                .Include(uv => uv.User)
+                .Where(uv => uv.UserID == userId
+                             && uv.Voucher != null
+                             && !uv.Voucher.IsDeleted
+                             && uv.Voucher.StartDate <= now
+                             && uv.Voucher.EndDate >= now
+                             && !uv.IsUsed);
+
+            if (tableType.HasValue)
+            {
+                query = query.Where(uv => uv.Voucher!.TableType == tableType.Value);
+            }
+
+            query = query.OrderByDescending(uv => uv.Voucher!.StartDate);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
+
+            var userVouchers = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .Select(uv => new UserVoucherResponseDTO
+                {
+                    UserVoucherID = uv.UserVoucherID,
+                    UserID = uv.UserID,
+                    VoucherID = uv.VoucherID,
+                    IsUsed = uv.IsUsed,
+                    SavedAt = uv.SavedAt,
+                    UserName = uv.User!.FullName,
+                    VoucherCode = uv.Voucher!.Code,
+                    VoucherPercent = uv.Voucher.Percent,
+                    VoucherTableType = uv.Voucher.TableType,
+                    VoucherStartDate = uv.Voucher.StartDate,
+                    VoucherEndDate = uv.Voucher.EndDate,
+                    VoucherDescription = uv.Voucher.Description,
+                    VoucherIsExpired = DateTime.UtcNow > uv.Voucher.EndDate
+                })
+                .ToListAsync();
+
+            return new UserVoucherListResponseDTO
+            {
+                UserVouchers = userVouchers,
+                TotalCount = totalCount,
+                Page = page,
+                Size = size,
+                TotalPages = totalPages
+            };
+        }
+
         
     }
 }

@@ -6,6 +6,8 @@ namespace BE_OPENSKY.Services
     {
         // Lấy bill theo ID
         Task<BillResponseDTO?> GetBillByIdAsync(Guid billId, Guid userId);
+        // Lấy bill theo ID (Admin)
+        Task<BillResponseDTO?> GetBillByIdAsAdminAsync(Guid billId);
         
         // Lấy bills của user
         Task<List<BillResponseDTO>> GetUserBillsAsync(Guid userId);

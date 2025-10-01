@@ -8,5 +8,6 @@ namespace BE_OPENSKY.Services
         Task<UserVoucherListResponseDTO> GetUserVouchersByUserIdAsync(Guid userId, int page = 1, int size = 10);
         Task<UserVoucherListResponseDTO> GetUserVouchersAsync(int page = 1, int size = 10);
         Task<bool> IsVoucherAlreadySavedAsync(Guid userId, Guid voucherId);
+        Task<UserVoucherListResponseDTO> GetActiveUserVouchersAsync(Guid userId, TableType? tableType, int page = 1, int size = 10);
     }
 }

@@ -78,6 +78,67 @@ namespace BE_OPENSKY.Services
             };
         }
 
+        public async Task<BillResponseDTO?> GetBillByIdAsAdminAsync(Guid billId)
+        {
+            var bill = await _context.Bills
+                .Include(b => b.User)
+                .Include(b => b.BillDetails)
+                .Include(b => b.UserVoucher)
+                    .ThenInclude(uv => uv.Voucher)
+                .FirstOrDefaultAsync(b => b.BillID == billId);
+
+            if (bill == null)
+                return null;
+
+            var originalTotalPrice = bill.BillDetails?.Sum(bd => bd.TotalPrice) ?? 0;
+            var discountAmount = originalTotalPrice - bill.TotalPrice;
+            var discountPercent = originalTotalPrice > 0 ? (discountAmount / originalTotalPrice) * 100 : 0;
+
+            VoucherInfoDTO? voucherInfo = null;
+            if (bill.UserVoucher?.Voucher != null)
+            {
+                voucherInfo = new VoucherInfoDTO
+                {
+                    Code = bill.UserVoucher.Voucher.Code,
+                    Percent = bill.UserVoucher.Voucher.Percent,
+                    TableType = bill.UserVoucher.Voucher.TableType,
+                    Description = bill.UserVoucher.Voucher.Description
+                };
+            }
+
+            return new BillResponseDTO
+            {
+                BillID = bill.BillID,
+                UserID = bill.UserID,
+                UserName = bill.User?.FullName ?? string.Empty,
+                BookingID = bill.BookingID,
+                Deposit = bill.Deposit,
+                RefundPrice = bill.RefundPrice,
+                TotalPrice = bill.TotalPrice,
+                OriginalTotalPrice = originalTotalPrice,
+                DiscountAmount = discountAmount,
+                DiscountPercent = discountPercent,
+                Status = bill.Status.ToString(),
+                CreatedAt = bill.CreatedAt,
+                UpdatedAt = bill.UpdatedAt,
+                UserVoucherID = bill.UserVoucherID,
+                VoucherInfo = voucherInfo,
+                BillDetails = bill.BillDetails?.Select(bd => new BillDetailResponseDTO
+                {
+                    BillDetailID = bd.BillDetailID,
+                    BillID = bd.BillID,
+                    ItemType = bd.ItemType.ToString(),
+                    ItemID = bd.ItemID,
+                    ItemName = bd.ItemName,
+                    Quantity = bd.Quantity,
+                    UnitPrice = bd.UnitPrice,
+                    TotalPrice = bd.TotalPrice,
+                    Notes = bd.Notes,
+                    CreatedAt = bd.CreatedAt
+                }).ToList() ?? new List<BillDetailResponseDTO>()
+            };
+        }
+
         public async Task<ApplyVoucherResponseDTO> ApplyVoucherToBillAsync(Guid userId, ApplyVoucherToBillDTO applyVoucherDto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();

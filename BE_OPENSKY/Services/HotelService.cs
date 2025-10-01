@@ -294,8 +294,9 @@ public class HotelService : IHotelService
 
     public async Task<bool> IsHotelOwnerAsync(Guid hotelId, Guid userId)
     {
+        // Allow ownership for all statuses except Removed
         return await _context.Hotels
-            .AnyAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status == HotelStatus.Active);
+            .AnyAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status != HotelStatus.Removed);
     }
 
     // Room management methods
@@ -388,7 +389,10 @@ public class HotelService : IHotelService
     {
         var room = await _context.HotelRooms
             .Include(r => r.Hotel)
-            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status != HotelStatus.Removed);
+            .FirstOrDefaultAsync(r => r.RoomID == roomId 
+                                      && r.Hotel.UserID == userId 
+                                      && r.Hotel.Status != HotelStatus.Removed 
+                                      && r.Status != RoomStatus.Removed);
 
         if (room == null) return false;
 
@@ -459,7 +463,7 @@ public class HotelService : IHotelService
     {
         return await _context.HotelRooms
             .Include(r => r.Hotel)
-            .AnyAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status == HotelStatus.Active);
+            .AnyAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status != HotelStatus.Removed);
     }
 
     public async Task<HotelSearchResponseDTO> SearchHotelsAsync(HotelSearchDTO searchDto)
@@ -606,7 +610,7 @@ public class HotelService : IHotelService
         // Kiểm tra phòng có tồn tại không
         var room = await _context.HotelRooms
             .Include(r => r.Hotel)
-            .FirstOrDefaultAsync(r => r.RoomID == roomId);
+            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Status != RoomStatus.Removed);
 
         if (room == null)
         {
@@ -695,7 +699,7 @@ public class HotelService : IHotelService
     {
         // Verify hotel ownership
         var hotel = await _context.Hotels
-            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status == HotelStatus.Active);
+            .FirstOrDefaultAsync(h => h.HotelID == hotelId && h.UserID == userId && h.Status != HotelStatus.Removed);
 
         if (hotel == null)
             throw new UnauthorizedAccessException("Bạn không có quyền xóa ảnh của khách sạn này");
@@ -749,7 +753,7 @@ public class HotelService : IHotelService
         // Verify room ownership
         var room = await _context.HotelRooms
             .Include(r => r.Hotel)
-            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status == HotelStatus.Active);
+            .FirstOrDefaultAsync(r => r.RoomID == roomId && r.Hotel.UserID == userId && r.Hotel.Status != HotelStatus.Removed);
 
         if (room == null)
             throw new UnauthorizedAccessException("Bạn không có quyền xóa ảnh của phòng này");

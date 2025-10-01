@@ -24,7 +24,9 @@ namespace BE_OPENSKY.Services
                 UserID = createScheduleDto.UserID, // Sử dụng UserID được phân công
                 StartTime = createScheduleDto.StartTime,
                 EndTime = createScheduleDto.EndTime,
-                NumberPeople = createScheduleDto.NumberPeople,
+                // NumberPeople đại diện số người đã tham gia => khởi tạo 0
+                NumberPeople = 0,
+                CurrentBookings = 0,
                 Status = ScheduleStatus.Active,
                 CreatedAt = DateTime.UtcNow
             };
@@ -44,6 +46,7 @@ namespace BE_OPENSKY.Services
 
             if (schedule == null) return null;
 
+            var maxPeople = schedule.Tour?.MaxPeople ?? 0;
             return new ScheduleResponseDTO
             {
                 ScheduleID = schedule.ScheduleID,
@@ -51,7 +54,8 @@ namespace BE_OPENSKY.Services
                 UserID = schedule.UserID,
                 StartTime = schedule.StartTime,
                 EndTime = schedule.EndTime,
-                NumberPeople = schedule.NumberPeople,
+                // NumberPeople hiển thị số chỗ còn lại (remaining slots)
+                NumberPeople = Math.Max(0, maxPeople - schedule.CurrentBookings),
                 Status = schedule.Status,
                 CreatedAt = schedule.CreatedAt,
                 TourName = schedule.Tour?.TourName,
@@ -61,7 +65,8 @@ namespace BE_OPENSKY.Services
                     Email = schedule.User.Email,
                     FullName = schedule.User.FullName,
                     PhoneNumber = schedule.User.PhoneNumber
-                } : null
+                } : null,
+                RemainingSlots = Math.Max(0, maxPeople - schedule.CurrentBookings)
             };
         }
 
@@ -86,7 +91,7 @@ namespace BE_OPENSKY.Services
                     UserID = s.UserID,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
-                    NumberPeople = s.NumberPeople,
+                    NumberPeople = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings),
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
@@ -97,7 +102,7 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                    RemainingSlots = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings)
                 })
                 .ToListAsync();
 
@@ -132,7 +137,7 @@ namespace BE_OPENSKY.Services
                     UserID = s.UserID,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
-                    NumberPeople = s.NumberPeople,
+                    NumberPeople = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings),
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
@@ -143,7 +148,7 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                    RemainingSlots = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings)
                 })
                 .ToListAsync();
 
@@ -170,8 +175,7 @@ namespace BE_OPENSKY.Services
             if (updateScheduleDto.EndTime.HasValue)
                 schedule.EndTime = updateScheduleDto.EndTime.Value;
 
-            if (updateScheduleDto.NumberPeople.HasValue)
-                schedule.NumberPeople = updateScheduleDto.NumberPeople.Value;
+            // Không cho phép chỉnh NumberPeople trực tiếp nữa (được xác định qua bookings)
 
             if (updateScheduleDto.Status.HasValue)
                 schedule.Status = updateScheduleDto.Status.Value;

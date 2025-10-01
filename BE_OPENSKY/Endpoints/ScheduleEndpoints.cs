@@ -44,10 +44,7 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc" }, statusCode: 400);
                     }
 
-                    if (createScheduleDto.NumberPeople <= 0)
-                    {
-                        return Results.Json(new { message = "Số lượng người phải lớn hơn 0" }, statusCode: 400);
-                    }
+                    // NumberPeople không còn nhập lúc tạo; sẽ được tính theo số người tham gia (bookings)
 
                     // Kiểm tra UserID có tồn tại và có role TourGuide không
                     var tourGuide = await dbContext.Users
@@ -193,10 +190,7 @@ namespace BE_OPENSKY.Endpoints
                         }
                     }
 
-                    if (updateScheduleDto.NumberPeople.HasValue && updateScheduleDto.NumberPeople.Value <= 0)
-                    {
-                        return Results.Json(new { message = "Số lượng người phải lớn hơn 0" }, statusCode: 400);
-                    }
+                    // Không cập nhật NumberPeople trực tiếp nữa
 
                     // Kiểm tra xung đột thời gian nếu có cập nhật thời gian
                     if (updateScheduleDto.StartTime.HasValue || updateScheduleDto.EndTime.HasValue)

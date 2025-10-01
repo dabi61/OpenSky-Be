@@ -22,11 +22,7 @@ public static class HotelRoomEndpoints
                     return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
                 }
 
-                // Kiểm tra quyền Hotel
-                if (!context.User.IsInRole(RoleConstants.Hotel))
-                {
-                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
-                }
+                // Kiểm tra quyền tạo phòng sẽ được xác thực sau khi có hotelId
 
                 // Kiểm tra content type
                 if (!context.Request.HasFormContentType)
@@ -40,6 +36,13 @@ public static class HotelRoomEndpoints
                 // Validate và parse room data
                 if (!form.TryGetValue("hotelId", out var hotelIdValue) || !Guid.TryParse(hotelIdValue, out var hotelId))
                     return Results.BadRequest(new { message = "HotelId không hợp lệ" });
+
+                // Cho phép chủ sở hữu khách sạn tạo phòng (không cần role Hotel), miễn hotel không phải Removed
+                var isHotelOwner = await hotelService.IsHotelOwnerAsync(hotelId, userId);
+                if (!isHotelOwner)
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                }
 
                 if (!form.TryGetValue("roomName", out var roomNameValue) || string.IsNullOrWhiteSpace(roomNameValue))
                     return Results.BadRequest(new { message = "Tên phòng không được để trống" });
@@ -245,8 +248,9 @@ public static class HotelRoomEndpoints
                     return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
                 }
 
-                // Kiểm tra quyền Hotel
-                if (!context.User.IsInRole(RoleConstants.Hotel))
+                // Cho phép chủ sở hữu phòng cập nhật status (không cần role Hotel)
+                var isOwner = await hotelService.IsRoomOwnerAsync(roomId, userId);
+                if (!isOwner)
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }

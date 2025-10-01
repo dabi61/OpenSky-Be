@@ -616,8 +616,9 @@ public static class HotelEndpoints
                     return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
                 }
 
-                // Kiểm tra quyền Hotel
-                if (!context.User.IsInRole(RoleConstants.Hotel))
+                // Cho phép chủ sở hữu khách sạn cập nhật (không cần role Hotel), miễn không phải Removed
+                var isOwner = await hotelService.IsHotelOwnerAsync(hotelId, userId);
+                if (!isOwner)
                 {
                     return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
                 }

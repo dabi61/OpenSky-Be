@@ -203,6 +203,10 @@ public static class UserEndpoints
                             {
                                 updateDto.dob = DateOnly.FromDateTime(doB);
                             }
+                            else
+                            {
+                                return Results.BadRequest(new { message = "Ngày sinh không hợp lệ" });
+                            }
                         }
 
 
@@ -244,6 +248,16 @@ public static class UserEndpoints
                         if (!string.IsNullOrEmpty(jsonString))
                         {
                             updateDto = System.Text.Json.JsonSerializer.Deserialize<UpdateProfileDTO>(jsonString) ?? new UpdateProfileDTO();
+                            
+                            // Validate dob format nếu có
+                            if (updateDto.dob.HasValue)
+                            {
+                                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                                if (updateDto.dob.Value >= today)
+                                {
+                                    return Results.BadRequest(new { message = "Ngày sinh phải nhỏ hơn ngày hiện tại" });
+                                }
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -266,12 +280,12 @@ public static class UserEndpoints
 
                 if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
                 {
-                    // CCCD/CMND: 9-12 chữ số
+                    // CCCD Việt Nam: chính xác 12 chữ số
                     var cid = updateDto.CitizenId.Trim();
-                    var isValidCid = System.Text.RegularExpressions.Regex.IsMatch(cid, "^[0-9]{9,12}$");
+                    var isValidCid = System.Text.RegularExpressions.Regex.IsMatch(cid, "^[0-9]{12}$");
                     if (!isValidCid)
                     {
-                        return Results.BadRequest(new { message = "Số CMND/CCCD không hợp lệ" });
+                        return Results.BadRequest(new { message = "Số căn cước công dân phải có đúng 12 chữ số" });
                     }
                 }
 
@@ -409,7 +423,7 @@ public static class UserEndpoints
                     var regex = new Regex(@"^\d{12}$");
                     if (!regex.IsMatch(createUserDto.CitizenId))
                     {
-                        return Results.BadRequest(new { message = "Số CMND/CCCD không hợp lệ" });
+                        return Results.BadRequest(new { message = "Số căn cước công dân phải có đúng 12 chữ số" });
                     }
                 }
 
@@ -640,6 +654,10 @@ public static class UserEndpoints
                             {
                                 updateDto.dob = DateOnly.FromDateTime(doB);
                             }
+                            else
+                            {
+                                return Results.BadRequest(new { message = "Ngày sinh không hợp lệ" });
+                            }
                         }
 
                         // ... parse form/json xong và gán dữ liệu vào updateDto ở đây
@@ -655,13 +673,23 @@ public static class UserEndpoints
                         }
  
 
-                        // Validate citizenId: 12 chữ số
+                        // Validate citizenId: CCCD Việt Nam - chính xác 12 chữ số
                         if (!string.IsNullOrWhiteSpace(updateDto.CitizenId))
                         {
                             var citizenRegex = new Regex(@"^\d{12}$");
                             if (!citizenRegex.IsMatch(updateDto.CitizenId))
                             {
-                                return Results.BadRequest(new { message = "Số CMND/CCCD không hợp lệ" });
+                                return Results.BadRequest(new { message = "Số căn cước công dân phải có đúng 12 chữ số" });
+                            }
+                        }
+
+                        // Validate dob: không được là ngày tương lai
+                        if (updateDto.dob.HasValue)
+                        {
+                            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                            if (updateDto.dob.Value >= today)
+                            {
+                                return Results.BadRequest(new { message = "Ngày sinh phải nhỏ hơn ngày hiện tại" });
                             }
                         }
 
@@ -703,13 +731,26 @@ public static class UserEndpoints
                             if (updateWithAvatarDto == null)
                                 return Results.BadRequest(new { message = "Dữ liệu JSON không hợp lệ" });
                             
+                            DateOnly? parsedDob = null;
+                            if (!string.IsNullOrEmpty(updateWithAvatarDto.dob))
+                            {
+                                if (DateOnly.TryParse(updateWithAvatarDto.dob, out var dob))
+                                {
+                                    parsedDob = dob;
+                                }
+                                else
+                                {
+                                    return Results.BadRequest(new { message = "Ngày sinh không hợp lệ" });
+                                }
+                            }
+                            
                             updateDto = new AdminUpdateUserDTO
                             {
                                 FullName = updateWithAvatarDto.FullName,
                                 Role = updateWithAvatarDto.Role,
                                 PhoneNumber = updateWithAvatarDto.PhoneNumber,
                                 CitizenId = updateWithAvatarDto.CitizenId,
-                                dob = !string.IsNullOrEmpty(updateWithAvatarDto.dob) && DateOnly.TryParse(updateWithAvatarDto.dob, out var dob) ? dob : null
+                                dob = parsedDob
                             };
                         }
                         else

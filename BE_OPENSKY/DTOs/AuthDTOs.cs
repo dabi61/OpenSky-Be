@@ -71,7 +71,7 @@ public class AdminCreateUserDTO
     [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
     public string? PhoneNumber { get; set; }
     
-    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    [StringLength(12, ErrorMessage = "Số căn cước công dân không được quá 12 ký tự")]
     public string? CitizenId { get; set; }
     
     public DateOnly? dob { get; set; }
@@ -99,7 +99,7 @@ public class AdminCreateUserWithAvatarDTO
     [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
     public string? PhoneNumber { get; set; }
     
-    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    [StringLength(20, ErrorMessage = "Số căn cước công dân không được quá 20 ký tự")]
     public string? CitizenId { get; set; }
     
     public string? dob { get; set; } // String để dễ xử lý trong form
@@ -118,7 +118,7 @@ public class AdminUpdateUserDTO
     [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
     public string? PhoneNumber { get; set; }
     
-    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    [StringLength(20, ErrorMessage = "Số căn cước công dân không được quá 20 ký tự")]
     public string? CitizenId { get; set; }
     
     public DateOnly? dob { get; set; }
@@ -127,9 +127,6 @@ public class AdminUpdateUserDTO
 // DTO cho Admin cập nhật user với avatar (multipart/form-data)
 public class AdminUpdateUserWithAvatarDTO
 {
-    [Required]
-    public Guid UserId { get; set; }
-    
     [StringLength(200, ErrorMessage = "Họ tên không được quá 200 ký tự")]
     public string? FullName { get; set; }
     
@@ -139,7 +136,7 @@ public class AdminUpdateUserWithAvatarDTO
     [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự")]
     public string? PhoneNumber { get; set; }
     
-    [StringLength(20, ErrorMessage = "Số CMND/CCCD không được quá 20 ký tự")]
+    [StringLength(20, ErrorMessage = "Số căn cước công dân không được quá 20 ký tự")]
     public string? CitizenId { get; set; }
     
     public string? dob { get; set; } // String để dễ xử lý trong form

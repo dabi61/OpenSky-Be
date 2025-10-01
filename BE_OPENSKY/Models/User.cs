@@ -26,7 +26,7 @@ namespace BE_OPENSKY.Models
         
         public string? PhoneNumber { get; set; } // Số điện thoại
         
-        public string? CitizenId { get; set; } // Số CMND/CCCD
+        public string? CitizenId { get; set; } // Số căn cước công dân (12 chữ số)
         
         public DateOnly? dob { get; set; } // Ngày sinh
         

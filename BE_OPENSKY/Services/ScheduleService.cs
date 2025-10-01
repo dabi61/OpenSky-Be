@@ -47,6 +47,12 @@ namespace BE_OPENSKY.Services
             if (schedule == null) return null;
 
             var maxPeople = schedule.Tour?.MaxPeople ?? 0;
+            var remainingSlots = Math.Max(0, maxPeople - schedule.CurrentBookings);
+
+            // Lấy ảnh tour
+            var tourImage = await _context.Images
+                .FirstOrDefaultAsync(i => i.TableType == TableTypeImage.Tour && i.TypeID == schedule.TourID);
+
             return new ScheduleResponseDTO
             {
                 ScheduleID = schedule.ScheduleID,
@@ -54,8 +60,7 @@ namespace BE_OPENSKY.Services
                 UserID = schedule.UserID,
                 StartTime = schedule.StartTime,
                 EndTime = schedule.EndTime,
-                // NumberPeople hiển thị số chỗ còn lại (remaining slots)
-                NumberPeople = Math.Max(0, maxPeople - schedule.CurrentBookings),
+                NumberPeople = remainingSlots, // Số chỗ còn lại
                 Status = schedule.Status,
                 CreatedAt = schedule.CreatedAt,
                 TourName = schedule.Tour?.TourName,
@@ -66,7 +71,16 @@ namespace BE_OPENSKY.Services
                     FullName = schedule.User.FullName,
                     PhoneNumber = schedule.User.PhoneNumber
                 } : null,
-                RemainingSlots = Math.Max(0, maxPeople - schedule.CurrentBookings)
+                Tour = schedule.Tour != null ? new ScheduleTourInfoDTO
+                {
+                    TourID = schedule.Tour.TourID,
+                    TourName = schedule.Tour.TourName,
+                    Description = schedule.Tour.Description,
+                    MaxPeople = schedule.Tour.MaxPeople,
+                    Price = schedule.Tour.Price,
+                    Star = schedule.Tour.Star,
+                    ImageUrl = tourImage?.URL
+                } : null
             };
         }
 
@@ -102,7 +116,16 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings)
+                    Tour = s.Tour != null ? new ScheduleTourInfoDTO
+                    {
+                        TourID = s.Tour.TourID,
+                        TourName = s.Tour.TourName,
+                        Description = s.Tour.Description,
+                        MaxPeople = s.Tour.MaxPeople,
+                        Price = s.Tour.Price,
+                        Star = s.Tour.Star,
+                        ImageUrl = null // Sẽ được load riêng nếu cần
+                    } : null
                 })
                 .ToListAsync();
 
@@ -148,7 +171,16 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings)
+                    Tour = s.Tour != null ? new ScheduleTourInfoDTO
+                    {
+                        TourID = s.Tour.TourID,
+                        TourName = s.Tour.TourName,
+                        Description = s.Tour.Description,
+                        MaxPeople = s.Tour.MaxPeople,
+                        Price = s.Tour.Price,
+                        Star = s.Tour.Star,
+                        ImageUrl = null // Sẽ được load riêng nếu cần
+                    } : null
                 })
                 .ToListAsync();
 
@@ -217,7 +249,7 @@ namespace BE_OPENSKY.Services
                     UserID = s.UserID,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
-                    NumberPeople = s.NumberPeople,
+                    NumberPeople = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings),
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
@@ -228,7 +260,16 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                    Tour = s.Tour != null ? new ScheduleTourInfoDTO
+                    {
+                        TourID = s.Tour.TourID,
+                        TourName = s.Tour.TourName,
+                        Description = s.Tour.Description,
+                        MaxPeople = s.Tour.MaxPeople,
+                        Price = s.Tour.Price,
+                        Star = s.Tour.Star,
+                        ImageUrl = null // Sẽ được load riêng nếu cần
+                    } : null
                 })
                 .ToListAsync();
 
@@ -263,7 +304,7 @@ namespace BE_OPENSKY.Services
                     UserID = s.UserID,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
-                    NumberPeople = s.NumberPeople,
+                    NumberPeople = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings),
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
@@ -274,7 +315,16 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                    Tour = s.Tour != null ? new ScheduleTourInfoDTO
+                    {
+                        TourID = s.Tour.TourID,
+                        TourName = s.Tour.TourName,
+                        Description = s.Tour.Description,
+                        MaxPeople = s.Tour.MaxPeople,
+                        Price = s.Tour.Price,
+                        Star = s.Tour.Star,
+                        ImageUrl = null // Sẽ được load riêng nếu cần
+                    } : null
                 })
                 .ToListAsync();
 
@@ -314,7 +364,7 @@ namespace BE_OPENSKY.Services
                             && s.Status == ScheduleStatus.Active
                             && s.StartTime >= fromDate
                             && s.EndTime <= toDate
-                            && (s.NumberPeople - s.CurrentBookings) >= guests)
+                            && (s.Tour!.MaxPeople - s.CurrentBookings) >= guests)
                 .OrderBy(s => s.StartTime);
 
             var schedules = await query
@@ -325,7 +375,7 @@ namespace BE_OPENSKY.Services
                     UserID = s.UserID,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
-                    NumberPeople = s.NumberPeople,
+                    NumberPeople = Math.Max(0, s.Tour!.MaxPeople - s.CurrentBookings),
                     Status = s.Status,
                     CreatedAt = s.CreatedAt,
                     TourName = s.Tour!.TourName,
@@ -336,7 +386,16 @@ namespace BE_OPENSKY.Services
                         FullName = s.User.FullName,
                         PhoneNumber = s.User.PhoneNumber
                     } : null,
-                    RemainingSlots = s.NumberPeople - s.CurrentBookings
+                    Tour = s.Tour != null ? new ScheduleTourInfoDTO
+                    {
+                        TourID = s.Tour.TourID,
+                        TourName = s.Tour.TourName,
+                        Description = s.Tour.Description,
+                        MaxPeople = s.Tour.MaxPeople,
+                        Price = s.Tour.Price,
+                        Star = s.Tour.Star,
+                        ImageUrl = null // Sẽ được load riêng nếu cần
+                    } : null
                 })
                 .ToListAsync();
 

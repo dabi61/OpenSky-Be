@@ -22,6 +22,7 @@ namespace BE_OPENSKY.DTOs
         public DateTime UpdatedAt { get; set; }
         public Guid? UserVoucherID { get; set; }
         public VoucherInfoDTO? VoucherInfo { get; set; } // Thông tin voucher được sử dụng
+        public UserInfoDTO User { get; set; } = new(); // Thông tin user đầy đủ
         public List<BillDetailResponseDTO> BillDetails { get; set; } = new();
     }
 
@@ -33,6 +34,7 @@ namespace BE_OPENSKY.DTOs
         public TableType TableType { get; set; }
         public string? Description { get; set; }
     }
+
 
     // DTO cho áp dụng voucher vào bill đã có
     public class ApplyVoucherToBillDTO
@@ -66,5 +68,17 @@ namespace BE_OPENSKY.DTOs
         public decimal TotalPrice { get; set; }
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    // DTO cho danh sách bill có phân trang
+    public class BillListResponseDTO
+    {
+        public List<BillResponseDTO> Bills { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int Size { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
     }
 }

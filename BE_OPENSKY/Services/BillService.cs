@@ -62,6 +62,14 @@ namespace BE_OPENSKY.Services
                 UpdatedAt = bill.UpdatedAt,
                 UserVoucherID = bill.UserVoucherID,
                 VoucherInfo = voucherInfo,
+                User = new UserInfoDTO
+                {
+                    UserID = bill.User.UserID,
+                    FullName = bill.User.FullName,
+                    Email = bill.User.Email,
+                    PhoneNumber = bill.User.PhoneNumber,
+                    CitizenId = bill.User.CitizenId
+                },
                 BillDetails = bill.BillDetails?.Select(bd => new BillDetailResponseDTO
                 {
                     BillDetailID = bd.BillDetailID,
@@ -123,6 +131,14 @@ namespace BE_OPENSKY.Services
                 UpdatedAt = bill.UpdatedAt,
                 UserVoucherID = bill.UserVoucherID,
                 VoucherInfo = voucherInfo,
+                User = new UserInfoDTO
+                {
+                    UserID = bill.User?.UserID ?? Guid.Empty,
+                    FullName = bill.User?.FullName ?? string.Empty,
+                    Email = bill.User?.Email ?? string.Empty,
+                    PhoneNumber = bill.User?.PhoneNumber,
+                    CitizenId = bill.User?.CitizenId
+                },
                 BillDetails = bill.BillDetails?.Select(bd => new BillDetailResponseDTO
                 {
                     BillDetailID = bd.BillDetailID,
@@ -309,6 +325,14 @@ namespace BE_OPENSKY.Services
                 TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
                 CreatedAt = b.CreatedAt,
+                User = new UserInfoDTO
+                {
+                    UserID = b.User.UserID,
+                    FullName = b.User.FullName,
+                    Email = b.User.Email,
+                    PhoneNumber = b.User.PhoneNumber,
+                    CitizenId = b.User.CitizenId
+                },
                 BillDetails = b.BillDetails.Select(bd => new BillDetailResponseDTO
                 {
                     BillDetailID = bd.BillDetailID,
@@ -323,6 +347,157 @@ namespace BE_OPENSKY.Services
                     CreatedAt = bd.CreatedAt
                 }).ToList() ?? new List<BillDetailResponseDTO>()
             }).ToList();
+        }
+
+        public async Task<BillListResponseDTO> GetUserBillsPaginatedAsync(Guid userId, int page = 1, int size = 10)
+        {
+            var query = _context.Bills
+                .Include(b => b.User)
+                .Include(b => b.BillDetails)
+                .Where(b => b.UserID == userId)
+                .OrderByDescending(b => b.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
+
+            var bills = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync();
+
+            var billDtos = bills.Select(b => new BillResponseDTO
+            {
+                BillID = b.BillID,
+                UserID = b.UserID,
+                UserName = b.User.FullName,
+                BookingID = b.BookingID,
+                Deposit = b.Deposit,
+                TotalPrice = b.TotalPrice,
+                Status = b.Status.ToString(),
+                CreatedAt = b.CreatedAt,
+                User = new UserInfoDTO
+                {
+                    UserID = b.User.UserID,
+                    FullName = b.User.FullName,
+                    Email = b.User.Email,
+                    PhoneNumber = b.User.PhoneNumber,
+                    CitizenId = b.User.CitizenId
+                },
+                BillDetails = b.BillDetails.Select(bd => new BillDetailResponseDTO
+                {
+                    BillDetailID = bd.BillDetailID,
+                    BillID = bd.BillID,
+                    ItemType = bd.ItemType.ToString(),
+                    ItemID = bd.ItemID,
+                    ItemName = bd.ItemName,
+                    Quantity = bd.Quantity,
+                    UnitPrice = bd.UnitPrice,
+                    TotalPrice = bd.TotalPrice,
+                    Notes = bd.Notes,
+                    CreatedAt = bd.CreatedAt
+                }).ToList() ?? new List<BillDetailResponseDTO>()
+            }).ToList();
+
+            return new BillListResponseDTO
+            {
+                Bills = billDtos,
+                TotalCount = totalCount,
+                Page = page,
+                Size = size,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+
+        public async Task<BillListResponseDTO> GetAllBillsPaginatedAsync(int page = 1, int size = 10)
+        {
+            var query = _context.Bills
+                .Include(b => b.User)
+                .Include(b => b.BillDetails)
+                .Include(b => b.UserVoucher)
+                    .ThenInclude(uv => uv.Voucher)
+                .OrderByDescending(b => b.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
+
+            var bills = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync();
+
+            var billDtos = bills.Select(b => 
+            {
+                // Tính toán thông tin giảm giá
+                var originalTotalPrice = b.BillDetails?.Sum(bd => bd.TotalPrice) ?? 0;
+                var discountAmount = originalTotalPrice - b.TotalPrice;
+                var discountPercent = originalTotalPrice > 0 ? (discountAmount / originalTotalPrice) * 100 : 0;
+
+                // Thông tin voucher
+                VoucherInfoDTO? voucherInfo = null;
+                if (b.UserVoucher?.Voucher != null)
+                {
+                    voucherInfo = new VoucherInfoDTO
+                    {
+                        Code = b.UserVoucher.Voucher.Code,
+                        Percent = b.UserVoucher.Voucher.Percent,
+                        TableType = b.UserVoucher.Voucher.TableType,
+                        Description = b.UserVoucher.Voucher.Description
+                    };
+                }
+
+                return new BillResponseDTO
+                {
+                    BillID = b.BillID,
+                    UserID = b.UserID,
+                    UserName = b.User.FullName,
+                    BookingID = b.BookingID,
+                    Deposit = b.Deposit,
+                    RefundPrice = b.RefundPrice,
+                    TotalPrice = b.TotalPrice,
+                    OriginalTotalPrice = originalTotalPrice,
+                    DiscountAmount = discountAmount,
+                    DiscountPercent = discountPercent,
+                    Status = b.Status.ToString(),
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt,
+                    UserVoucherID = b.UserVoucherID,
+                    VoucherInfo = voucherInfo,
+                    User = new UserInfoDTO
+                    {
+                        UserID = b.User.UserID,
+                        FullName = b.User.FullName,
+                        Email = b.User.Email,
+                        PhoneNumber = b.User.PhoneNumber,
+                        CitizenId = b.User.CitizenId
+                    },
+                    BillDetails = b.BillDetails.Select(bd => new BillDetailResponseDTO
+                    {
+                        BillDetailID = bd.BillDetailID,
+                        BillID = bd.BillID,
+                        ItemType = bd.ItemType.ToString(),
+                        ItemID = bd.ItemID,
+                        ItemName = bd.ItemName,
+                        Quantity = bd.Quantity,
+                        UnitPrice = bd.UnitPrice,
+                        TotalPrice = bd.TotalPrice,
+                        Notes = bd.Notes,
+                        CreatedAt = bd.CreatedAt
+                    }).ToList() ?? new List<BillDetailResponseDTO>()
+                };
+            }).ToList();
+
+            return new BillListResponseDTO
+            {
+                Bills = billDtos,
+                TotalCount = totalCount,
+                Page = page,
+                Size = size,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
         }
 
         public async Task<bool> UpdateBillPaymentStatusAsync(Guid billId, string paymentMethod, string transactionId, decimal amount)
@@ -392,6 +567,14 @@ namespace BE_OPENSKY.Services
                 TotalPrice = bill.TotalPrice,
                 Status = bill.Status.ToString(),
                 CreatedAt = bill.CreatedAt,
+                User = new UserInfoDTO
+                {
+                    UserID = bill.User.UserID,
+                    FullName = bill.User.FullName,
+                    Email = bill.User.Email,
+                    PhoneNumber = bill.User.PhoneNumber,
+                    CitizenId = bill.User.CitizenId
+                },
                 BillDetails = bill.BillDetails.Select(bd => new BillDetailResponseDTO
                 {
                     BillDetailID = bd.BillDetailID,

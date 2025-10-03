@@ -15,7 +15,7 @@ namespace BE_OPENSKY.Services
             _context = context;
         }
 
-        public async Task<Guid> CreateTourBookingAsync(Guid userId, CreateTourBookingDTO createBookingDto)
+        public async Task<CreateTourBookingResponseDTO> CreateTourBookingAsync(Guid userId, CreateTourBookingDTO createBookingDto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -96,7 +96,11 @@ namespace BE_OPENSKY.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return booking.BookingID;
+                return new CreateTourBookingResponseDTO
+                {
+                    BookingID = booking.BookingID,
+                    BillID = bill.BillID
+                };
             }
             catch
             {

@@ -59,6 +59,12 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Unauthorized();
                     }
 
+                    // Kiểm tra quyền - Hotel không được áp dụng voucher
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép áp dụng voucher" }, statusCode: 403);
+                    }
+
                     var result = await billService.ApplyVoucherToBillAsync(userId, applyVoucherDto);
                     return Results.Ok(result);
                 }
@@ -97,6 +103,12 @@ namespace BE_OPENSKY.Endpoints
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
+                    }
+
+                    // Kiểm tra quyền - Hotel không được xóa voucher
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép xóa voucher" }, statusCode: 403);
                     }
 
                     var result = await billService.RemoveVoucherFromBillAsync(billId, userId);

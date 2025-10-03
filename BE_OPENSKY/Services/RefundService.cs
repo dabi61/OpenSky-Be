@@ -73,6 +73,26 @@ namespace BE_OPENSKY.Services
         // Tạo yêu cầu refund: tái sử dụng CreateRefundAsync để tạo Refund Pending trong DB
         public async Task<Guid> CreateRefundRequestAsync(Guid userId, CreateRefundDTO createRefundDto)
         {
+            // Kiểm tra quyền: Hotel không được tạo refund cho tour booking và hotel booking
+            var user = await _context.Users.FindAsync(userId);
+            if (user?.Role == RoleConstants.Hotel)
+            {
+                // Kiểm tra bill có phải tour booking hoặc hotel booking không
+                var bill = await _context.Bills
+                    .Include(b => b.Booking)
+                    .FirstOrDefaultAsync(b => b.BillID == createRefundDto.BillID && b.UserID == userId);
+                
+                if (bill?.Booking?.TourID != null)
+                {
+                    throw new ArgumentException("Hotel không được phép tạo refund cho tour booking");
+                }
+                
+                if (bill?.Booking?.HotelID != null)
+                {
+                    throw new ArgumentException("Hotel không được phép tạo refund cho hotel booking");
+                }
+            }
+            
             return await CreateRefundAsync(userId, createRefundDto);
         }
 
@@ -231,6 +251,38 @@ namespace BE_OPENSKY.Services
                     .ThenInclude(b => b.User)
                 .Include(r => r.Bill)
                     .ThenInclude(b => b.Booking)
+                .OrderByDescending(r => r.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
+
+            var refundEntities = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync();
+
+            var refunds = refundEntities
+                .Select(r => MapToRefundResponseDTO(r))
+                .ToList();
+
+            return new RefundListResponseDTO
+            {
+                Refunds = refunds,
+                TotalCount = totalCount,
+                Page = page,
+                Size = size,
+                TotalPages = totalPages
+            };
+        }
+
+        public async Task<RefundListResponseDTO> GetRefundsByStatusAsync(RefundStatus status, int page = 1, int size = 10)
+        {
+            var query = _context.Refunds
+                .Include(r => r.Bill)
+                    .ThenInclude(b => b.User)
+                .Include(r => r.Bill)
+                    .ThenInclude(b => b.Booking)
+                .Where(r => r.Status == status)
                 .OrderByDescending(r => r.CreatedAt);
 
             var totalCount = await query.CountAsync();

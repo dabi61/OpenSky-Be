@@ -29,6 +29,12 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
                     }
 
+                    // Kiểm tra quyền - Hotel không được lưu voucher
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép lưu voucher" }, statusCode: 403);
+                    }
+
                     // Kiểm tra dữ liệu đầu vào
                     if (saveVoucherDto.VoucherID == Guid.Empty)
                     {

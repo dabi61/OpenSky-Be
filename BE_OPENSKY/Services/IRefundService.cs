@@ -22,6 +22,8 @@ namespace BE_OPENSKY.Services
         // Lấy tất cả refund (Admin/Manager)
         Task<RefundListResponseDTO> GetAllRefundsAsync(int page = 1, int size = 10);
         
+        // Lấy danh sách refund theo status
+        Task<RefundListResponseDTO> GetRefundsByStatusAsync(RefundStatus status, int page = 1, int size = 10);
         
         // Lấy thống kê refund
         Task<RefundStatsDTO> GetRefundStatsAsync();

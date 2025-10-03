@@ -24,6 +24,12 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
                     }
 
+                    // Kiểm tra quyền - Hotel không được đặt phòng khách sạn
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép đặt phòng khách sạn" }, statusCode: 403);
+                    }
+
                     // Tạo DTO đầy đủ
                     var createDto = new CreateMultipleRoomBookingDTO
                     {
@@ -129,8 +135,8 @@ namespace BE_OPENSKY.Endpoints
                         TotalPages = 0
                     };
 
-                    // Lấy hotel bookings nếu type là "hotel" hoặc null
-                    if (type == null || type.ToLower() == "hotel")
+                    // Lấy hotel bookings nếu type là "hotel" hoặc null (trừ Hotel)
+                    if ((type == null || type.ToLower() == "hotel") && !context.User.IsInRole(RoleConstants.Hotel))
                     {
                         var hotelResult = await bookingService.GetBookingsPaginatedAsync(page, limit, status, userIdGuid);
                         result = new
@@ -144,8 +150,8 @@ namespace BE_OPENSKY.Endpoints
                         };
                     }
 
-                    // Lấy tour bookings nếu type là "tour" hoặc null
-                    if (type == null || type.ToLower() == "tour")
+                    // Lấy tour bookings nếu type là "tour" hoặc null (trừ Hotel)
+                    if ((type == null || type.ToLower() == "tour") && !context.User.IsInRole(RoleConstants.Hotel))
                     {
                         var tourResult = await tourBookingService.GetUserTourBookingsAsync(userIdGuid, page, limit);
                         var currentHotelBookings = type == null ? result.HotelBookings : new List<object>();
@@ -255,8 +261,8 @@ namespace BE_OPENSKY.Endpoints
                         TotalPages = 0
                     };
 
-                    // Tìm kiếm hotel bookings nếu type là "hotel" hoặc null
-                    if (type == null || type.ToLower() == "hotel")
+                    // Tìm kiếm hotel bookings nếu type là "hotel" hoặc null (trừ Hotel)
+                    if ((type == null || type.ToLower() == "hotel") && !context.User.IsInRole(RoleConstants.Hotel))
                     {
                         var searchDto = new BookingSearchDTO
                         {
@@ -281,8 +287,8 @@ namespace BE_OPENSKY.Endpoints
                         };
                     }
 
-                    // Tìm kiếm tour bookings nếu type là "tour" hoặc null
-                    if (type == null || type.ToLower() == "tour")
+                    // Tìm kiếm tour bookings nếu type là "tour" hoặc null (trừ Hotel)
+                    if ((type == null || type.ToLower() == "tour") && !context.User.IsInRole(RoleConstants.Hotel))
                     {
                         var tourResult = await tourBookingService.GetUserTourBookingsAsync(userIdGuid, page, limit);
                         
@@ -457,8 +463,8 @@ namespace BE_OPENSKY.Endpoints
                         }
                     };
 
-                    // Lấy thống kê hotel nếu type là "hotel" hoặc null
-                    if (type == null || type.ToLower() == "hotel")
+                    // Lấy thống kê hotel nếu type là "hotel" hoặc null (trừ Hotel)
+                    if ((type == null || type.ToLower() == "hotel") && !context.User.IsInRole(RoleConstants.Hotel))
                     {
                         // Nếu có hotelId, kiểm tra quyền sở hữu
                         if (hotelId.HasValue)
@@ -494,8 +500,8 @@ namespace BE_OPENSKY.Endpoints
                         };
                     }
 
-                    // Lấy thống kê tour nếu type là "tour" hoặc null
-                    if (type == null || type.ToLower() == "tour")
+                    // Lấy thống kê tour nếu type là "tour" hoặc null (trừ Hotel)
+                    if ((type == null || type.ToLower() == "tour") && !context.User.IsInRole(RoleConstants.Hotel))
                     {
                         var tourResult = await tourBookingService.GetUserTourBookingsAsync(userIdGuid, 1, int.MaxValue);
                         
@@ -573,8 +579,14 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Unauthorized();
                     }
 
-                    var bookingId = await tourBookingService.CreateTourBookingAsync(userId, createBookingDto);
-                    return Results.Created($"/bookings/{bookingId}", new { BookingID = bookingId, Message = "Tạo tour booking thành công" });
+                    // Kiểm tra quyền - Hotel không được đặt tour
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép đặt tour" }, statusCode: 403);
+                    }
+
+                    var result = await tourBookingService.CreateTourBookingAsync(userId, createBookingDto);
+                    return Results.Created($"/bookings/{result.BookingID}", new { BookingID = result.BookingID, BillID = result.BillID, Message = "Tạo tour booking thành công" });
                 }
                 catch (ArgumentException ex)
                 {
@@ -611,6 +623,12 @@ namespace BE_OPENSKY.Endpoints
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
+                    }
+
+                    // Kiểm tra quyền - Hotel không được xem tour booking
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép xem tour booking" }, statusCode: 403);
                     }
 
                     var booking = await tourBookingService.GetTourBookingByIdAsync(bookingId, userId);
@@ -650,6 +668,12 @@ namespace BE_OPENSKY.Endpoints
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
                     {
                         return Results.Unauthorized();
+                    }
+
+                    // Kiểm tra quyền - Hotel không được hủy tour booking
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép hủy tour booking" }, statusCode: 403);
                     }
 
                     var success = await tourBookingService.CancelTourBookingAsync(bookingId, userId);

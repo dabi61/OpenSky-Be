@@ -379,6 +379,54 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization();
 
+            // GET /refunds/status/{status} - Lấy danh sách refund theo status
+            group.MapGet("/status/{status}", async (
+                RefundStatus status,
+                IRefundService refundService,
+                HttpContext context,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    // Lấy UserID từ token
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    // Kiểm tra quyền - chỉ Admin, Supervisor hoặc Hotel owner mới được xem theo status
+                    var isAdmin = context.User.IsInRole(RoleConstants.Admin);
+                    var isSupervisor = context.User.IsInRole(RoleConstants.Supervisor);
+                    var isHotel = context.User.IsInRole(RoleConstants.Hotel);
+
+                    if (!isAdmin && !isSupervisor && !isHotel)
+                    {
+                        return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này" }, statusCode: 403);
+                    }
+
+                    var result = await refundService.GetRefundsByStatusAsync(status, page, size);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetRefundsByStatus")
+            .WithSummary("Lấy danh sách refund theo status")
+            .WithDescription("Lấy danh sách yêu cầu hoàn tiền theo trạng thái (Admin/Supervisor/Hotel)")
+            .Produces<RefundListResponseDTO>(200)
+            .Produces(401)
+            .Produces(403)
+            .Produces(500)
+            .RequireAuthorization();
+
 
             // GET /refunds/stats - Thống kê refund (Admin)
             group.MapGet("/stats", async (

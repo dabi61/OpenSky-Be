@@ -10,6 +10,13 @@ namespace BE_OPENSKY.DTOs
         public string? Notes { get; set; }
     }
 
+    // DTO cho response khi tạo tour booking thành công
+    public class CreateTourBookingResponseDTO
+    {
+        public Guid BookingID { get; set; }
+        public Guid BillID { get; set; }
+    }
+
     // DTO cho cập nhật tour booking
     public class UpdateTourBookingDTO
     {

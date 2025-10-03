@@ -5,7 +5,7 @@ namespace BE_OPENSKY.Services
     public interface ITourBookingService
     {
         // Tạo tour booking
-        Task<Guid> CreateTourBookingAsync(Guid userId, CreateTourBookingDTO createBookingDto);
+        Task<CreateTourBookingResponseDTO> CreateTourBookingAsync(Guid userId, CreateTourBookingDTO createBookingDto);
         
         // Lấy tour booking theo ID
         Task<TourBookingResponseDTO?> GetTourBookingByIdAsync(Guid bookingId, Guid userId);

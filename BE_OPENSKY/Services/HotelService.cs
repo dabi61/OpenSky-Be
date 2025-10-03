@@ -238,6 +238,7 @@ public class HotelService : IHotelService
             Star = hotel.Star,
             Status = hotel.Status.ToString(),
             CreatedAt = hotel.CreatedAt,
+            HotelEmail = hotel.User.Email,
             Images = images,
             User = new UserSummaryDTO
             {

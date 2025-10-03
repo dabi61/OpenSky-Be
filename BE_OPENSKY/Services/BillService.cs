@@ -19,6 +19,7 @@ namespace BE_OPENSKY.Services
         {
             var bill = await _context.Bills
                 .Include(b => b.User)
+                .Include(b => b.Booking)
                 .Include(b => b.BillDetails)
                 .Include(b => b.UserVoucher)
                     .ThenInclude(uv => uv.Voucher)
@@ -51,6 +52,8 @@ namespace BE_OPENSKY.Services
                 UserID = bill.UserID,
                 UserName = bill.User.FullName,
                 BookingID = bill.BookingID,
+                StartTime = bill.Booking?.CheckInDate,
+                EndTime = bill.Booking?.CheckOutDate,
                 Deposit = bill.Deposit,
                 RefundPrice = bill.RefundPrice,
                 TotalPrice = bill.TotalPrice,
@@ -90,6 +93,7 @@ namespace BE_OPENSKY.Services
         {
             var bill = await _context.Bills
                 .Include(b => b.User)
+                .Include(b => b.Booking)
                 .Include(b => b.BillDetails)
                 .Include(b => b.UserVoucher)
                     .ThenInclude(uv => uv.Voucher)
@@ -120,6 +124,8 @@ namespace BE_OPENSKY.Services
                 UserID = bill.UserID,
                 UserName = bill.User?.FullName ?? string.Empty,
                 BookingID = bill.BookingID,
+                StartTime = bill.Booking?.CheckInDate,
+                EndTime = bill.Booking?.CheckOutDate,
                 Deposit = bill.Deposit,
                 RefundPrice = bill.RefundPrice,
                 TotalPrice = bill.TotalPrice,
@@ -310,6 +316,7 @@ namespace BE_OPENSKY.Services
         {
             var bills = await _context.Bills
                 .Include(b => b.User)
+                .Include(b => b.Booking)
                 .Include(b => b.BillDetails)
                 .Where(b => b.UserID == userId)
                 .OrderByDescending(b => b.CreatedAt)
@@ -321,6 +328,8 @@ namespace BE_OPENSKY.Services
                 UserID = b.UserID,
                 UserName = b.User.FullName,
                 BookingID = b.BookingID,
+                StartTime = b.Booking?.CheckInDate,
+                EndTime = b.Booking?.CheckOutDate,
                 Deposit = b.Deposit,
                 TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
@@ -353,6 +362,7 @@ namespace BE_OPENSKY.Services
         {
             var query = _context.Bills
                 .Include(b => b.User)
+                .Include(b => b.Booking)
                 .Include(b => b.BillDetails)
                 .Where(b => b.UserID == userId)
                 .OrderByDescending(b => b.CreatedAt);
@@ -371,6 +381,8 @@ namespace BE_OPENSKY.Services
                 UserID = b.UserID,
                 UserName = b.User.FullName,
                 BookingID = b.BookingID,
+                StartTime = b.Booking?.CheckInDate,
+                EndTime = b.Booking?.CheckOutDate,
                 Deposit = b.Deposit,
                 TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
@@ -414,6 +426,7 @@ namespace BE_OPENSKY.Services
         {
             var query = _context.Bills
                 .Include(b => b.User)
+                .Include(b => b.Booking)
                 .Include(b => b.BillDetails)
                 .Include(b => b.UserVoucher)
                     .ThenInclude(uv => uv.Voucher)
@@ -453,6 +466,8 @@ namespace BE_OPENSKY.Services
                     UserID = b.UserID,
                     UserName = b.User.FullName,
                     BookingID = b.BookingID,
+                    StartTime = b.Booking?.CheckInDate,
+                    EndTime = b.Booking?.CheckOutDate,
                     Deposit = b.Deposit,
                     RefundPrice = b.RefundPrice,
                     TotalPrice = b.TotalPrice,
@@ -563,6 +578,8 @@ namespace BE_OPENSKY.Services
                 UserID = bill.UserID,
                 UserName = bill.User.FullName,
                 BookingID = bill.BookingID,
+                StartTime = booking.CheckInDate,
+                EndTime = booking.CheckOutDate,
                 Deposit = bill.Deposit,
                 TotalPrice = bill.TotalPrice,
                 Status = bill.Status.ToString(),

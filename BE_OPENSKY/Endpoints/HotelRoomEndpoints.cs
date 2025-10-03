@@ -47,11 +47,21 @@ public static class HotelRoomEndpoints
                 if (!form.TryGetValue("roomName", out var roomNameValue) || string.IsNullOrWhiteSpace(roomNameValue))
                     return Results.BadRequest(new { message = "Tên phòng không được để trống" });
 
+                // Validate roomName với regex (hỗ trợ tiếng Việt có dấu)
+                var roomNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!roomNameRegex.IsMatch(roomNameValue.ToString()))
+                    return Results.BadRequest(new { message = "Tên phòng chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("roomType", out var roomTypeValue) || string.IsNullOrWhiteSpace(roomTypeValue))
                     return Results.BadRequest(new { message = "Loại phòng không được để trống" });
 
                 if (!form.TryGetValue("address", out var addressValue) || string.IsNullOrWhiteSpace(addressValue))
                     return Results.BadRequest(new { message = "Địa chỉ phòng không được để trống" });
+
+                // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!addressRegex.IsMatch(addressValue.ToString()))
+                    return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
 
                 if (!decimal.TryParse(form["price"], out var price) || price <= 0)
                     return Results.BadRequest(new { message = "Giá phòng phải là số dương" });
@@ -277,13 +287,29 @@ public static class HotelRoomEndpoints
                         
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("roomName") && !string.IsNullOrWhiteSpace(form["roomName"].FirstOrDefault()))
-                            updateDto.RoomName = form["roomName"].FirstOrDefault();
+                        {
+                            var roomNameValue = form["roomName"].FirstOrDefault();
+                            // Validate roomName với regex (hỗ trợ tiếng Việt có dấu)
+                            var roomNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!roomNameRegex.IsMatch(roomNameValue))
+                                return Results.BadRequest(new { message = "Tên phòng chứa ký tự không hợp lệ" });
+                            
+                            updateDto.RoomName = roomNameValue;
+                        }
                         
                         if (form.ContainsKey("roomType") && !string.IsNullOrWhiteSpace(form["roomType"].FirstOrDefault()))
                             updateDto.RoomType = form["roomType"].FirstOrDefault();
                         
                         if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
-                            updateDto.Address = form["address"].FirstOrDefault();
+                        {
+                            var addressValue = form["address"].FirstOrDefault();
+                            // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                            var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!addressRegex.IsMatch(addressValue))
+                                return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+                            
+                            updateDto.Address = addressValue;
+                        }
 
                         if (form.ContainsKey("price") && decimal.TryParse(form["price"].FirstOrDefault(), out var price))
                         {

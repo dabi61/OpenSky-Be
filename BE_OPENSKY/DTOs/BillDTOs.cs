@@ -11,6 +11,8 @@ namespace BE_OPENSKY.DTOs
         public Guid UserID { get; set; }
         public string UserName { get; set; } = string.Empty;
         public Guid BookingID { get; set; }
+        public DateTime? StartTime { get; set; } // CheckInDate/Start date của booking
+        public DateTime? EndTime { get; set; } // CheckOutDate/End date của booking
         public decimal Deposit { get; set; }
         public decimal? RefundPrice { get; set; }
         public decimal TotalPrice { get; set; }

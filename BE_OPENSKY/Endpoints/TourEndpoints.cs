@@ -43,11 +43,26 @@ public static class TourEndpoints
                 if (!form.TryGetValue("tourName", out var tourNameValue) || string.IsNullOrWhiteSpace(tourNameValue))
                     return Results.BadRequest(new { message = "Tên tour không được để trống" });
 
+                // Validate tourName với regex (hỗ trợ tiếng Việt có dấu)
+                var tourNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!tourNameRegex.IsMatch(tourNameValue.ToString()))
+                    return Results.BadRequest(new { message = "Tên tour chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("address", out var addressValue) || string.IsNullOrWhiteSpace(addressValue))
                     return Results.BadRequest(new { message = "Địa chỉ không được để trống" });
 
+                // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!addressRegex.IsMatch(addressValue.ToString()))
+                    return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("province", out var provinceValue) || string.IsNullOrWhiteSpace(provinceValue))
                     return Results.BadRequest(new { message = "Tỉnh/Thành phố không được để trống" });
+
+                // Validate province
+                var provinceTrimmed = provinceValue.ToString().Trim();
+                if (!ProvinceConstants.IsValidProvince(provinceTrimmed))
+                    return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
 
                 // Remove star validation
                 // if (!int.TryParse(form["star"], out var star) || star < 1 || star > 5)
@@ -69,13 +84,22 @@ public static class TourEndpoints
                     });
                 }
 
+                // Validate description nếu có
+                var descriptionValue = form["description"].ToString();
+                if (!string.IsNullOrWhiteSpace(descriptionValue))
+                {
+                    var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                    if (!descriptionRegex.IsMatch(descriptionValue))
+                        return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
+                }
+
                 // Tạo DTO cho tour
                 var createTourDto = new CreateTourDTO
                 {
                     TourName = tourNameValue.ToString().Trim(),
-                    Description = form["description"].ToString(),
+                    Description = descriptionValue,
                     Address = addressValue.ToString().Trim(),
-                    Province = provinceValue.ToString().Trim(),
+                    Province = provinceTrimmed,
                     Price = price,
                     MaxPeople = maxPeople
                 };
@@ -239,16 +263,47 @@ public static class TourEndpoints
                 
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("tourName") && !string.IsNullOrWhiteSpace(form["tourName"].FirstOrDefault()))
-                            updateDto.TourName = form["tourName"].FirstOrDefault();
+                        {
+                            var tourNameValue = form["tourName"].FirstOrDefault();
+                            // Validate tourName với regex (hỗ trợ tiếng Việt có dấu)
+                            var tourNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!tourNameRegex.IsMatch(tourNameValue))
+                                return Results.BadRequest(new { message = "Tên tour chứa ký tự không hợp lệ" });
+                            
+                            updateDto.TourName = tourNameValue;
+                        }
                         
                         if (form.ContainsKey("description") && !string.IsNullOrWhiteSpace(form["description"].FirstOrDefault()))
-                            updateDto.Description = form["description"].FirstOrDefault();
+                        {
+                            var descriptionValue = form["description"].FirstOrDefault();
+                            // Validate description với regex (hỗ trợ tiếng Việt có dấu)
+                            var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                            if (!descriptionRegex.IsMatch(descriptionValue))
+                                return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
+                            
+                            updateDto.Description = descriptionValue;
+                        }
                         
                         if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
-                            updateDto.Address = form["address"].FirstOrDefault();
+                        {
+                            var addressValue = form["address"].FirstOrDefault();
+                            // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                            var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!addressRegex.IsMatch(addressValue))
+                                return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+                            
+                            updateDto.Address = addressValue;
+                        }
                         
                         if (form.ContainsKey("province") && !string.IsNullOrWhiteSpace(form["province"].FirstOrDefault()))
-                            updateDto.Province = form["province"].FirstOrDefault();
+                        {
+                            var provinceValue = form["province"].FirstOrDefault().Trim();
+                            // Validate province
+                            if (!ProvinceConstants.IsValidProvince(provinceValue))
+                                return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
+                            
+                            updateDto.Province = provinceValue;
+                        }
 
                         if (form.ContainsKey("price") && decimal.TryParse(form["price"].FirstOrDefault(), out var price))
                         {
@@ -669,15 +724,28 @@ public static class TourEndpoints
         .RequireAuthorization("SupervisorOrAdmin");
 
         // 8. Xem chi tiết tour
-        tourGroup.MapGet("/{tourId:guid}", async (Guid tourId, [FromServices] ITourService tourService) =>
+        tourGroup.MapGet("/{tourId}", async (string tourId, [FromServices] ITourService tourService) =>
         {
             try
             {
-                var tour = await tourService.GetTourByIdAsync(tourId);
+                // Kiểm tra empty
+                if (string.IsNullOrWhiteSpace(tourId))
+                {
+                    return Results.NotFound(new { message = "Không tìm thấy Tour" });
+                }
+
+                // Kiểm tra format (parse Guid)
+                if (!Guid.TryParse(tourId, out var tourGuid))
+                {
+                    return Results.NotFound(new { message = "Không tìm thấy Tour" });
+                }
+
+                // Kiểm tra tourId có tồn tại không
+                var tour = await tourService.GetTourByIdAsync(tourGuid);
                 
                 return tour != null 
                     ? Results.Ok(tour)
-                    : Results.NotFound(new { message = "Không tìm thấy tour" });
+                    : Results.NotFound(new { message = "Không tìm thấy Tour" });
             }
             catch (Exception ex)
             {

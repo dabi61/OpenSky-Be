@@ -126,11 +126,26 @@ public static class HotelEndpoints
                 if (!form.TryGetValue("hotelName", out var hotelNameValue) || string.IsNullOrWhiteSpace(hotelNameValue))
                     return Results.BadRequest(new { message = "Tên khách sạn không được để trống" });
 
+                // Validate hotelName với regex (hỗ trợ tiếng Việt có dấu)
+                var hotelNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!hotelNameRegex.IsMatch(hotelNameValue.ToString()))
+                    return Results.BadRequest(new { message = "Tên khách sạn chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("address", out var addressValue) || string.IsNullOrWhiteSpace(addressValue))
                     return Results.BadRequest(new { message = "Địa chỉ không được để trống" });
 
+                // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!addressRegex.IsMatch(addressValue.ToString()))
+                    return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("province", out var provinceValue) || string.IsNullOrWhiteSpace(provinceValue))
                     return Results.BadRequest(new { message = "Tỉnh/Thành phố không được để trống" });
+
+                // Validate province
+                var provinceTrimmed = provinceValue.ToString().Trim();
+                if (!ProvinceConstants.IsValidProvince(provinceTrimmed))
+                    return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
 
                 if (!decimal.TryParse(form["latitude"], out var latitude))
                     return Results.BadRequest(new { message = "Vĩ độ không hợp lệ" });
@@ -152,16 +167,25 @@ public static class HotelEndpoints
                 // if (star < 1 || star > 5)
                 //     return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
 
+                // Validate description nếu có
+                var descriptionValue = form["description"].ToString();
+                if (!string.IsNullOrWhiteSpace(descriptionValue))
+                {
+                    var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                    if (!descriptionRegex.IsMatch(descriptionValue))
+                        return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
+                }
+
                 // Tạo DTO cho hotel application
                 var applicationDto = new HotelApplicationDTO
                 {
                     HotelName = hotelNameValue.ToString().Trim(),
                     Address = addressValue.ToString().Trim(),
-                    Province = provinceValue.ToString().Trim(),
+                    Province = provinceTrimmed,
                     Latitude = latitude,
                     Longitude = longitude,
 
-                    Description = form["description"].ToString(),
+                    Description = descriptionValue,
                 };
 
                 // Tạo đơn đăng ký khách sạn
@@ -645,16 +669,47 @@ public static class HotelEndpoints
                         
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("hotelName") && !string.IsNullOrWhiteSpace(form["hotelName"].FirstOrDefault()))
-                            imageUpdateDto.HotelName = form["hotelName"].FirstOrDefault();
+                        {
+                            var hotelNameValue = form["hotelName"].FirstOrDefault();
+                            // Validate hotelName với regex (hỗ trợ tiếng Việt có dấu)
+                            var hotelNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!hotelNameRegex.IsMatch(hotelNameValue))
+                                return Results.BadRequest(new { message = "Tên khách sạn chứa ký tự không hợp lệ" });
+                            
+                            imageUpdateDto.HotelName = hotelNameValue;
+                        }
                         
-                        if (form.ContainsKey("description"))
-                            imageUpdateDto.Description = form["description"].FirstOrDefault();
+                        if (form.ContainsKey("description") && !string.IsNullOrWhiteSpace(form["description"].FirstOrDefault()))
+                        {
+                            var descriptionValue = form["description"].FirstOrDefault();
+                            // Validate description với regex (hỗ trợ tiếng Việt có dấu)
+                            var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                            if (!descriptionRegex.IsMatch(descriptionValue))
+                                return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
+                            
+                            imageUpdateDto.Description = descriptionValue;
+                        }
                         
                         if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
-                            imageUpdateDto.Address = form["address"].FirstOrDefault();
+                        {
+                            var addressValue = form["address"].FirstOrDefault();
+                            // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                            var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!addressRegex.IsMatch(addressValue))
+                                return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+                            
+                            imageUpdateDto.Address = addressValue;
+                        }
                         
                         if (form.ContainsKey("province") && !string.IsNullOrWhiteSpace(form["province"].FirstOrDefault()))
-                            imageUpdateDto.Province = form["province"].FirstOrDefault();
+                        {
+                            var provinceValue = form["province"].FirstOrDefault().Trim();
+                            // Validate province
+                            if (!ProvinceConstants.IsValidProvince(provinceValue))
+                                return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
+                            
+                            imageUpdateDto.Province = provinceValue;
+                        }
 
                         if (form.ContainsKey("latitude") && decimal.TryParse(form["latitude"].FirstOrDefault(), out var latitude))
                         {

@@ -165,6 +165,16 @@ public static class HotelEndpoints
                 };
 
                 // Tạo đơn đăng ký khách sạn
+                // Kiểm tra ảnh trước khi tạo hotel
+                var imageValidationResult = ValidateHotelImages(form.Files);
+                if (!imageValidationResult.IsValid)
+                {
+                    return Results.BadRequest(new { 
+                        message = "Có ảnh không hợp lệ", 
+                        invalidFiles = imageValidationResult.InvalidFiles 
+                    });
+                }
+
                 var hotelId = await hotelService.CreateHotelApplicationAsync(userId, applicationDto);
 
                 // Xử lý upload ảnh mới (NewImages) - sử dụng logic mới
@@ -690,6 +700,16 @@ public static class HotelEndpoints
                             }
                         }
 
+                        // Kiểm tra ảnh trước khi cập nhật hotel
+                        var imageValidationResult = ValidateHotelImages(form.Files);
+                        if (!imageValidationResult.IsValid)
+                        {
+                            return Results.BadRequest(new { 
+                                message = "Có ảnh không hợp lệ", 
+                                invalidFiles = imageValidationResult.InvalidFiles 
+                            });
+                        }
+
                         // Cập nhật thông tin khách sạn (nếu có)
                         if (!string.IsNullOrEmpty(imageUpdateDto.HotelName) || 
                             !string.IsNullOrEmpty(imageUpdateDto.Description) || 
@@ -805,6 +825,52 @@ public static class HotelEndpoints
                 return false;
                 
             return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static ImageValidationResult ValidateHotelImages(IFormFileCollection files)
+        {
+            var result = new ImageValidationResult { IsValid = true, InvalidFiles = new List<string>() };
+
+            if (files.Count == 0)
+                return result; // Không có ảnh thì OK
+
+            foreach (var file in files)
+            {
+                // Kiểm tra content type
+                if (!IsImageContentType(file.ContentType))
+                {
+                    result.IsValid = false;
+                    result.InvalidFiles.Add($"{file.FileName} (không phải ảnh)");
+                    continue;
+                }
+
+                // Kiểm tra kích thước file
+                if (file.Length > 5 * 1024 * 1024) // 5MB
+                {
+                    result.IsValid = false;
+                    result.InvalidFiles.Add($"{file.FileName} (quá lớn, max 5MB)");
+                    continue;
+                }
+
+                // Kiểm tra file extension
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    result.IsValid = false;
+                    result.InvalidFiles.Add($"{file.FileName} (định dạng không hỗ trợ, chỉ chấp nhận: {string.Join(", ", allowedExtensions)})");
+                    continue;
+                }
+            }
+
+            return result;
+        }
+
+        private class ImageValidationResult
+        {
+            public bool IsValid { get; set; }
+            public List<string> InvalidFiles { get; set; } = new();
         }
 
         // Helper method để xử lý ảnh theo logic mới

@@ -70,6 +70,16 @@ public static class HotelRoomEndpoints
                     MaxPeople = maxPeople
                 };
 
+                // Kiểm tra ảnh trước khi tạo room
+                var imageValidationResult = ValidateRoomImages(form.Files);
+                if (!imageValidationResult.IsValid)
+                {
+                    return Results.BadRequest(new { 
+                        message = "Có ảnh không hợp lệ", 
+                        invalidFiles = imageValidationResult.InvalidFiles 
+                    });
+                }
+
                 // Tạo phòng mới
                 var roomId = await hotelService.CreateRoomAsync(hotelId, userId, createRoomDto);
 
@@ -317,6 +327,16 @@ public static class HotelRoomEndpoints
                                     .Select(int.Parse)
                                     .ToList();
                             }
+                        }
+
+                        // Kiểm tra ảnh trước khi cập nhật room
+                        var imageValidationResult = ValidateRoomImages(form.Files);
+                        if (!imageValidationResult.IsValid)
+                        {
+                            return Results.BadRequest(new { 
+                                message = "Có ảnh không hợp lệ", 
+                                invalidFiles = imageValidationResult.InvalidFiles 
+                            });
                         }
 
                         // Cập nhật thông tin phòng
@@ -670,6 +690,52 @@ public static class HotelRoomEndpoints
             return false;
             
         return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ImageValidationResult ValidateRoomImages(IFormFileCollection files)
+    {
+        var result = new ImageValidationResult { IsValid = true, InvalidFiles = new List<string>() };
+
+        if (files.Count == 0)
+            return result; // Không có ảnh thì OK
+
+        foreach (var file in files)
+        {
+            // Kiểm tra content type
+            if (!IsImageContentType(file.ContentType))
+            {
+                result.IsValid = false;
+                result.InvalidFiles.Add($"{file.FileName} (không phải ảnh)");
+                continue;
+            }
+
+            // Kiểm tra kích thước file
+            if (file.Length > 5 * 1024 * 1024) // 5MB
+            {
+                result.IsValid = false;
+                result.InvalidFiles.Add($"{file.FileName} (quá lớn, max 5MB)");
+                continue;
+            }
+
+            // Kiểm tra file extension
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                result.IsValid = false;
+                result.InvalidFiles.Add($"{file.FileName} (định dạng không hỗ trợ, chỉ chấp nhận: {string.Join(", ", allowedExtensions)})");
+                continue;
+            }
+        }
+
+        return result;
+    }
+
+    private class ImageValidationResult
+    {
+        public bool IsValid { get; set; }
+        public List<string> InvalidFiles { get; set; } = new();
     }
 
     // Helper method để xử lý ảnh mới cho room (POST endpoint)

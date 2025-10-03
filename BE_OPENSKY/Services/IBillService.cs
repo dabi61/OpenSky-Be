@@ -11,6 +11,10 @@ namespace BE_OPENSKY.Services
         
         // Lấy bills của user
         Task<List<BillResponseDTO>> GetUserBillsAsync(Guid userId);
+        // Lấy bills của user với phân trang
+        Task<BillListResponseDTO> GetUserBillsPaginatedAsync(Guid userId, int page = 1, int size = 10);
+        // Lấy tất cả bills với phân trang (chỉ Admin/Supervisor)
+        Task<BillListResponseDTO> GetAllBillsPaginatedAsync(int page = 1, int size = 10);
         
         // Cập nhật trạng thái bill khi thanh toán thành công
         Task<bool> UpdateBillPaymentStatusAsync(Guid billId, string paymentMethod, string transactionId, decimal amount);

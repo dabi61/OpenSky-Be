@@ -126,11 +126,26 @@ public static class HotelEndpoints
                 if (!form.TryGetValue("hotelName", out var hotelNameValue) || string.IsNullOrWhiteSpace(hotelNameValue))
                     return Results.BadRequest(new { message = "Tên khách sạn không được để trống" });
 
+                // Validate hotelName với regex (hỗ trợ tiếng Việt có dấu)
+                var hotelNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!hotelNameRegex.IsMatch(hotelNameValue.ToString()))
+                    return Results.BadRequest(new { message = "Tên khách sạn chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("address", out var addressValue) || string.IsNullOrWhiteSpace(addressValue))
                     return Results.BadRequest(new { message = "Địa chỉ không được để trống" });
 
+                // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                if (!addressRegex.IsMatch(addressValue.ToString()))
+                    return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+
                 if (!form.TryGetValue("province", out var provinceValue) || string.IsNullOrWhiteSpace(provinceValue))
                     return Results.BadRequest(new { message = "Tỉnh/Thành phố không được để trống" });
+
+                // Validate province
+                var provinceTrimmed = provinceValue.ToString().Trim();
+                if (!ProvinceConstants.IsValidProvince(provinceTrimmed))
+                    return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
 
                 if (!decimal.TryParse(form["latitude"], out var latitude))
                     return Results.BadRequest(new { message = "Vĩ độ không hợp lệ" });
@@ -152,19 +167,38 @@ public static class HotelEndpoints
                 // if (star < 1 || star > 5)
                 //     return Results.BadRequest(new { message = "Số sao phải từ 1 đến 5" });
 
+                // Validate description nếu có
+                var descriptionValue = form["description"].ToString();
+                if (!string.IsNullOrWhiteSpace(descriptionValue))
+                {
+                    var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                    if (!descriptionRegex.IsMatch(descriptionValue))
+                        return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
+                }
+
                 // Tạo DTO cho hotel application
                 var applicationDto = new HotelApplicationDTO
                 {
                     HotelName = hotelNameValue.ToString().Trim(),
                     Address = addressValue.ToString().Trim(),
-                    Province = provinceValue.ToString().Trim(),
+                    Province = provinceTrimmed,
                     Latitude = latitude,
                     Longitude = longitude,
 
-                    Description = form["description"].ToString(),
+                    Description = descriptionValue,
                 };
 
                 // Tạo đơn đăng ký khách sạn
+                // Kiểm tra ảnh trước khi tạo hotel
+                var imageValidationResult = ValidateHotelImages(form.Files);
+                if (!imageValidationResult.IsValid)
+                {
+                    return Results.BadRequest(new { 
+                        message = "Có ảnh không hợp lệ", 
+                        invalidFiles = imageValidationResult.InvalidFiles 
+                    });
+                }
+
                 var hotelId = await hotelService.CreateHotelApplicationAsync(userId, applicationDto);
 
                 // Xử lý upload ảnh mới (NewImages) - sử dụng logic mới
@@ -635,16 +669,47 @@ public static class HotelEndpoints
                         
                         // Lấy thông tin text từ form
                         if (form.ContainsKey("hotelName") && !string.IsNullOrWhiteSpace(form["hotelName"].FirstOrDefault()))
-                            imageUpdateDto.HotelName = form["hotelName"].FirstOrDefault();
+                        {
+                            var hotelNameValue = form["hotelName"].FirstOrDefault();
+                            // Validate hotelName với regex (hỗ trợ tiếng Việt có dấu)
+                            var hotelNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!hotelNameRegex.IsMatch(hotelNameValue))
+                                return Results.BadRequest(new { message = "Tên khách sạn chứa ký tự không hợp lệ" });
+                            
+                            imageUpdateDto.HotelName = hotelNameValue;
+                        }
                         
-                        if (form.ContainsKey("description"))
-                            imageUpdateDto.Description = form["description"].FirstOrDefault();
+                        if (form.ContainsKey("description") && !string.IsNullOrWhiteSpace(form["description"].FirstOrDefault()))
+                        {
+                            var descriptionValue = form["description"].FirstOrDefault();
+                            // Validate description với regex (hỗ trợ tiếng Việt có dấu)
+                            var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                            if (!descriptionRegex.IsMatch(descriptionValue))
+                                return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
+                            
+                            imageUpdateDto.Description = descriptionValue;
+                        }
                         
                         if (form.ContainsKey("address") && !string.IsNullOrWhiteSpace(form["address"].FirstOrDefault()))
-                            imageUpdateDto.Address = form["address"].FirstOrDefault();
+                        {
+                            var addressValue = form["address"].FirstOrDefault();
+                            // Validate address với regex (hỗ trợ tiếng Việt có dấu)
+                            var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            if (!addressRegex.IsMatch(addressValue))
+                                return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
+                            
+                            imageUpdateDto.Address = addressValue;
+                        }
                         
                         if (form.ContainsKey("province") && !string.IsNullOrWhiteSpace(form["province"].FirstOrDefault()))
-                            imageUpdateDto.Province = form["province"].FirstOrDefault();
+                        {
+                            var provinceValue = form["province"].FirstOrDefault().Trim();
+                            // Validate province
+                            if (!ProvinceConstants.IsValidProvince(provinceValue))
+                                return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
+                            
+                            imageUpdateDto.Province = provinceValue;
+                        }
 
                         if (form.ContainsKey("latitude") && decimal.TryParse(form["latitude"].FirstOrDefault(), out var latitude))
                         {
@@ -688,6 +753,16 @@ public static class HotelEndpoints
                                     .ToList();
                                 imageUpdateDto.DeleteImageIds = deleteIds;
                             }
+                        }
+
+                        // Kiểm tra ảnh trước khi cập nhật hotel
+                        var imageValidationResult = ValidateHotelImages(form.Files);
+                        if (!imageValidationResult.IsValid)
+                        {
+                            return Results.BadRequest(new { 
+                                message = "Có ảnh không hợp lệ", 
+                                invalidFiles = imageValidationResult.InvalidFiles 
+                            });
                         }
 
                         // Cập nhật thông tin khách sạn (nếu có)
@@ -805,6 +880,52 @@ public static class HotelEndpoints
                 return false;
                 
             return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static ImageValidationResult ValidateHotelImages(IFormFileCollection files)
+        {
+            var result = new ImageValidationResult { IsValid = true, InvalidFiles = new List<string>() };
+
+            if (files.Count == 0)
+                return result; // Không có ảnh thì OK
+
+            foreach (var file in files)
+            {
+                // Kiểm tra content type
+                if (!IsImageContentType(file.ContentType))
+                {
+                    result.IsValid = false;
+                    result.InvalidFiles.Add($"{file.FileName} (không phải ảnh)");
+                    continue;
+                }
+
+                // Kiểm tra kích thước file
+                if (file.Length > 5 * 1024 * 1024) // 5MB
+                {
+                    result.IsValid = false;
+                    result.InvalidFiles.Add($"{file.FileName} (quá lớn, max 5MB)");
+                    continue;
+                }
+
+                // Kiểm tra file extension
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    result.IsValid = false;
+                    result.InvalidFiles.Add($"{file.FileName} (định dạng không hỗ trợ, chỉ chấp nhận: {string.Join(", ", allowedExtensions)})");
+                    continue;
+                }
+            }
+
+            return result;
+        }
+
+        private class ImageValidationResult
+        {
+            public bool IsValid { get; set; }
+            public List<string> InvalidFiles { get; set; } = new();
         }
 
         // Helper method để xử lý ảnh theo logic mới

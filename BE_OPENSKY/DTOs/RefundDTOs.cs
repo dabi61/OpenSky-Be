@@ -64,6 +64,7 @@ namespace BE_OPENSKY.DTOs
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
+        public string? CitizenId { get; set; }
     }
 
     // DTO cho danh sách refund với phân trang

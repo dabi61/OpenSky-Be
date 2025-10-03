@@ -13,8 +13,12 @@ namespace BE_OPENSKY.Endpoints
                 .WithTags("Bill")
                 .WithOpenApi();
 
-            // GET /bills/my - Lấy danh sách hóa đơn của user đang đăng nhập
-            billGroup.MapGet("/my", async ([FromServices] IBillService billService, HttpContext context) =>
+            // GET /bills/my?page=1&size=10 - Lấy danh sách hóa đơn của user đang đăng nhập với phân trang
+            billGroup.MapGet("/my", async (
+                [FromServices] IBillService billService, 
+                HttpContext context,
+                int page = 1,
+                int size = 10) =>
             {
                 try
                 {
@@ -24,8 +28,11 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Bạn chưa đăng nhập. Vui lòng đăng nhập trước." }, statusCode: 401);
                     }
 
-                    var bills = await billService.GetUserBillsAsync(userId);
-                    return Results.Ok(bills);
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    var result = await billService.GetUserBillsPaginatedAsync(userId, page, size);
+                    return Results.Ok(result);
                 }
                 catch (Exception ex)
                 {
@@ -38,11 +45,49 @@ namespace BE_OPENSKY.Endpoints
             })
             .WithName("GetMyBills")
             .WithSummary("Lấy danh sách hóa đơn của tôi")
-            .WithDescription("Trả về danh sách hóa đơn thuộc về user đang đăng nhập, sắp xếp mới nhất trước")
-            .Produces<List<BillResponseDTO>>(200)
+            .WithDescription("Trả về danh sách hóa đơn thuộc về user đang đăng nhập với phân trang, sắp xếp mới nhất trước")
+            .Produces<BillListResponseDTO>(200)
             .Produces(401)
             .Produces(500)
             .RequireAuthorization("AuthenticatedOnly");
+
+            // GET /bills/all?page=1&size=10 - Lấy tất cả bills với phân trang (chỉ Admin/Supervisor)
+            billGroup.MapGet("/all", async (
+                [FromServices] IBillService billService, 
+                HttpContext context,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    // Kiểm tra quyền - chỉ Admin và Supervisor
+                    if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                    {
+                        return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được xem tất cả bills." }, statusCode: 403);
+                    }
+
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    var result = await billService.GetAllBillsPaginatedAsync(page, size);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetAllBills")
+            .WithSummary("Lấy tất cả bills")
+            .WithDescription("Trả về danh sách tất cả bills với phân trang, sắp xếp theo ngày tạo giảm dần. Chỉ Admin và Supervisor mới có quyền truy cập.")
+            .Produces<BillListResponseDTO>(200)
+            .Produces(403)
+            .Produces(500)
+            .RequireAuthorization("SupervisorOrAdmin");
 
             // PUT /bills/apply-voucher - Áp dụng voucher vào bill đã có (billId trong body)
             billGroup.MapPut("/apply-voucher", async (

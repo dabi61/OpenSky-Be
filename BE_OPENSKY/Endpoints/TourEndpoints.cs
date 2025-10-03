@@ -724,7 +724,7 @@ public static class TourEndpoints
         .RequireAuthorization("SupervisorOrAdmin");
 
         // 8. Xem chi tiết tour
-        tourGroup.MapGet("/{tourId}", async (string tourId, [FromServices] ITourService tourService) =>
+        tourGroup.MapGet("/{tourId:guid}", async (string tourId, [FromServices] ITourService tourService) =>
         {
             try
             {

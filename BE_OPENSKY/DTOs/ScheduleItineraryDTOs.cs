@@ -29,5 +29,7 @@ namespace BE_OPENSKY.DTOs
         public string? Location { get; set; }
         public string? Description { get; set; }
         public int DayNumber { get; set; }
+        public ScheduleResponseDTO? Schedule { get; set; }
+        public TourItineraryResponseDTO? TourItinerary { get; set; }
     }
 }

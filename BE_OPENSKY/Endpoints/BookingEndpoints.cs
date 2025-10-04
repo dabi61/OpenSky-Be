@@ -188,21 +188,59 @@ namespace BE_OPENSKY.Endpoints
 
             // Bỏ bước hotel confirm/hủy vì auto-approve
 
-            // 5. Customer hủy booking
-            bookingGroup.MapPut("/hotel/{bookingId:guid}/customer-cancel", async (Guid bookingId, [FromServices] IBookingService bookingService, HttpContext context, string? reason = null) =>
+            // 5. Hủy booking (Hotel & Tour)
+            bookingGroup.MapPut("/{bookingId:guid}/cancel", async (
+                Guid bookingId, 
+                [FromServices] IBookingService bookingService,
+                [FromServices] ITourBookingService tourBookingService,
+                [FromServices] ApplicationDbContext db,
+                HttpContext context, 
+                string? reason = null) =>
             {
                 try
                 {
                     var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                     if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdGuid))
                     {
-                        return Results.Json(new { message = "Không tìm thấy thông tin người dùng" }, statusCode: 401);
+                        return Results.Unauthorized();
                     }
 
-                    var success = await bookingService.CustomerCancelBookingAsync(bookingId, userIdGuid, reason);
+                    // Kiểm tra quyền - Hotel không được hủy booking
+                    if (context.User.IsInRole(RoleConstants.Hotel))
+                    {
+                        return Results.Json(new { message = "Hotel không được phép hủy booking" }, statusCode: 403);
+                    }
+
+                    // Tìm booking để xác định loại (Hotel hoặc Tour)
+                    var booking = await db.Bookings.FirstOrDefaultAsync(b => b.BookingID == bookingId);
+                    if (booking == null)
+                    {
+                        return Results.NotFound(new { message = "Không tìm thấy booking" });
+                    }
+
+                    bool success;
+                    if (booking.HotelID.HasValue)
+                    {
+                        // Hotel booking
+                        success = await bookingService.CustomerCancelBookingAsync(bookingId, userIdGuid, reason);
+                    }
+                    else if (booking.TourID.HasValue)
+                    {
+                        // Tour booking
+                        success = await tourBookingService.CancelTourBookingAsync(bookingId, userIdGuid);
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { message = "Booking không hợp lệ" });
+                    }
+
                     return success 
                         ? Results.Ok(new { message = "Hủy booking thành công" })
                         : Results.NotFound(new { message = "Không tìm thấy booking hoặc không thể hủy" });
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
                 }
                 catch (Exception ex)
                 {
@@ -213,12 +251,15 @@ namespace BE_OPENSKY.Endpoints
                     );
                 }
             })
-            .WithName("CustomerCancelBooking")
-            .WithSummary("Customer hủy booking")
-            .WithDescription("Customer hủy booking của mình")
+            .WithName("CancelBooking")
+            .WithSummary("Hủy booking (Hotel & Tour)")
+            .WithDescription("Hủy booking của mình (tự động xác định loại booking)")
             .Produces(200)
+            .Produces(400)
             .Produces(401)
+            .Produces(403)
             .Produces(404)
+            .Produces(500)
             .RequireAuthorization();
 
 
@@ -650,56 +691,6 @@ namespace BE_OPENSKY.Endpoints
             .WithSummary("Lấy tour booking theo ID")
             .WithDescription("Lấy chi tiết tour booking")
             .Produces<TourBookingResponseDTO>(200)
-            .Produces(401)
-            .Produces(404)
-            .Produces(500)
-            .RequireAuthorization();
-
-            // 19. Hủy tour booking
-            bookingGroup.MapDelete("/tour/{bookingId}", async (
-                Guid bookingId,
-                ITourBookingService tourBookingService,
-                HttpContext context) =>
-            {
-                try
-                {
-                    // Lấy UserID từ token
-                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-                    {
-                        return Results.Unauthorized();
-                    }
-
-                    // Kiểm tra quyền - Hotel không được hủy tour booking
-                    if (context.User.IsInRole(RoleConstants.Hotel))
-                    {
-                        return Results.Json(new { message = "Hotel không được phép hủy tour booking" }, statusCode: 403);
-                    }
-
-                    var success = await tourBookingService.CancelTourBookingAsync(bookingId, userId);
-                    if (!success)
-                        return Results.NotFound(new { message = "Không tìm thấy tour booking" });
-
-                    return Results.Ok(new { message = "Hủy tour booking thành công" });
-                }
-                catch (ArgumentException ex)
-                {
-                    return Results.BadRequest(new { message = ex.Message });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Problem(
-                        title: "Lỗi hệ thống",
-                        detail: ex.Message,
-                        statusCode: 500
-                    );
-                }
-            })
-            .WithName("CancelTourBooking")
-            .WithSummary("Hủy tour booking")
-            .WithDescription("Hủy tour booking")
-            .Produces<object>(200)
-            .Produces(400)
             .Produces(401)
             .Produces(404)
             .Produces(500)

@@ -8,13 +8,11 @@ namespace BE_OPENSKY.DTOs
         public Guid ScheduleID { get; set; }
         public Guid ItineraryID { get; set; }
         public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
     }
 
     // DTO cho cập nhật schedule itinerary
     public class UpdateScheduleItineraryDTO
     {
-        public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
     }
 
@@ -25,7 +23,7 @@ namespace BE_OPENSKY.DTOs
         public Guid ScheduleID { get; set; }
         public Guid ItineraryID { get; set; }
         public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
         public string? Location { get; set; }
         public string? Description { get; set; }
         public int DayNumber { get; set; }

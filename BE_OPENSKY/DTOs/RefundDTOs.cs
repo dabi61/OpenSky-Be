@@ -41,10 +41,10 @@ namespace BE_OPENSKY.DTOs
         public int DaysUntilDeparture { get; set; }
         
         // Thông tin Bill
-        public BillInfoDTO? BillInfo { get; set; }
+        public BillInfoDTO? Bill { get; set; }
         
         // Thông tin User
-        public UserInfoDTO? UserInfo { get; set; }
+        public UserInfoDTO? User { get; set; }
     }
 
     // DTO cho thông tin Bill trong refund
@@ -86,6 +86,13 @@ namespace BE_OPENSKY.DTOs
         public int DeniedRefunds { get; set; }
         public decimal TotalRefundAmount { get; set; }
         public decimal PendingRefundAmount { get; set; }
+    }
+
+    // DTO cho response khi tạo refund thành công
+    public class CreateRefundResponseDTO
+    {
+        public Guid RefundID { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 
 }

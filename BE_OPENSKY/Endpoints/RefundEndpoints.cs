@@ -27,8 +27,13 @@ namespace BE_OPENSKY.Endpoints
                     {
                         return Results.Unauthorized();
                     }
-                    var billId = await refundService.CreateRefundRequestAsync(userId, createRefundDto);
-                    return Results.Created($"/refunds/pending/{billId}", new { BillID = billId, Message = "Tạo yêu cầu hoàn tiền thành công, chờ duyệt" });
+                    var refundId = await refundService.CreateRefundRequestAsync(userId, createRefundDto);
+                    var response = new CreateRefundResponseDTO 
+                    { 
+                        RefundID = refundId, 
+                        Message = "Tạo yêu cầu hoàn tiền thành công, chờ duyệt" 
+                    };
+                    return Results.Created($"/refunds/{refundId}", response);
                 }
                 catch (ArgumentException ex)
                 {
@@ -46,7 +51,7 @@ namespace BE_OPENSKY.Endpoints
             .WithName("CreateRefund")
             .WithSummary("Tạo refund (Pending)")
             .WithDescription("Tạo yêu cầu refund ở trạng thái chờ duyệt (không hoàn tiền ngay)")
-            .Produces<object>(201)
+            .Produces<CreateRefundResponseDTO>(201)
             .Produces(400)
             .Produces(401)
             .Produces(500)
@@ -101,14 +106,14 @@ namespace BE_OPENSKY.Endpoints
                             r.Description,
                             Status = r.Status.ToString(),
                             r.CreatedAt,
-                            BillInfo = new {
+                            Bill = new {
                                 r.Bill.BillID,
                                 r.Bill.TotalPrice,
                                 r.Bill.RefundPrice,
                                 Status = r.Bill.Status.ToString(),
                                 r.Bill.CreatedAt
                             },
-                            UserInfo = new {
+                            User = new {
                                 r.Bill.User.UserID,
                                 UserName = r.Bill.User.FullName,
                                 r.Bill.User.Email
@@ -181,14 +186,14 @@ namespace BE_OPENSKY.Endpoints
                             r.Description,
                             Status = r.Status.ToString(),
                             r.CreatedAt,
-                            BillInfo = new {
+                            Bill = new {
                                 r.Bill.BillID,
                                 r.Bill.TotalPrice,
                                 r.Bill.RefundPrice,
                                 Status = r.Bill.Status.ToString(),
                                 r.Bill.CreatedAt
                             },
-                            UserInfo = new {
+                            User = new {
                                 r.Bill.User.UserID,
                                 UserName = r.Bill.User.FullName,
                                 r.Bill.User.Email

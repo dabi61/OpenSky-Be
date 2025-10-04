@@ -404,7 +404,7 @@ namespace BE_OPENSKY.Services
                 RefundAmount = refund.Bill.RefundPrice ?? 0,
                 PolicyDescription = refundInfo.PolicyDescription,
                 DaysUntilDeparture = refundInfo.DaysUntilDeparture,
-                BillInfo = new BillInfoDTO
+                Bill = new BillInfoDTO
                 {
                     BillID = refund.Bill.BillID,
                     TotalPrice = refund.Bill.TotalPrice,
@@ -412,7 +412,7 @@ namespace BE_OPENSKY.Services
                     Status = refund.Bill.Status.ToString(),
                     CreatedAt = refund.Bill.CreatedAt
                 },
-                UserInfo = new UserInfoDTO
+                User = new UserInfoDTO
                 {
                     UserID = refund.Bill.UserID,
                     Email = refund.Bill.User.Email,

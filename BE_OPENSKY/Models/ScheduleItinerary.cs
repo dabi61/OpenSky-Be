@@ -16,8 +16,7 @@ namespace BE_OPENSKY.Models
         [Required]
         public DateTime StartTime { get; set; }
         
-        [Required]
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
         
         // Navigation properties
         public virtual Schedule Schedule { get; set; } = null!;

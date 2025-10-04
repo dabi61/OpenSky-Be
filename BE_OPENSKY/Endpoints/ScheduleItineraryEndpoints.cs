@@ -27,12 +27,6 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin, Supervisor và TourGuide mới được tạo schedule itinerary." }, statusCode: 403);
                     }
 
-                    // Kiểm tra dữ liệu đầu vào
-                    if (createScheduleItineraryDto.StartTime >= createScheduleItineraryDto.EndTime)
-                    {
-                        return Results.Json(new { message = "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc" }, statusCode: 400);
-                    }
-
                     var scheduleItId = await scheduleItineraryService.CreateScheduleItineraryAsync(createScheduleItineraryDto);
 
                     return Results.Json(new { 
@@ -96,22 +90,13 @@ namespace BE_OPENSKY.Endpoints
                         return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin, Supervisor và TourGuide mới được cập nhật schedule itinerary." }, statusCode: 403);
                     }
 
-                    // Kiểm tra dữ liệu đầu vào
-                    if (updateScheduleItineraryDto.StartTime.HasValue && updateScheduleItineraryDto.EndTime.HasValue)
-                    {
-                        if (updateScheduleItineraryDto.StartTime.Value >= updateScheduleItineraryDto.EndTime.Value)
-                        {
-                            return Results.Json(new { message = "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc" }, statusCode: 400);
-                        }
-                    }
-
                     var success = await scheduleItineraryService.UpdateScheduleItineraryAsync(id, updateScheduleItineraryDto);
                     if (!success)
                     {
                         return Results.Json(new { message = "Không tìm thấy schedule itinerary hoặc không thể cập nhật" }, statusCode: 404);
                     }
 
-                    return Results.Json(new { message = "Cập nhật schedule itinerary thành công" });
+                    return Results.Json(new { message = "Cập nhật EndTime schedule itinerary thành công" });
                 }
                 catch (Exception ex)
                 {
@@ -119,10 +104,9 @@ namespace BE_OPENSKY.Endpoints
                 }
             })
             .WithName("UpdateScheduleItinerary")
-            .WithSummary("Cập nhật schedule itinerary")
-            .WithDescription("Cập nhật thông tin schedule itinerary. Chỉ Admin, Supervisor và TourGuide mới được cập nhật schedule itinerary.")
+            .WithSummary("Cập nhật EndTime của schedule itinerary")
+            .WithDescription("Cập nhật EndTime khi kết thúc itinerary. Chỉ Admin, Supervisor và TourGuide mới được cập nhật.")
             .Produces(200)
-            .Produces(400)
             .Produces(403)
             .Produces(404)
             .Produces(500)

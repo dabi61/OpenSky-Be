@@ -22,7 +22,7 @@ namespace BE_OPENSKY.Services
                 ScheduleID = createScheduleItineraryDto.ScheduleID,
                 ItineraryID = createScheduleItineraryDto.ItineraryID,
                 StartTime = createScheduleItineraryDto.StartTime,
-                EndTime = createScheduleItineraryDto.EndTime
+                EndTime = null // EndTime sẽ được cập nhật khi kết thúc itinerary
             };
 
             _context.ScheduleItineraries.Add(scheduleItinerary);
@@ -218,9 +218,7 @@ namespace BE_OPENSKY.Services
 
             if (scheduleItinerary == null) return false;
 
-            if (updateScheduleItineraryDto.StartTime.HasValue)
-                scheduleItinerary.StartTime = updateScheduleItineraryDto.StartTime.Value;
-
+            // Chỉ cho phép cập nhật EndTime khi kết thúc itinerary
             if (updateScheduleItineraryDto.EndTime.HasValue)
                 scheduleItinerary.EndTime = updateScheduleItineraryDto.EndTime.Value;
 

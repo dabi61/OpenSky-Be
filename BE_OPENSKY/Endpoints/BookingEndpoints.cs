@@ -627,7 +627,7 @@ namespace BE_OPENSKY.Endpoints
                     }
 
                     var result = await tourBookingService.CreateTourBookingAsync(userId, createBookingDto);
-                    return Results.Created($"/bookings/{result.BookingID}", new { BookingID = result.BookingID, BillID = result.BillID, Message = "Tạo tour booking thành công" });
+                    return Results.Created($"/bookings/{result.BookingID}", new { BookingId = result.BookingID, BillId = result.BillID, Message = "Tạo tour booking thành công" });
                 }
                 catch (ArgumentException ex)
                 {

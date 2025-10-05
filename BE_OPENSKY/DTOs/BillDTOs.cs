@@ -9,6 +9,7 @@ namespace BE_OPENSKY.DTOs
     {
         public Guid BillID { get; set; }
         public Guid UserID { get; set; }
+        public Guid TargetID { get; set; }
         public string UserName { get; set; } = string.Empty;
         public Guid BookingID { get; set; }
         public DateTime? StartTime { get; set; } // CheckInDate/Start date của booking

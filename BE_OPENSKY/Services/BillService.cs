@@ -576,6 +576,7 @@ namespace BE_OPENSKY.Services
             {
                 BillID = bill.BillID,
                 UserID = bill.UserID,
+                TargetID = bill.
                 UserName = bill.User.FullName,
                 BookingID = bill.BookingID,
                 StartTime = booking.CheckInDate,

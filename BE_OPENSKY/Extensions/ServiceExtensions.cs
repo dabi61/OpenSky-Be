@@ -34,6 +34,7 @@ public static class ServiceExtensions
         services.AddScoped<IScheduleService, ScheduleService>();
         services.AddScoped<IScheduleItineraryService, ScheduleItineraryService>();
         services.AddScoped<ITourItineraryService, TourItineraryService>();
+        services.AddScoped<ITourReviewService, TourReviewService>();
         services.AddScoped<IVoucherService, VoucherService>();
         services.AddScoped<IUserVoucherService, UserVoucherService>();
         services.AddScoped<IRefundService, RefundService>();

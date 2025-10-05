@@ -208,23 +208,6 @@ namespace BE_OPENSKY.Data
             });
 
 
-            // ScheduleItinerary
-            modelBuilder.Entity<ScheduleItinerary>(entity =>
-            {
-                entity.HasKey(e => e.ScheduleItID);
-                entity.Property(e => e.StartTime).IsRequired();
-                entity.Property(e => e.EndTime).IsRequired();
-
-                entity.HasOne(e => e.Schedule)
-                    .WithMany(e => e.ScheduleItineraries)
-                    .HasForeignKey(e => e.ScheduleID)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(e => e.TourItinerary)
-                    .WithMany(e => e.ScheduleItineraries)
-                    .HasForeignKey(e => e.ItineraryID)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
 
             // FeedBack
             modelBuilder.Entity<FeedBack>(entity =>
@@ -385,6 +368,8 @@ namespace BE_OPENSKY.Data
             modelBuilder.Entity<ScheduleItinerary>(entity =>
             {
                 entity.HasKey(e => e.ScheduleItID);
+                entity.Property(e => e.StartTime).IsRequired();
+                entity.Property(e => e.EndTime).IsRequired(false); // EndTime là optional (nullable)
 
                 // Quan hệ với bảng Schedule
                 entity.HasOne(e => e.Schedule)

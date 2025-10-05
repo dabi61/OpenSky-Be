@@ -129,6 +129,7 @@ public class Program
         app.MapScheduleEndpoints();    // Schedule management endpoints
         app.MapScheduleItineraryEndpoints(); // Schedule itinerary management endpoints
         app.MapTourItineraryEndpoints(); // Tour itinerary management endpoints
+        app.MapTourReviewEndpoints();  // Tour review endpoints
         app.MapVoucherEndpoints();     // Voucher management endpoints
         app.MapUserVoucherEndpoints(); // User voucher management endpoints
         app.MapRefundEndpoints();      // Refund management endpoints

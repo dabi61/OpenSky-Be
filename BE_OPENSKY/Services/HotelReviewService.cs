@@ -26,7 +26,6 @@ public class HotelReviewService : IHotelReviewService
             .Include(b => b.Bill)
             .Where(b => b.UserID == userId 
                      && b.HotelID == hotelId 
-                     && b.Status == BookingStatus.Completed
                      && b.Bill != null 
                      && b.Bill.Status == BillStatus.Paid)
             .FirstOrDefaultAsync();
@@ -236,12 +235,11 @@ public class HotelReviewService : IHotelReviewService
             };
         }
 
-        // Kiểm tra user có booking hợp lệ không
+        // Kiểm tra user có booking hợp lệ không (chỉ cần thanh toán thành công)
         var validBooking = await _context.Bookings
             .Include(b => b.Bill)
             .Where(b => b.UserID == userId 
                      && b.HotelID == hotelId 
-                     && b.Status == BookingStatus.Completed
                      && b.Bill != null 
                      && b.Bill.Status == BillStatus.Paid)
             .OrderByDescending(b => b.CreatedAt)

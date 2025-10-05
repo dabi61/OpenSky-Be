@@ -336,6 +336,44 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization();
 
+            group.MapGet("/bill/{billId}", async (
+                Guid billId,
+                IRefundService refundService,
+                HttpContext context) =>
+            {
+                try
+                {
+                    // Lấy UserID từ token
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var refund = await refundService.GetRefundByBillIdAsync(billId, userId);
+                    if (refund == null)
+                        return Results.NotFound(new { message = "Không tìm thấy yêu cầu hoàn tiền" });
+
+                    return Results.Ok(refund);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("GetRefundById")
+            .WithSummary("Lấy thông tin refund theo billId")
+            .WithDescription("Lấy chi tiết thông tin yêu cầu hoàn tiền")
+            .Produces<RefundResponseDTO>(200)
+            .Produces(401)
+            .Produces(404)
+            .Produces(500)
+            .RequireAuthorization();
+
             // GET /refunds - Lấy danh sách refund của user
             group.MapGet("/", async (
                 IRefundService refundService,

@@ -205,12 +205,36 @@ namespace BE_OPENSKY.Services
             {
                 // Kiểm tra user có phải admin không
                 var user = await _context.Users.FindAsync(userId);
-                if (user == null || user.Role != "Admin")
+                if (user == null || user.Role != "Admin" || || user.Role != "Supervisor")
                     return null;
             }
 
             return MapToRefundResponseDTO(refund);
         }
+
+        public async Task<RefundResponseDTO?> GetRefundByBillIdAsync(Guid billId, Guid userId)
+        {
+            var refund = await _context.Refunds
+                .Include(r => r.Bill)
+                    .ThenInclude(b => b.User)
+                .Include(r => r.Bill)
+                    .ThenInclude(b => b.Booking)
+                .FirstOrDefaultAsync(r => r.BillID == billId);
+
+            if (refund == null)
+                return null;
+
+            // Kiểm tra quyền truy cập (user chỉ xem được refund của mình, admin xem được tất cả)
+            if (refund.Bill.UserID != userId)
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null || user.Role != "Admin" || user.Role != "Supervisor")
+                    return null;
+            }
+
+            return MapToRefundResponseDTO(refund);
+        }
+
 
         public async Task<RefundListResponseDTO> GetUserRefundsAsync(Guid userId, int page = 1, int size = 10)
         {

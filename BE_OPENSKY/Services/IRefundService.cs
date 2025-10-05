@@ -15,7 +15,9 @@ namespace BE_OPENSKY.Services
         
         // Lấy refund theo ID
         Task<RefundResponseDTO?> GetRefundByIdAsync(Guid refundId, Guid userId);
-        
+
+        Task<RefundResponseDTO?> GetRefundByBillIdAsync(Guid billId, Guid userId)
+
         // Lấy danh sách refund của user
         Task<RefundListResponseDTO> GetUserRefundsAsync(Guid userId, int page = 1, int size = 10);
         

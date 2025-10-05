@@ -205,7 +205,7 @@ namespace BE_OPENSKY.Services
             {
                 // Kiểm tra user có phải admin không
                 var user = await _context.Users.FindAsync(userId);
-                if (user == null || user.Role != "Admin" || || user.Role != "Supervisor")
+                if (user == null || user.Role != "Admin" || user.Role != "Supervisor")
                     return null;
             }
 

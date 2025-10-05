@@ -122,13 +122,13 @@ public class Program
         app.MapGoogleAuthEndpoints();  // Google OAuth endpoints
         app.MapHotelEndpoints();       // Hotel management endpoints
         app.MapHotelRoomEndpoints();   // Hotel room management endpoints
-        app.MapHotelReviewEndpoints(); // Hotel review endpoints
         app.MapBookingEndpoints();     // Booking management endpoints
         app.MapBillEndpoints();        // Bill management endpoints
         app.MapTourEndpoints();        // Tour management endpoints
         app.MapScheduleEndpoints();    // Schedule management endpoints
         app.MapScheduleItineraryEndpoints(); // Schedule itinerary management endpoints
         app.MapTourItineraryEndpoints(); // Tour itinerary management endpoints
+        app.MapFeedbackEndpoints();    // Feedback endpoints (Hotel + Tour reviews)
         app.MapVoucherEndpoints();     // Voucher management endpoints
         app.MapUserVoucherEndpoints(); // User voucher management endpoints
         app.MapRefundEndpoints();      // Refund management endpoints

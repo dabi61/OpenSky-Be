@@ -88,4 +88,14 @@ public class JwtHelper
             return null;
         }
     }
+
+    public static Guid? GetUserIdFromToken(ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+        {
+            return userId;
+        }
+        return null;
+    }
 }

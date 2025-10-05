@@ -48,7 +48,7 @@ public static class HotelReviewEndpoints
         .RequireAuthorization("AuthenticatedOnly");
 
         // 2. Kiểm tra user có thể đánh giá hotel không
-        reviewGroup.MapGet("/eligibility", async ([FromQuery] Guid hotelId, [FromServices] IHotelReviewService reviewService, HttpContext context) =>
+        reviewGroup.MapGet("/hotel/{hotelId:guid}/eligibility", async (Guid hotelId, [FromServices] IHotelReviewService reviewService, HttpContext context) =>
         {
             try
             {
@@ -175,7 +175,7 @@ public static class HotelReviewEndpoints
         .Produces(404);
 
         // 5. Xem danh sách đánh giá Hotel
-        reviewGroup.MapGet("/hotel", async ([FromQuery] Guid hotelId, [FromServices] IHotelReviewService reviewService, int page = 1, int limit = 10) =>
+        reviewGroup.MapGet("/hotel/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelReviewService reviewService, int page = 1, int limit = 10) =>
         {
             try
             {
@@ -200,7 +200,7 @@ public static class HotelReviewEndpoints
         .Produces<PaginatedHotelReviewsResponseDTO>(200);
 
         // 6. Thống kê đánh giá Hotel
-        reviewGroup.MapGet("/hotel/stats", async ([FromQuery] Guid hotelId, [FromServices] IHotelReviewService reviewService) =>
+        reviewGroup.MapGet("/hotel/{hotelId:guid}/stats", async (Guid hotelId, [FromServices] IHotelReviewService reviewService) =>
         {
             try
             {

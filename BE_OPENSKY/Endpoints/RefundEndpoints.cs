@@ -336,6 +336,7 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization();
 
+            // GET /refunds/bill/{id} - Lấy refund theo ID
             group.MapGet("/bill/{billId}", async (
                 Guid billId,
                 IRefundService refundService,
@@ -365,7 +366,7 @@ namespace BE_OPENSKY.Endpoints
                     );
                 }
             })
-            .WithName("GetRefundById")
+            .WithName("GetRefundByBillId")
             .WithSummary("Lấy thông tin refund theo billId")
             .WithDescription("Lấy chi tiết thông tin yêu cầu hoàn tiền")
             .Produces<RefundResponseDTO>(200)

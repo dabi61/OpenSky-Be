@@ -609,6 +609,37 @@ public static class TourEndpoints
         .WithDescription("Tìm kiếm tour theo tên tour (TourName)")
         .Produces<TourSearchResponseDTO>(200);
 
+        // 4.5. Lấy danh sách tỉnh/thành phố
+        tourGroup.MapGet("/provinces", () =>
+        {
+            try
+            {
+                var provinces = ProvinceConstants.PROVINCE_LIST
+                    .OrderBy(p => p)
+                    .ToList();
+
+                return Results.Ok(new
+                {
+                    provinces = provinces,
+                    totalCount = provinces.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách tỉnh/thành phố: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetTourProvinces")
+        .WithSummary("Lấy danh sách tỉnh/thành phố")
+        .WithDescription("Lấy danh sách tất cả các tỉnh/thành phố được quy định trong hệ thống cho tour")
+        .Produces<object>(200)
+        .Produces(500)
+        .AllowAnonymous();
+
         // 5. Lọc tour theo sao
         tourGroup.MapGet("/star/{star}", async (int star, [FromServices] ITourService tourService, int page = 1, int size = 10) =>
         {

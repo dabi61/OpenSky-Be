@@ -10,55 +10,52 @@ public static class HotelEndpoints
             .WithTags("Hotel")
             .WithOpenApi();
 
-        // 2. Tìm kiếm và lọc khách sạn (Public - không cần auth)
+        // 2. Tìm kiếm khách sạn (Public - không cần auth)
         hotelGroup.MapGet("/search", async (
             IHotelService hotelService,
             string? keyword = null,
-            string? province = null,
-            string? address = null,
-            string? stars = null,
-            decimal? minPrice = null,
-            decimal? maxPrice = null,
-            string? sortBy = "name",
-            string? sortOrder = "asc",
-            int page = 1,
-            int limit = 10) =>
+            int? page = null,
+            int? limit = null) =>
         {
             try
             {
-                // Parse stars parameter
-                var starsList = new List<int>();
-                if (!string.IsNullOrEmpty(stars))
+                // Validate page parameter
+                if (page.HasValue && page.Value < 1)
                 {
-                    var starValues = stars.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var starValue in starValues)
-                    {
-                        if (int.TryParse(starValue.Trim(), out var star) && star >= 1 && star <= 5)
-                        {
-                            starsList.Add(star);
-                        }
-                    }
+                    return Results.BadRequest(new { message = "Số trang (page) phải lớn hơn hoặc bằng 1" });
                 }
 
-                // Validate parameters
-                if (page < 1) page = 1;
-                if (limit < 1 || limit > 100) limit = 10;
+                // Validate limit parameter
+                if (limit.HasValue && (limit.Value < 1 || limit.Value > 100))
+                {
+                    return Results.BadRequest(new { message = "Số kết quả mỗi trang (limit) phải từ 1 đến 100" });
+                }
 
                 var searchDto = new HotelSearchDTO
                 {
                     Keyword = keyword,
-                    Province = province,
-                    Address = address,
-                    Stars = starsList.Any() ? starsList : null,
-                    MinPrice = minPrice,
-                    MaxPrice = maxPrice,
-                    SortBy = sortBy,
-                    SortOrder = sortOrder,
-                    Page = page,
-                    Limit = limit
+                    Page = page ?? 1,
+                    Limit = limit ?? 10
                 };
 
                 var result = await hotelService.SearchHotelsAsync(searchDto);
+
+                // Kiểm tra nếu không tìm thấy kết quả
+                if (result.TotalCount == 0)
+                {
+                    return Results.Ok(new
+                    {
+                        message = "Không tìm thấy khách sạn nào",
+                        hotels = new List<object>(),
+                        totalCount = 0,
+                        page = searchDto.Page,
+                        limit = searchDto.Limit,
+                        totalPages = 0,
+                        hasNextPage = false,
+                        hasPreviousPage = false
+                    });
+                }
+
                 return Results.Ok(result);
             }
             catch (Exception ex)
@@ -71,22 +68,15 @@ public static class HotelEndpoints
             }
         })
         .WithName("SearchHotels")
-        .WithSummary("Tìm kiếm và lọc khách sạn")
-        .WithDescription("Tìm kiếm khách sạn theo tên (keyword), địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang. Chỉ hiển thị khách sạn Active.")
+        .WithSummary("Tìm kiếm khách sạn")
+        .WithDescription("Tìm kiếm khách sạn theo tên (keyword). Hỗ trợ phân trang. Chỉ hiển thị khách sạn Active.")
         .WithOpenApi(operation => new(operation)
         {
-            Summary = "Tìm kiếm và lọc khách sạn",
-            Description = "Tìm kiếm khách sạn theo tên (keyword), địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang. Chỉ hiển thị khách sạn Active.",
+            Summary = "Tìm kiếm khách sạn",
+            Description = "Tìm kiếm khách sạn theo tên (keyword). Hỗ trợ phân trang. Chỉ hiển thị khách sạn Active.",
             Parameters = new List<OpenApiParameter>
             {
                 new() { Name = "keyword", In = ParameterLocation.Query, Description = "Tìm kiếm theo tên khách sạn (không phân biệt chữ hoa/thường)", Required = false, Schema = new() { Type = "string" } },
-                new() { Name = "province", In = ParameterLocation.Query, Description = "Lọc theo tỉnh/thành phố", Required = false, Schema = new() { Type = "string" } },
-                new() { Name = "address", In = ParameterLocation.Query, Description = "Lọc theo địa chỉ", Required = false, Schema = new() { Type = "string" } },
-                new() { Name = "stars", In = ParameterLocation.Query, Description = "Lọc theo số sao (cách nhau bằng dấu phẩy, ví dụ: 4,5)", Required = false, Schema = new() { Type = "string" } },
-                new() { Name = "minPrice", In = ParameterLocation.Query, Description = "Giá phòng tối thiểu (VND)", Required = false, Schema = new() { Type = "number", Format = "decimal" } },
-                new() { Name = "maxPrice", In = ParameterLocation.Query, Description = "Giá phòng tối đa (VND)", Required = false, Schema = new() { Type = "number", Format = "decimal" } },
-                new() { Name = "sortBy", In = ParameterLocation.Query, Description = "Sắp xếp theo: name, price, star, createdAt", Required = false, Schema = new() { Type = "string" } },
-                new() { Name = "sortOrder", In = ParameterLocation.Query, Description = "Thứ tự sắp xếp: asc, desc", Required = false, Schema = new() { Type = "string" } },
                 new() { Name = "page", In = ParameterLocation.Query, Description = "Số trang (mặc định: 1)", Required = false, Schema = new() { Type = "integer", Minimum = 1 } },
                 new() { Name = "limit", In = ParameterLocation.Query, Description = "Số kết quả mỗi trang (mặc định: 10, tối đa: 100)", Required = false, Schema = new() { Type = "integer", Minimum = 1, Maximum = 100 } }
             }
@@ -94,6 +84,37 @@ public static class HotelEndpoints
         .Produces<HotelSearchResponseDTO>(200)
         .Produces(500)
         .AllowAnonymous(); // Public endpoint - không cần authentication
+
+        // 2.4. Lấy danh sách tỉnh/thành phố
+        hotelGroup.MapGet("/provinces", () =>
+        {
+            try
+            {
+                var provinces = ProvinceConstants.PROVINCE_LIST
+                    .OrderBy(p => p)
+                    .ToList();
+
+                return Results.Ok(new
+                {
+                    provinces = provinces,
+                    totalCount = provinces.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi lấy danh sách tỉnh/thành phố: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GetHotelProvinces")
+        .WithSummary("Lấy danh sách tỉnh/thành phố")
+        .WithDescription("Lấy danh sách tất cả các tỉnh/thành phố được quy định trong hệ thống cho khách sạn")
+        .Produces<object>(200)
+        .Produces(500)
+        .AllowAnonymous();
 
         // 2.5. Admin/Supervisor tìm kiếm hotel theo status với keyword
         hotelGroup.MapGet("/admin/search", async ([FromServices] IHotelService hotelService, HttpContext context, string? keyword = null, string? status = null, int page = 1, int size = 10) =>

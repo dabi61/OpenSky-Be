@@ -479,64 +479,8 @@ public class HotelService : IHotelService
             query = query.Where(h => EF.Functions.Like(h.HotelName.ToLower(), $"%{searchDto.Keyword.ToLower()}%"));
         }
 
-        // Lọc theo tỉnh
-        if (!string.IsNullOrWhiteSpace(searchDto.Province))
-        {
-            query = query.Where(h => h.Province.ToLower().Contains(searchDto.Province.ToLower()));
-        }
-
-        // Lọc theo địa chỉ
-        if (!string.IsNullOrWhiteSpace(searchDto.Address))
-        {
-            var addressTerm = searchDto.Address.ToLower();
-            query = query.Where(h => h.Address.ToLower().Contains(addressTerm));
-        }
-
-        // Lọc theo số sao
-        if (searchDto.Stars != null && searchDto.Stars.Any())
-        {
-            query = query.Where(h => searchDto.Stars.Contains(h.Star));
-        }
-
-        // Lọc theo giá phòng (cần join với HotelRoom)
-        if (searchDto.MinPrice.HasValue || searchDto.MaxPrice.HasValue)
-        {
-            var roomQuery = _context.HotelRooms.AsQueryable();
-            
-            if (searchDto.MinPrice.HasValue)
-            {
-                roomQuery = roomQuery.Where(r => r.Price >= searchDto.MinPrice.Value);
-            }
-            
-            if (searchDto.MaxPrice.HasValue)
-            {
-                roomQuery = roomQuery.Where(r => r.Price <= searchDto.MaxPrice.Value);
-            }
-
-            var hotelIdsWithPriceFilter = await roomQuery
-                .Select(r => r.HotelID)
-                .Distinct()
-                .ToListAsync();
-
-            query = query.Where(h => hotelIdsWithPriceFilter.Contains(h.HotelID));
-        }
-
-        // Sắp xếp
-        query = searchDto.SortBy?.ToLower() switch
-        {
-            "price" => searchDto.SortOrder?.ToLower() == "desc" 
-                ? query.OrderByDescending(h => _context.HotelRooms.Where(r => r.HotelID == h.HotelID).Min(r => r.Price))
-                : query.OrderBy(h => _context.HotelRooms.Where(r => r.HotelID == h.HotelID).Min(r => r.Price)),
-            "star" => searchDto.SortOrder?.ToLower() == "desc" 
-                ? query.OrderByDescending(h => h.Star)
-                : query.OrderBy(h => h.Star),
-            "createdat" => searchDto.SortOrder?.ToLower() == "desc" 
-                ? query.OrderByDescending(h => h.CreatedAt)
-                : query.OrderBy(h => h.CreatedAt),
-            _ => searchDto.SortOrder?.ToLower() == "desc" 
-                ? query.OrderByDescending(h => h.HotelName)
-                : query.OrderBy(h => h.HotelName)
-        };
+        // Sắp xếp theo tên khách sạn
+        query = query.OrderBy(h => h.HotelName);
 
         // Đếm tổng số kết quả
         var totalCount = await query.CountAsync();

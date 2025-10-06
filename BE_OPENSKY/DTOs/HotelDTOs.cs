@@ -250,17 +250,10 @@ namespace BE_OPENSKY.DTOs
         public int Size { get; set; } = 10;
     }
 
-    // DTOs cho tìm kiếm và lọc khách sạn
+    // DTOs cho tìm kiếm khách sạn
     public class HotelSearchDTO
     {
         public string? Keyword { get; set; } // Tìm kiếm theo tên khách sạn
-        public string? Province { get; set; } // Lọc theo tỉnh
-        public string? Address { get; set; } // Lọc theo địa chỉ
-        public List<int>? Stars { get; set; } // Lọc theo số sao [4,5]
-        public decimal? MinPrice { get; set; } // Giá tối thiểu
-        public decimal? MaxPrice { get; set; } // Giá tối đa
-        public string? SortBy { get; set; } = "name"; // Sắp xếp theo: name, price, star, createdAt
-        public string? SortOrder { get; set; } = "asc"; // asc, desc
         public int Page { get; set; } = 1;
         public int Limit { get; set; } = 10;
     }

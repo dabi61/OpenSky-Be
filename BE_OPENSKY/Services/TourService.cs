@@ -214,13 +214,12 @@ namespace BE_OPENSKY.Services
         {
             var query = _context.Tours
                 .Include(t => t.User)
-                .Where(t => t.Status != TourStatus.Removed);
+                .Where(t => t.Status == TourStatus.Active);
 
-            // Tìm kiếm theo keyword
+            // Tìm kiếm theo keyword (chỉ tên tour, không phân biệt chữ hoa/thường)
             if (!string.IsNullOrWhiteSpace(searchDto.Keyword))
             {
-                query = query.Where(t => t.TourName.Contains(searchDto.Keyword) ||
-                                       (t.Description != null && t.Description.Contains(searchDto.Keyword)));
+                query = query.Where(t => EF.Functions.Like(t.TourName.ToLower(), $"%{searchDto.Keyword.ToLower()}%"));
             }
 
             // Lọc theo tỉnh thành
@@ -341,6 +340,68 @@ namespace BE_OPENSKY.Services
             tour.Status = status;
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<TourSearchResponseDTO> SearchToursForAdminAsync(AdminTourSearchDTO searchDto)
+        {
+            var query = _context.Tours
+                .Include(t => t.User)
+                .AsQueryable();
+
+            // Lọc theo status
+            if (searchDto.Status.HasValue)
+            {
+                // Nếu có status cụ thể, lọc theo status đó
+                query = query.Where(t => t.Status == searchDto.Status.Value);
+            }
+            else
+            {
+                // Nếu không truyền status, lấy tất cả trừ Removed
+                query = query.Where(t => t.Status != TourStatus.Removed);
+            }
+
+            // Tìm kiếm theo keyword (chỉ tên tour, không phân biệt chữ hoa/thường)
+            if (!string.IsNullOrWhiteSpace(searchDto.Keyword))
+            {
+                query = query.Where(t => EF.Functions.Like(t.TourName.ToLower(), $"%{searchDto.Keyword.ToLower()}%"));
+            }
+
+            // Sắp xếp theo ngày tạo (mới nhất trước)
+            query = query.OrderByDescending(t => t.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / searchDto.Size);
+
+            var tours = await query
+                .Skip((searchDto.Page - 1) * searchDto.Size)
+                .Take(searchDto.Size)
+                .Select(t => new TourSummaryDTO
+                {
+                    TourID = t.TourID,
+                    TourName = t.TourName,
+                    Address = t.Address,
+                    Province = t.Province,
+                    Star = t.Star,
+                    Price = t.Price,
+                    MaxPeople = t.MaxPeople,
+                    Status = t.Status,
+                    FirstImage = _context.Images
+                        .Where(i => i.TableType == TableTypeImage.Tour && i.TypeID == t.TourID)
+                        .Select(i => i.URL)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return new TourSearchResponseDTO
+            {
+                Tours = tours,
+                TotalCount = totalCount,
+                Page = searchDto.Page,
+                Size = searchDto.Size,
+                TotalPages = totalPages,
+                HasNextPage = searchDto.Page < totalPages,
+                HasPreviousPage = searchDto.Page > 1
+            };
         }
     }
 }

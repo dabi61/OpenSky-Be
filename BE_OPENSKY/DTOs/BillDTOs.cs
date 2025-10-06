@@ -84,4 +84,13 @@ namespace BE_OPENSKY.DTOs
         public bool HasNextPage { get; set; }
         public bool HasPreviousPage { get; set; }
     }
+
+    // DTO cho admin tìm kiếm bill theo status với keyword
+    public class AdminBillSearchDTO
+    {
+        public string? Keyword { get; set; } // Tìm kiếm theo tên user, email hoặc SĐT
+        public BillStatus? Status { get; set; } // Lọc theo status (null = tất cả bill)
+        public int Page { get; set; } = 1;
+        public int Size { get; set; } = 10;
+    }
 }

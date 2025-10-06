@@ -214,6 +214,69 @@ namespace BE_OPENSKY.Endpoints
             .Produces(200)
             .Produces(500);
 
+            // GET /vouchers/admin/search - Admin tìm kiếm voucher theo code và type
+            group.MapGet("/admin/search", async (
+                IVoucherService voucherService,
+                HttpContext context,
+                string? keyword = null,
+                string? type = null,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    // Kiểm tra quyền Admin
+                    if (!context.User.IsInRole(RoleConstants.Admin))
+                    {
+                        return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin mới được tìm kiếm voucher." }, statusCode: 403);
+                    }
+
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    // Parse type (nếu có)
+                    TableType? tableType = null;
+                    if (!string.IsNullOrWhiteSpace(type))
+                    {
+                        if (Enum.TryParse<TableType>(type, true, out var parsedType))
+                        {
+                            tableType = parsedType;
+                        }
+                        else
+                        {
+                            return Results.BadRequest(new { message = "Type không hợp lệ. Các giá trị hợp lệ: Tour, Hotel" });
+                        }
+                    }
+
+                    var searchDto = new AdminVoucherSearchDTO
+                    {
+                        Keyword = keyword,
+                        Type = tableType,
+                        Page = page,
+                        Size = size
+                    };
+
+                    var result = await voucherService.SearchVouchersForAdminAsync(searchDto);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("AdminSearchVouchers")
+            .WithSummary("Admin tìm kiếm voucher theo code và type")
+            .WithDescription("Admin có thể tìm kiếm voucher theo code (keyword) và lọc theo type (Tour hoặc Hotel). Hỗ trợ phân trang.")
+            .Produces<VoucherListResponseDTO>(200)
+            .Produces(400)
+            .Produces(403)
+            .Produces(500)
+            .RequireAuthorization("AdminOnly");
+
             // PUT /vouchers/{id} - Cập nhật voucher (chỉ Admin)
             group.MapPut("/{id:guid}", async (
                 Guid id,

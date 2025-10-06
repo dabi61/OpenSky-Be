@@ -241,10 +241,19 @@ namespace BE_OPENSKY.DTOs
         public string Status { get; set; } = string.Empty;
     }
 
+    // DTO cho admin tìm kiếm hotel theo status với keyword
+    public class AdminHotelSearchDTO
+    {
+        public string? Keyword { get; set; } // Tìm kiếm theo tên hotel
+        public HotelStatus? Status { get; set; } // Lọc theo status (null = tất cả trừ Removed)
+        public int Page { get; set; } = 1;
+        public int Size { get; set; } = 10;
+    }
+
     // DTOs cho tìm kiếm và lọc khách sạn
     public class HotelSearchDTO
     {
-        public string? Query { get; set; } // Tìm kiếm theo tên
+        public string? Keyword { get; set; } // Tìm kiếm theo tên khách sạn
         public string? Province { get; set; } // Lọc theo tỉnh
         public string? Address { get; set; } // Lọc theo địa chỉ
         public List<int>? Stars { get; set; } // Lọc theo số sao [4,5]

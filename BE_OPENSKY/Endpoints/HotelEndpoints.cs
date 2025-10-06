@@ -13,7 +13,7 @@ public static class HotelEndpoints
         // 2. Tìm kiếm và lọc khách sạn (Public - không cần auth)
         hotelGroup.MapGet("/search", async (
             IHotelService hotelService,
-            string? q = null,
+            string? keyword = null,
             string? province = null,
             string? address = null,
             string? stars = null,
@@ -46,7 +46,7 @@ public static class HotelEndpoints
 
                 var searchDto = new HotelSearchDTO
                 {
-                    Query = q,
+                    Keyword = keyword,
                     Province = province,
                     Address = address,
                     Stars = starsList.Any() ? starsList : null,
@@ -72,14 +72,14 @@ public static class HotelEndpoints
         })
         .WithName("SearchHotels")
         .WithSummary("Tìm kiếm và lọc khách sạn")
-        .WithDescription("Tìm kiếm khách sạn theo tên, địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang.")
+        .WithDescription("Tìm kiếm khách sạn theo tên (keyword), địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang. Chỉ hiển thị khách sạn Active.")
         .WithOpenApi(operation => new(operation)
         {
             Summary = "Tìm kiếm và lọc khách sạn",
-            Description = "Tìm kiếm khách sạn theo tên, địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang.",
+            Description = "Tìm kiếm khách sạn theo tên (keyword), địa chỉ, tỉnh, số sao, giá phòng. Hỗ trợ sắp xếp và phân trang. Chỉ hiển thị khách sạn Active.",
             Parameters = new List<OpenApiParameter>
             {
-                new() { Name = "q", In = ParameterLocation.Query, Description = "Tìm kiếm theo tên khách sạn hoặc mô tả", Required = false, Schema = new() { Type = "string" } },
+                new() { Name = "keyword", In = ParameterLocation.Query, Description = "Tìm kiếm theo tên khách sạn (không phân biệt chữ hoa/thường)", Required = false, Schema = new() { Type = "string" } },
                 new() { Name = "province", In = ParameterLocation.Query, Description = "Lọc theo tỉnh/thành phố", Required = false, Schema = new() { Type = "string" } },
                 new() { Name = "address", In = ParameterLocation.Query, Description = "Lọc theo địa chỉ", Required = false, Schema = new() { Type = "string" } },
                 new() { Name = "stars", In = ParameterLocation.Query, Description = "Lọc theo số sao (cách nhau bằng dấu phẩy, ví dụ: 4,5)", Required = false, Schema = new() { Type = "string" } },
@@ -94,6 +94,62 @@ public static class HotelEndpoints
         .Produces<HotelSearchResponseDTO>(200)
         .Produces(500)
         .AllowAnonymous(); // Public endpoint - không cần authentication
+
+        // 2.5. Admin/Supervisor tìm kiếm hotel theo status với keyword
+        hotelGroup.MapGet("/admin/search", async ([FromServices] IHotelService hotelService, HttpContext context, string? keyword = null, string? status = null, int page = 1, int size = 10) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được tìm kiếm hotel theo status." }, statusCode: 403);
+                }
+
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
+
+                // Parse status (nếu có)
+                HotelStatus? hotelStatus = null;
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    if (Enum.TryParse<HotelStatus>(status, true, out var parsedStatus))
+                    {
+                        hotelStatus = parsedStatus;
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { message = "Status không hợp lệ. Các giá trị hợp lệ: Active, Inactive, Suspend, Removed" });
+                    }
+                }
+
+                var searchDto = new AdminHotelSearchDTO
+                {
+                    Keyword = keyword,
+                    Status = hotelStatus,
+                    Page = page,
+                    Size = size
+                };
+
+                var result = await hotelService.SearchHotelsForAdminAsync(searchDto);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi tìm kiếm hotel: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("AdminSearchHotels")
+        .WithSummary("Admin/Supervisor tìm kiếm hotel theo status với keyword")
+        .WithDescription("Admin và Supervisor có thể tìm kiếm hotel theo tên (keyword) và lọc theo status. Nếu không truyền status, sẽ lấy tất cả hotel trừ Removed (Active + Inactive + Suspend).")
+        .Produces<HotelSearchResponseDTO>(200)
+        .Produces(400)
+        .Produces(403)
+        .RequireAuthorization("SupervisorOrAdmin");
 
         // 3. Customer đăng ký mở khách sạn với ảnh (chuyển từ Customer -> Hotel sau khi được duyệt)
         hotelGroup.MapPost("/apply", async (HttpContext context, [FromServices] IHotelService hotelService, [FromServices] ICloudinaryService cloudinaryService) =>

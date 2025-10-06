@@ -470,15 +470,13 @@ public class HotelService : IHotelService
     public async Task<HotelSearchResponseDTO> SearchHotelsAsync(HotelSearchDTO searchDto)
     {
         var query = _context.Hotels
-            .Where(h => h.Status == HotelStatus.Active) // Chỉ lấy khách sạn đã được duyệt
+            .Where(h => h.Status == HotelStatus.Active) // Chỉ lấy khách sạn Active
             .AsQueryable();
 
-        // Tìm kiếm theo tên khách sạn
-        if (!string.IsNullOrWhiteSpace(searchDto.Query))
+        // Tìm kiếm theo tên khách sạn (không phân biệt chữ hoa/thường)
+        if (!string.IsNullOrWhiteSpace(searchDto.Keyword))
         {
-            var searchTerm = searchDto.Query.ToLower();
-            query = query.Where(h => h.HotelName.ToLower().Contains(searchTerm) ||
-                                   h.Description != null && h.Description.ToLower().Contains(searchTerm));
+            query = query.Where(h => EF.Functions.Like(h.HotelName.ToLower(), $"%{searchDto.Keyword.ToLower()}%"));
         }
 
         // Lọc theo tỉnh
@@ -1216,5 +1214,94 @@ public class HotelService : IHotelService
 
         // Kiểm tra xem giá trị có tồn tại trong enum không (tránh trường hợp số không hợp lệ)
         return Enum.IsDefined(typeof(RoomStatus), roomStatus);
+    }
+
+    // Admin/Supervisor tìm kiếm hotel theo status với keyword
+    public async Task<HotelSearchResponseDTO> SearchHotelsForAdminAsync(AdminHotelSearchDTO searchDto)
+    {
+        var query = _context.Hotels
+            .Include(h => h.User)
+            .AsQueryable();
+
+        // Lọc theo status
+        if (searchDto.Status.HasValue)
+        {
+            // Nếu có status cụ thể, lọc theo status đó
+            query = query.Where(h => h.Status == searchDto.Status.Value);
+        }
+        else
+        {
+            // Nếu không truyền status, lấy tất cả trừ Removed
+            query = query.Where(h => h.Status != HotelStatus.Removed);
+        }
+
+        // Tìm kiếm theo keyword (chỉ tên hotel, không phân biệt chữ hoa/thường)
+        if (!string.IsNullOrWhiteSpace(searchDto.Keyword))
+        {
+            query = query.Where(h => EF.Functions.Like(h.HotelName.ToLower(), $"%{searchDto.Keyword.ToLower()}%"));
+        }
+
+        // Sắp xếp theo ngày tạo (mới nhất trước)
+        query = query.OrderByDescending(h => h.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalCount / searchDto.Size);
+
+        var hotels = await query
+            .Skip((searchDto.Page - 1) * searchDto.Size)
+            .Take(searchDto.Size)
+            .ToListAsync();
+
+        // Lấy thông tin bổ sung cho mỗi khách sạn
+        var result = new List<HotelSearchResultDTO>();
+
+        foreach (var hotel in hotels)
+        {
+            // Lấy ảnh khách sạn
+            var images = await _context.Images
+                .Where(i => i.TableType == TableTypeImage.Hotel && i.TypeID == hotel.HotelID)
+                .Select(i => i.URL)
+                .ToListAsync();
+
+            // Lấy thông tin phòng
+            var rooms = await _context.HotelRooms
+                .Where(r => r.HotelID == hotel.HotelID)
+                .ToListAsync();
+
+            var minPrice = rooms.Any() ? rooms.Min(r => r.Price) : 0;
+            var maxPrice = rooms.Any() ? rooms.Max(r => r.Price) : 0;
+            var totalRooms = rooms.Count;
+            var availableRooms = rooms.Count(r => r.Status == RoomStatus.Available);
+
+            result.Add(new HotelSearchResultDTO
+            {
+                HotelID = hotel.HotelID,
+                HotelName = hotel.HotelName,
+                Address = hotel.Address,
+                Province = hotel.Province,
+                Latitude = hotel.Latitude,
+                Longitude = hotel.Longitude,
+                Description = hotel.Description,
+                Star = hotel.Star,
+                Status = hotel.Status.ToString(),
+                CreatedAt = hotel.CreatedAt,
+                Images = images,
+                MinPrice = minPrice,
+                MaxPrice = maxPrice,
+                TotalRooms = totalRooms,
+                AvailableRooms = availableRooms
+            });
+        }
+
+        return new HotelSearchResponseDTO
+        {
+            Hotels = result,
+            TotalCount = totalCount,
+            Page = searchDto.Page,
+            Limit = searchDto.Size,
+            TotalPages = totalPages,
+            HasNextPage = searchDto.Page < totalPages,
+            HasPreviousPage = searchDto.Page > 1
+        };
     }
 }

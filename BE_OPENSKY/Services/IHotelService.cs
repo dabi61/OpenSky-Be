@@ -42,4 +42,7 @@ public interface IHotelService
     
     // Lấy khách sạn theo tỉnh/thành phố (Public)
     Task<PaginatedHotelsResponseDTO> GetHotelsByProvinceAsync(string province, int page, int size);
+    
+    // Admin/Supervisor tìm kiếm hotel theo status với keyword
+    Task<HotelSearchResponseDTO> SearchHotelsForAdminAsync(AdminHotelSearchDTO searchDto);
 }

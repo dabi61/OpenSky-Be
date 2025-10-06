@@ -89,6 +89,69 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization("SupervisorOrAdmin");
 
+            // GET /bills/admin/search - Admin tìm kiếm bill theo status với keyword (tên user, email, SĐT)
+            billGroup.MapGet("/admin/search", async (
+                [FromServices] IBillService billService, 
+                HttpContext context,
+                string? keyword = null,
+                string? status = null,
+                int page = 1,
+                int size = 10) =>
+            {
+                try
+                {
+                    // Kiểm tra quyền - chỉ Admin và Supervisor
+                    if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                    {
+                        return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được tìm kiếm bills." }, statusCode: 403);
+                    }
+
+                    if (page < 1) page = 1;
+                    if (size < 1 || size > 100) size = 10;
+
+                    // Parse status (nếu có)
+                    BillStatus? billStatus = null;
+                    if (!string.IsNullOrWhiteSpace(status))
+                    {
+                        if (Enum.TryParse<BillStatus>(status, true, out var parsedStatus))
+                        {
+                            billStatus = parsedStatus;
+                        }
+                        else
+                        {
+                            return Results.BadRequest(new { message = "Status không hợp lệ. Các giá trị hợp lệ: Pending, Paid, Cancelled, Refunded" });
+                        }
+                    }
+
+                    var searchDto = new AdminBillSearchDTO
+                    {
+                        Keyword = keyword,
+                        Status = billStatus,
+                        Page = page,
+                        Size = size
+                    };
+
+                    var result = await billService.SearchBillsForAdminAsync(searchDto);
+                    return Results.Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(
+                        title: "Lỗi hệ thống",
+                        detail: ex.Message,
+                        statusCode: 500
+                    );
+                }
+            })
+            .WithName("AdminSearchBills")
+            .WithSummary("Admin/Supervisor tìm kiếm bill theo status với keyword")
+            .WithDescription("Admin và Supervisor có thể tìm kiếm bill theo tên người dùng, email hoặc SĐT (keyword) và lọc theo status. Nếu không truyền status, sẽ lấy tất cả bill.")
+            .Produces<BillListResponseDTO>(200)
+            .Produces(400)
+            .Produces(403)
+            .Produces(500)
+            .RequireAuthorization("SupervisorOrAdmin");
+
             // PUT /bills/apply-voucher - Áp dụng voucher vào bill đã có (billId trong body)
             billGroup.MapPut("/apply-voucher", async (
                 ApplyVoucherToBillDTO applyVoucherDto,

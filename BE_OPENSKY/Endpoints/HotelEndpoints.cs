@@ -559,7 +559,7 @@ public static class HotelEndpoints
         .RequireAuthorization("AdminOnly");
 
         // 8. Admin từ chối đơn đăng ký khách sạn
-        hotelGroup.MapDelete("/reject/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
+        hotelGroup.MapPut("/reject/{hotelId:guid}", async (Guid hotelId, [FromServices] IHotelService hotelService, HttpContext context) =>
         {
             try
             {

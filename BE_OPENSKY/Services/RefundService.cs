@@ -183,7 +183,9 @@ namespace BE_OPENSKY.Services
             if (!authorized)
                 throw new ArgumentException("Bạn không có quyền từ chối yêu cầu hoàn tiền này");
 
-            _context.Refunds.Remove(pending);
+            // Cập nhật status thành Rejected thay vì xóa để giữ lịch sử
+            pending.Status = RefundStatus.Rejected;
+            
             await _context.SaveChangesAsync();
             return true;
         }

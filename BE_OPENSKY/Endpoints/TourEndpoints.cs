@@ -606,7 +606,7 @@ public static class TourEndpoints
         })
         .WithName("SearchTours")
         .WithSummary("Tìm kiếm tour theo keyword")
-        .WithDescription("Tìm kiếm tour theo tên")
+        .WithDescription("Tìm kiếm tour theo tên tour (TourName)")
         .Produces<TourSearchResponseDTO>(200);
 
         // 5. Lọc tour theo sao
@@ -680,6 +680,62 @@ public static class TourEndpoints
         .WithDescription("Lấy danh sách tour theo tỉnh/thành phố")
         .Produces<TourSearchResponseDTO>(200)
         .Produces(400);
+
+        // 6.5. Admin/Supervisor tìm kiếm tour theo status với keyword
+        tourGroup.MapGet("/admin/search", async ([FromServices] ITourService tourService, HttpContext context, string? keyword = null, string? status = null, int page = 1, int size = 10) =>
+        {
+            try
+            {
+                // Kiểm tra quyền Admin hoặc Supervisor
+                if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
+                {
+                    return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được tìm kiếm tour theo status." }, statusCode: 403);
+                }
+
+                if (page < 1) page = 1;
+                if (size < 1 || size > 100) size = 10;
+
+                // Parse status (nếu có)
+                TourStatus? tourStatus = null;
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    if (Enum.TryParse<TourStatus>(status, true, out var parsedStatus))
+                    {
+                        tourStatus = parsedStatus;
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { message = "Status không hợp lệ. Các giá trị hợp lệ: Active, Suspend, Removed" });
+                    }
+                }
+
+                var searchDto = new AdminTourSearchDTO
+                {
+                    Keyword = keyword,
+                    Status = tourStatus,
+                    Page = page,
+                    Size = size
+                };
+
+                var result = await tourService.SearchToursForAdminAsync(searchDto);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Lỗi hệ thống",
+                    detail: $"Có lỗi xảy ra khi tìm kiếm tour: {ex.Message}",
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("AdminSearchTours")
+        .WithSummary("Admin/Supervisor tìm kiếm tour theo status với keyword")
+        .WithDescription("Admin và Supervisor có thể tìm kiếm tour theo tên (keyword) và lọc theo status. Nếu không truyền status, sẽ lấy tất cả tour trừ Removed (Active + Suspend).")
+        .Produces<TourSearchResponseDTO>(200)
+        .Produces(400)
+        .Produces(403)
+        .RequireAuthorization("SupervisorOrAdmin");
 
         // 7. Soft delete tour
         tourGroup.MapPut("/delete/{tourId:guid}", async (Guid tourId, [FromServices] ITourService tourService, HttpContext context) =>

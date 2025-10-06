@@ -13,5 +13,6 @@ namespace BE_OPENSKY.Services
         Task<bool> UpdateVoucherAsync(Guid voucherId, UpdateVoucherDTO updateVoucherDto);
         Task<bool> DeleteVoucherAsync(Guid voucherId);
         Task<bool> IsVoucherCodeExistsAsync(string code);
+        Task<VoucherListResponseDTO> SearchVouchersForAdminAsync(AdminVoucherSearchDTO searchDto);
     }
 }

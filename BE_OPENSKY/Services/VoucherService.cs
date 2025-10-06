@@ -271,5 +271,59 @@ namespace BE_OPENSKY.Services
             return await _context.Vouchers
                 .AnyAsync(v => v.Code == code && !v.IsDeleted);
         }
+
+        public async Task<VoucherListResponseDTO> SearchVouchersForAdminAsync(AdminVoucherSearchDTO searchDto)
+        {
+            var query = _context.Vouchers
+                .Include(v => v.UserVouchers)
+                .Where(v => !v.IsDeleted)
+                .AsQueryable();
+
+            // Tìm kiếm theo keyword (code voucher, không phân biệt chữ hoa/thường)
+            if (!string.IsNullOrWhiteSpace(searchDto.Keyword))
+            {
+                query = query.Where(v => EF.Functions.Like(v.Code.ToLower(), $"%{searchDto.Keyword.ToLower()}%"));
+            }
+
+            // Lọc theo type (nếu có)
+            if (searchDto.Type.HasValue)
+            {
+                query = query.Where(v => v.TableType == searchDto.Type.Value);
+            }
+
+            // Sắp xếp theo ngày tạo (mới nhất trước)
+            query = query.OrderByDescending(v => v.StartDate);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / searchDto.Size);
+
+            var vouchers = await query
+                .Skip((searchDto.Page - 1) * searchDto.Size)
+                .Take(searchDto.Size)
+                .Select(v => new VoucherResponseDTO
+                {
+                    VoucherID = v.VoucherID,
+                    Code = v.Code,
+                    Percent = v.Percent,
+                    TableType = v.TableType,
+                    StartDate = v.StartDate,
+                    EndDate = v.EndDate,
+                    Description = v.Description,
+                    IsDeleted = v.IsDeleted,
+                    UsedCount = v.UserVouchers.Count(uv => uv.IsUsed),
+                    IsExpired = DateTime.UtcNow > v.EndDate,
+                    IsAvailable = !(DateTime.UtcNow > v.EndDate)
+                })
+                .ToListAsync();
+
+            return new VoucherListResponseDTO
+            {
+                Vouchers = vouchers,
+                TotalCount = totalCount,
+                Page = searchDto.Page,
+                Size = searchDto.Size,
+                TotalPages = totalPages
+            };
+        }
     }
 }

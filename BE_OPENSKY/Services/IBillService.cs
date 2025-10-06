@@ -27,5 +27,8 @@ namespace BE_OPENSKY.Services
         
         // Xóa voucher khỏi bill
         Task<ApplyVoucherResponseDTO> RemoveVoucherFromBillAsync(Guid billId, Guid userId);
+        
+        // Admin tìm kiếm bill theo status với keyword (tìm theo tên user, email, SĐT)
+        Task<BillListResponseDTO> SearchBillsForAdminAsync(AdminBillSearchDTO searchDto);
     }
 }

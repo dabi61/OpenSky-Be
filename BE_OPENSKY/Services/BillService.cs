@@ -607,5 +607,118 @@ namespace BE_OPENSKY.Services
                 }).ToList() ?? new List<BillDetailResponseDTO>()
             };
         }
+
+        public async Task<BillListResponseDTO> SearchBillsForAdminAsync(AdminBillSearchDTO searchDto)
+        {
+            var query = _context.Bills
+                .Include(b => b.User)
+                .Include(b => b.Booking)
+                .Include(b => b.BillDetails)
+                .Include(b => b.UserVoucher)
+                    .ThenInclude(uv => uv.Voucher)
+                .AsQueryable();
+
+            // Lọc theo status
+            if (searchDto.Status.HasValue)
+            {
+                // Nếu có status cụ thể, lọc theo status đó
+                query = query.Where(b => b.Status == searchDto.Status.Value);
+            }
+            // Nếu không truyền status, lấy tất cả bill (không lọc gì)
+
+            // Tìm kiếm theo keyword (tên user, email hoặc SĐT, không phân biệt chữ hoa/thường)
+            if (!string.IsNullOrWhiteSpace(searchDto.Keyword))
+            {
+                var keyword = searchDto.Keyword.ToLower();
+                query = query.Where(b =>
+                    EF.Functions.Like(b.User.FullName.ToLower(), $"%{keyword}%") ||
+                    EF.Functions.Like(b.User.Email.ToLower(), $"%{keyword}%") ||
+                    (b.User.PhoneNumber != null && EF.Functions.Like(b.User.PhoneNumber.ToLower(), $"%{keyword}%"))
+                );
+            }
+
+            // Sắp xếp theo ngày tạo (mới nhất trước)
+            query = query.OrderByDescending(b => b.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / searchDto.Size);
+
+            var bills = await query
+                .Skip((searchDto.Page - 1) * searchDto.Size)
+                .Take(searchDto.Size)
+                .ToListAsync();
+
+            var billDtos = bills.Select(b =>
+            {
+                var originalTotalPrice = b.BillDetails?.Sum(bd => bd.TotalPrice) ?? 0;
+                var discountAmount = originalTotalPrice - b.TotalPrice;
+                var discountPercent = originalTotalPrice > 0 ? (discountAmount / originalTotalPrice) * 100 : 0;
+
+                VoucherInfoDTO? voucherInfo = null;
+                if (b.UserVoucher?.Voucher != null)
+                {
+                    voucherInfo = new VoucherInfoDTO
+                    {
+                        Code = b.UserVoucher.Voucher.Code,
+                        Percent = b.UserVoucher.Voucher.Percent,
+                        TableType = b.UserVoucher.Voucher.TableType,
+                        Description = b.UserVoucher.Voucher.Description
+                    };
+                }
+
+                return new BillResponseDTO
+                {
+                    BillID = b.BillID,
+                    UserID = b.UserID,
+                    UserName = b.User.FullName,
+                    BookingID = b.BookingID,
+                    StartTime = b.Booking.CheckInDate,
+                    EndTime = b.Booking.CheckOutDate,
+                    Deposit = b.Deposit,
+                    RefundPrice = b.RefundPrice,
+                    TotalPrice = b.TotalPrice,
+                    OriginalTotalPrice = originalTotalPrice,
+                    DiscountAmount = discountAmount,
+                    DiscountPercent = discountPercent,
+                    Status = b.Status.ToString(),
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt,
+                    UserVoucherID = b.UserVoucherID,
+                    VoucherInfo = voucherInfo,
+                    User = new UserInfoDTO
+                    {
+                        UserID = b.User.UserID,
+                        FullName = b.User.FullName,
+                        Email = b.User.Email,
+                        PhoneNumber = b.User.PhoneNumber,
+                        CitizenId = b.User.CitizenId
+                    },
+                    BillDetails = b.BillDetails.Select(bd => new BillDetailResponseDTO
+                    {
+                        BillDetailID = bd.BillDetailID,
+                        BillID = bd.BillID,
+                        ItemType = bd.ItemType.ToString(),
+                        ItemID = bd.ItemID,
+                        ItemName = bd.ItemName,
+                        Quantity = bd.Quantity,
+                        UnitPrice = bd.UnitPrice,
+                        TotalPrice = bd.TotalPrice,
+                        Notes = bd.Notes,
+                        CreatedAt = bd.CreatedAt
+                    }).ToList() ?? new List<BillDetailResponseDTO>()
+                };
+            }).ToList();
+
+            return new BillListResponseDTO
+            {
+                Bills = billDtos,
+                TotalCount = totalCount,
+                Page = searchDto.Page,
+                Size = searchDto.Size,
+                TotalPages = totalPages,
+                HasNextPage = searchDto.Page < totalPages,
+                HasPreviousPage = searchDto.Page > 1
+            };
+        }
     }
 }

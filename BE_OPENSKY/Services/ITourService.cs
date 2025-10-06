@@ -14,5 +14,6 @@ namespace BE_OPENSKY.Services
         Task<bool> IsTourOwnerAsync(Guid tourId, Guid userId);
         Task<bool> UpdateTourStatusAsync(Guid tourId, TourStatus status);
         Task<bool> UpdateTourStatusAsync(Guid tourId, string statusString);
+        Task<TourSearchResponseDTO> SearchToursForAdminAsync(AdminTourSearchDTO searchDto);
     }
 }

@@ -51,4 +51,13 @@ namespace BE_OPENSKY.DTOs
         public int Size { get; set; }
         public int TotalPages { get; set; }
     }
+
+    // DTO cho admin tìm kiếm voucher theo code và type
+    public class AdminVoucherSearchDTO
+    {
+        public string? Keyword { get; set; } // Tìm kiếm theo code voucher
+        public TableType? Type { get; set; } // Lọc theo type (Tour hoặc Hotel)
+        public int Page { get; set; } = 1;
+        public int Size { get; set; } = 10;
+    }
 }

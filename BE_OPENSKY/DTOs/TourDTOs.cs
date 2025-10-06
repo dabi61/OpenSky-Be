@@ -138,6 +138,15 @@ namespace BE_OPENSKY.DTOs
         public string Status { get; set; } = string.Empty;
     }
 
+    // DTO cho admin tìm kiếm tour theo status với keyword
+    public class AdminTourSearchDTO
+    {
+        public string? Keyword { get; set; } // Tìm kiếm theo tên tour
+        public TourStatus? Status { get; set; } // Lọc theo status (null = tất cả trừ Removed)
+        public int Page { get; set; } = 1;
+        public int Size { get; set; } = 10;
+    }
+
     // DTO cho tạo tour với ảnh (multipart form data)
     public class CreateTourWithImagesDTO
     {

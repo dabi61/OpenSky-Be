@@ -9,7 +9,8 @@ public interface IHotelService
     Task<bool> ApproveHotelAsync(Guid hotelId, Guid adminId);
     Task<bool> RejectHotelAsync(Guid hotelId);
     Task<List<PendingHotelResponseDTO>> GetUserHotelsAsync(Guid userId);
-    
+    Task<string[]> GetHotelProvincesAsync();
+
     // New hotel owner methods
     Task<HotelDetailResponseDTO?> GetHotelDetailAsync(Guid hotelId);
     Task<bool> UpdateHotelAsync(Guid hotelId, Guid userId, UpdateHotelDTO updateDto);

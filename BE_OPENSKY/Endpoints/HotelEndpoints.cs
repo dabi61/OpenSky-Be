@@ -86,18 +86,15 @@ public static class HotelEndpoints
         .AllowAnonymous(); // Public endpoint - không cần authentication
 
         // 2.4. Lấy danh sách tỉnh/thành phố
-        hotelGroup.MapGet("/provinces", () =>
+        tourGroup.MapGet("/provinces", async (IHotelService hotelService) =>
         {
             try
             {
-                var provinces = ProvinceConstants.PROVINCE_LIST
-                    .OrderBy(p => p)
-                    .ToList();
-
+                var provinces = await hotelService.GetHotelProvincesAsync();
                 return Results.Ok(new
                 {
-                    provinces = provinces,
-                    totalCount = provinces.Count
+                    provinces = provinces.OrderBy(p => p).ToList(),
+                    totalCount = provinces.Length
                 });
             }
             catch (Exception ex)
@@ -109,12 +106,14 @@ public static class HotelEndpoints
                 );
             }
         })
-        .WithName("GetHotelProvinces")
-        .WithSummary("Lấy danh sách tỉnh/thành phố")
-        .WithDescription("Lấy danh sách tất cả các tỉnh/thành phố được quy định trong hệ thống cho khách sạn")
+        .WithName("GetHotelProvinces") // đổi tên cho đúng service
+        .WithSummary("Lấy danh sách tỉnh/thành phố của khách sạn")
+        .WithDescription("Lấy danh sách tất cả các tỉnh/thành phố từ bảng Hotels")
         .Produces<object>(200)
         .Produces(500)
         .AllowAnonymous();
+
+
 
         // 2.5. Admin/Supervisor tìm kiếm hotel theo status với keyword
         hotelGroup.MapGet("/admin/search", async ([FromServices] IHotelService hotelService, HttpContext context, string? keyword = null, string? status = null, int page = 1, int size = 10) =>

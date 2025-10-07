@@ -87,6 +87,15 @@ namespace BE_OPENSKY.Services
             return true;
         }
 
+        public async Task<string[]> GetTourProvincesAsync()
+        {
+            var provinces = await _context.Tours
+                .Select(t => t.Province)       
+                .Distinct()                    
+                .ToArrayAsync();               
+            return provinces;
+        }
+
         public async Task<TourResponseDTO?> GetTourByIdAsync(Guid tourId)
         {
             var tour = await _context.Tours

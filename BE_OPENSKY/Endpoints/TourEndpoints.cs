@@ -610,18 +610,15 @@ public static class TourEndpoints
         .Produces<TourSearchResponseDTO>(200);
 
         // 4.5. Lấy danh sách tỉnh/thành phố
-        tourGroup.MapGet("/provinces", () =>
+        tourGroup.MapGet("/provinces", async (ITourService tourService) =>
         {
             try
             {
-                var provinces = ProvinceConstants.PROVINCE_LIST
-                    .OrderBy(p => p)
-                    .ToList();
-
+                var provinces = await tourService.GetTourProvincesAsync();
                 return Results.Ok(new
                 {
-                    provinces = provinces,
-                    totalCount = provinces.Count
+                    provinces = provinces.OrderBy(p => p).ToList(),
+                    totalCount = provinces.Length
                 });
             }
             catch (Exception ex)
@@ -635,10 +632,12 @@ public static class TourEndpoints
         })
         .WithName("GetTourProvinces")
         .WithSummary("Lấy danh sách tỉnh/thành phố")
-        .WithDescription("Lấy danh sách tất cả các tỉnh/thành phố được quy định trong hệ thống cho tour")
+        .WithDescription("Lấy danh sách tất cả các tỉnh/thành phố từ bảng Tours")
         .Produces<object>(200)
         .Produces(500)
         .AllowAnonymous();
+
+
 
         // 5. Lọc tour theo sao
         tourGroup.MapGet("/star/{star}", async (int star, [FromServices] ITourService tourService, int page = 1, int size = 10) =>

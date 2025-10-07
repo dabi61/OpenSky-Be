@@ -50,6 +50,15 @@ public class HotelService : IHotelService
         return hotel.HotelID;
     }
 
+    public async Task<string[]> GetHotelProvincesAsync()
+    {
+        var provinces = await _context.Hotels
+            .Select(t => t.Province)
+            .Distinct()
+            .ToArrayAsync();
+        return provinces;
+    }
+
     public async Task<List<PendingHotelResponseDTO>> GetPendingHotelsAsync()
     {
         var pendingHotels = await _context.Hotels

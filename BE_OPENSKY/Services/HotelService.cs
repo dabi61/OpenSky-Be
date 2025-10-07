@@ -53,7 +53,8 @@ public class HotelService : IHotelService
     public async Task<string[]> GetHotelProvincesAsync()
     {
         var provinces = await _context.Hotels
-            .Select(t => t.Province)
+            .Where(h => h.Status == HotelStatus.Active)
+            .Select(h => h.Province)
             .Distinct()
             .ToArrayAsync();
         return provinces;

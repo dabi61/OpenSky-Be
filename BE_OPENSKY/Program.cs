@@ -132,6 +132,7 @@ public class Program
         app.MapVoucherEndpoints();     // Voucher management endpoints
         app.MapUserVoucherEndpoints(); // User voucher management endpoints
         app.MapRefundEndpoints();      // Refund management endpoints
+        app.MapStatisticsEndpoints();  // Statistics endpoints (Admin only)
         
         // Redirect root to Swagger
         app.MapGet("/", () => Results.Redirect("/swagger"));

@@ -86,7 +86,7 @@ public static class HotelEndpoints
         .AllowAnonymous(); // Public endpoint - không cần authentication
 
         // 2.4. Lấy danh sách tỉnh/thành phố
-        tourGroup.MapGet("/provinces", async (IHotelService hotelService) =>
+        hotelGroup.MapGet("/provinces", async (IHotelService hotelService) =>
         {
             try
             {

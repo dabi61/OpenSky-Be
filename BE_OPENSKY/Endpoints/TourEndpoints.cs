@@ -809,21 +809,32 @@ public static class TourEndpoints
         .Produces(404)
         .RequireAuthorization("SupervisorOrAdmin");
 
-        // 8. Xem chi tiết tour
-        tourGroup.MapGet("/{tourId:guid}", async (string tourId, [FromServices] ITourService tourService) =>
+        // 8a. Xem chi tiết tour - không có tourId
+        tourGroup.MapGet("/detail", () =>
+        {
+            return Results.BadRequest(new { message = "tourId ko được để trống" });
+        })
+        .WithName("GetTourByIdEmpty")
+        .WithSummary("Xem chi tiết tour - validation empty")
+        .WithDescription("Trả về lỗi khi không truyền tourId")
+        .Produces(400)
+        .AllowAnonymous();
+
+        // 8b. Xem chi tiết tour
+        tourGroup.MapGet("/detail/{tourId}", async (string tourId, [FromServices] ITourService tourService) =>
         {
             try
             {
                 // Kiểm tra empty
                 if (string.IsNullOrWhiteSpace(tourId))
                 {
-                    return Results.NotFound(new { message = "Không tìm thấy Tour" });
+                    return Results.BadRequest(new { message = "tourId ko được để trống" });
                 }
 
                 // Kiểm tra format (parse Guid)
                 if (!Guid.TryParse(tourId, out var tourGuid))
                 {
-                    return Results.NotFound(new { message = "Không tìm thấy Tour" });
+                    return Results.BadRequest(new { message = "tourID không hợp lệ" });
                 }
 
                 // Kiểm tra tourId có tồn tại không
@@ -846,7 +857,9 @@ public static class TourEndpoints
         .WithSummary("Xem chi tiết tour")
         .WithDescription("Lấy thông tin chi tiết của một tour")
         .Produces<TourResponseDTO>(200)
-        .Produces(404);
+        .Produces(400)
+        .Produces(404)
+        .AllowAnonymous(); // Public endpoint - không cần authentication
 
         // 9. Lấy danh sách tour theo status (ADMIN - SUPERVISOR)
         tourGroup.MapGet("/{status}", async (TourStatus status, [FromServices] ITourService tourService, HttpContext context, int page = 1, int size = 10) =>

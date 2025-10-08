@@ -13,22 +13,48 @@ public static class HotelEndpoints
         // 2. Tìm kiếm khách sạn (Public - không cần auth)
         hotelGroup.MapGet("/search", async (
             IHotelService hotelService,
-            string? keyword = null,
-            int? page = null,
-            int? limit = null) =>
+            HttpContext context,
+            string? keyword = null) =>
         {
             try
             {
-                // Validate page parameter
-                if (page.HasValue && page.Value < 1)
+                // Lấy raw query string để validate
+                var queryPage = context.Request.Query["page"].ToString();
+                var queryLimit = context.Request.Query["limit"].ToString();
+
+                int? page = null;
+                int? limit = null;
+
+                // Nếu có truyền limit nhưng không truyền page
+                if (!string.IsNullOrEmpty(queryLimit) && string.IsNullOrEmpty(queryPage))
                 {
-                    return Results.BadRequest(new { message = "Số trang (page) phải lớn hơn hoặc bằng 1" });
+                    return Results.BadRequest(new { message = "page không được để trống" });
                 }
 
-                // Validate limit parameter
-                if (limit.HasValue && (limit.Value < 1 || limit.Value > 100))
+                // Nếu có truyền page nhưng không truyền limit
+                if (!string.IsNullOrEmpty(queryPage) && string.IsNullOrEmpty(queryLimit))
                 {
-                    return Results.BadRequest(new { message = "Số kết quả mỗi trang (limit) phải từ 1 đến 100" });
+                    return Results.BadRequest(new { message = "limit ko được để trống" });
+                }
+
+                // Validate page nếu có truyền
+                if (!string.IsNullOrEmpty(queryPage))
+                {
+                    if (!int.TryParse(queryPage, out var pageValue) || pageValue < 1)
+                    {
+                        return Results.BadRequest(new { message = "sai định dạng" });
+                    }
+                    page = pageValue;
+                }
+
+                // Validate limit nếu có truyền
+                if (!string.IsNullOrEmpty(queryLimit))
+                {
+                    if (!int.TryParse(queryLimit, out var limitValue) || limitValue < 1 || limitValue > 100)
+                    {
+                        return Results.BadRequest(new { message = "sai định dạng" });
+                    }
+                    limit = limitValue;
                 }
 
                 var searchDto = new HotelSearchDTO

@@ -18,14 +18,13 @@ namespace BE_OPENSKY.Endpoints
 
             // POST /schedules - Tạo schedule mới
             group.MapPost("/", async (
-                CreateScheduleDTO createScheduleDto,
+                HttpContext context,
                 IScheduleService scheduleService,
-                ApplicationDbContext dbContext,
-                HttpContext context) =>
+                ApplicationDbContext dbContext) =>
             {
                 try
                 {
-                    // Kiểm tra quyền Admin hoặc Supervisor (chỉ Supervisor mới được tạo schedule)
+                    // Kiểm tra quyền Admin hoặc Supervisor
                     if (!context.User.IsInRole(RoleConstants.Admin) && !context.User.IsInRole(RoleConstants.Supervisor))
                     {
                         return Results.Json(new { message = "Bạn không có quyền truy cập chức năng này. Chỉ Admin và Supervisor mới được tạo schedule." }, statusCode: 403);
@@ -33,48 +32,155 @@ namespace BE_OPENSKY.Endpoints
 
                     // Lấy UserID từ token
                     var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var creatorUserId))
                     {
                         return Results.Json(new { message = "Không thể xác định người dùng" }, statusCode: 401);
                     }
 
-                    // Kiểm tra dữ liệu đầu vào
-                    if (createScheduleDto.StartTime >= createScheduleDto.EndTime)
+                    // Đọc raw JSON để validate custom messages
+                    context.Request.EnableBuffering();
+                    using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
+                    var body = await reader.ReadToEndAsync();
+                    context.Request.Body.Position = 0;
+                    
+                    if (string.IsNullOrWhiteSpace(body))
                     {
-                        return Results.Json(new { message = "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc" }, statusCode: 400);
+                        return Results.BadRequest(new { message = "Request body không được để trống" });
                     }
 
-                    // NumberPeople không còn nhập lúc tạo; sẽ được tính theo số người tham gia (bookings)
+                    JsonDocument jsonDoc;
+                    try
+                    {
+                        jsonDoc = JsonDocument.Parse(body);
+                    }
+                    catch
+                    {
+                        return Results.BadRequest(new { message = "Request body không hợp lệ" });
+                    }
+
+                    var root = jsonDoc.RootElement;
+
+                    // Validate TourID
+                    string? tourIdString = null;
+                    if (root.TryGetProperty("tourID", out var tourIdProp))
+                        tourIdString = tourIdProp.ValueKind == JsonValueKind.String ? tourIdProp.GetString() : null;
+                    else if (root.TryGetProperty("TourID", out tourIdProp))
+                        tourIdString = tourIdProp.ValueKind == JsonValueKind.String ? tourIdProp.GetString() : null;
+
+                    if (string.IsNullOrWhiteSpace(tourIdString))
+                        return Results.BadRequest(new { message = "ID không được để trống" });
+
+                    if (!Guid.TryParse(tourIdString, out var tourId))
+                        return Results.BadRequest(new { message = "ID sai định dạng" });
+
+                    // Validate UserID
+                    string? userIdString = null;
+                    if (root.TryGetProperty("userID", out var userIdProp))
+                        userIdString = userIdProp.ValueKind == JsonValueKind.String ? userIdProp.GetString() : null;
+                    else if (root.TryGetProperty("UserID", out userIdProp))
+                        userIdString = userIdProp.ValueKind == JsonValueKind.String ? userIdProp.GetString() : null;
+
+                    if (string.IsNullOrWhiteSpace(userIdString))
+                        return Results.BadRequest(new { message = "UserID không được để trống" });
+
+                    if (!Guid.TryParse(userIdString, out var tourGuideUserId))
+                        return Results.BadRequest(new { message = "UserID sai định dạng" });
+
+                    // Validate StartTime
+                    DateTime startTime;
+                    if (!root.TryGetProperty("startTime", out var startTimeProp) && !root.TryGetProperty("StartTime", out startTimeProp))
+                        return Results.BadRequest(new { message = "thời gian không được để trống" });
+
+                    if (startTimeProp.ValueKind == JsonValueKind.String)
+                    {
+                        var startTimeStr = startTimeProp.GetString();
+                        if (string.IsNullOrWhiteSpace(startTimeStr))
+                            return Results.BadRequest(new { message = "thời gian không được để trống" });
+                        if (!DateTime.TryParse(startTimeStr, out startTime))
+                            return Results.BadRequest(new { message = "thời gian sai định dạng" });
+                    }
+                    else
+                    {
+                        try { startTime = startTimeProp.GetDateTime(); }
+                        catch { return Results.BadRequest(new { message = "thời gian sai định dạng" }); }
+                    }
+
+                    // Validate EndTime
+                    DateTime endTime;
+                    if (!root.TryGetProperty("endTime", out var endTimeProp) && !root.TryGetProperty("EndTime", out endTimeProp))
+                        return Results.BadRequest(new { message = "thời gian không được để trống" });
+
+                    if (endTimeProp.ValueKind == JsonValueKind.String)
+                    {
+                        var endTimeStr = endTimeProp.GetString();
+                        if (string.IsNullOrWhiteSpace(endTimeStr))
+                            return Results.BadRequest(new { message = "thời gian không được để trống" });
+                        if (!DateTime.TryParse(endTimeStr, out endTime))
+                            return Results.BadRequest(new { message = "thời gian sai định dạng" });
+                    }
+                    else
+                    {
+                        try { endTime = endTimeProp.GetDateTime(); }
+                        catch { return Results.BadRequest(new { message = "thời gian sai định dạng" }); }
+                    }
+
+                    // Validate logic thời gian
+                    if (endTime <= startTime)
+                        return Results.BadRequest(new { message = "Thời gian kết thúc phải sau thời gian bắt đầu" });
+
+                    // Convert DateTime sang UTC cho PostgreSQL
+                    if (startTime.Kind == DateTimeKind.Local)
+                        startTime = startTime.ToUniversalTime();
+                    else if (startTime.Kind == DateTimeKind.Unspecified)
+                        startTime = DateTime.SpecifyKind(startTime, DateTimeKind.Utc);
+
+                    if (endTime.Kind == DateTimeKind.Local)
+                        endTime = endTime.ToUniversalTime();
+                    else if (endTime.Kind == DateTimeKind.Unspecified)
+                        endTime = DateTime.SpecifyKind(endTime, DateTimeKind.Utc);
+
+                    // Kiểm tra TourID có tồn tại không
+                    var tour = await dbContext.Tours.FirstOrDefaultAsync(t => t.TourID == tourId);
+                    if (tour == null)
+                        return Results.BadRequest(new { message = "tourID không tồn tại" });
 
                     // Kiểm tra UserID có tồn tại và có role TourGuide không
                     var tourGuide = await dbContext.Users
-                        .FirstOrDefaultAsync(u => u.UserID == createScheduleDto.UserID && u.Role == RoleConstants.TourGuide);
+                        .FirstOrDefaultAsync(u => u.UserID == tourGuideUserId && u.Role == RoleConstants.TourGuide);
                     
                     if (tourGuide == null)
-                    {
-                        return Results.Json(new { message = "TourGuide không tồn tại hoặc không có quyền TourGuide" }, statusCode: 400);
-                    }
+                        return Results.BadRequest(new { message = "TourGuide không tồn tại hoặc không có quyền TourGuide" });
 
-                    // Kiểm tra xung đột thời gian - TourGuide đã có schedule khác trong khoảng thời gian này chưa
+                    // Kiểm tra xung đột thời gian
                     var conflictingSchedule = await dbContext.Schedules
-                        .FirstOrDefaultAsync(s => s.UserID == createScheduleDto.UserID 
+                        .FirstOrDefaultAsync(s => s.UserID == tourGuideUserId 
                             && s.Status != ScheduleStatus.Removed
-                            && ((createScheduleDto.StartTime >= s.StartTime && createScheduleDto.StartTime < s.EndTime)
-                                || (createScheduleDto.EndTime > s.StartTime && createScheduleDto.EndTime <= s.EndTime)
-                                || (createScheduleDto.StartTime <= s.StartTime && createScheduleDto.EndTime >= s.EndTime)));
+                            && ((startTime >= s.StartTime && startTime < s.EndTime)
+                                || (endTime > s.StartTime && endTime <= s.EndTime)
+                                || (startTime <= s.StartTime && endTime >= s.EndTime)));
 
                     if (conflictingSchedule != null)
                     {
-                        return Results.Json(new { 
+                        return Results.BadRequest(new { 
                             message = $"TourGuide đang có schedule khác trong khoảng thời gian này. Vui lòng chọn thời gian khác.",
                             conflictingScheduleId = conflictingSchedule.ScheduleID,
                             conflictingStartTime = conflictingSchedule.StartTime,
                             conflictingEndTime = conflictingSchedule.EndTime
-                        }, statusCode: 400);
+                        });
                     }
 
-                    var scheduleId = await scheduleService.CreateScheduleAsync(userId, createScheduleDto);
+                    // Tạo DTO - LOGIC GIỐNG HỆT BẢN CŨ
+                    var createScheduleDto = new CreateScheduleDTO
+                    {
+                        TourID = tourId,
+                        UserID = tourGuideUserId,
+                        StartTime = startTime,
+                        EndTime = endTime
+                    };
 
+                    var scheduleId = await scheduleService.CreateScheduleAsync(creatorUserId, createScheduleDto);
+
+                    // Response giống hệt bản cũ
                     return Results.Json(new { 
                         message = "Tạo schedule thành công", 
                         scheduleId = scheduleId 
@@ -88,6 +194,7 @@ namespace BE_OPENSKY.Endpoints
             .WithName("CreateSchedule")
             .WithSummary("Tạo schedule mới")
             .WithDescription("Tạo schedule mới và phân công cho TourGuide. Chỉ Admin và Supervisor mới được tạo schedule. Cần cung cấp UserID để phân công. Kiểm tra xung đột thời gian với schedule khác của TourGuide.")
+            .Accepts<CreateScheduleDTO>("application/json")
             .Produces(201)
             .Produces(400)
             .Produces(401)
@@ -347,14 +454,36 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization("TourGuideOnly");
 
+            // PUT /schedules/delete - Soft delete schedule (no id)
+            group.MapPut("/delete", () =>
+            {
+                return Results.BadRequest(new { message = "không được để trống scheduleID" });
+            })
+            .WithName("SoftDeleteScheduleEmpty")
+            .WithSummary("Soft delete schedule - validation empty")
+            .WithDescription("Trả về lỗi khi không truyền scheduleID")
+            .Produces(400)
+            .RequireAuthorization("ManagementRoles");
+
             // PUT /schedules/delete/{id} - Soft delete schedule
-            group.MapPut("/delete/{id:guid}", async (
-                Guid id,
+            group.MapPut("/delete/{id}", async (
+                string id,
                 IScheduleService scheduleService,
                 HttpContext context) =>
             {
                 try
                 {
+                    // Validate scheduleID
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        return Results.BadRequest(new { message = "không được để trống scheduleID" });
+                    }
+
+                    if (!Guid.TryParse(id, out var scheduleId))
+                    {
+                        return Results.BadRequest(new { message = "schedule không hợp lệ" });
+                    }
+
                     // Lấy UserID từ token
                     var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
@@ -371,20 +500,21 @@ namespace BE_OPENSKY.Endpoints
                     // Nếu là TourGuide, kiểm tra schedule có được phân công cho họ không
                     if (context.User.IsInRole(RoleConstants.TourGuide))
                     {
-                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(id, userId);
+                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(scheduleId, userId);
                         if (!isAssigned)
                         {
                             return Results.Json(new { message = "Bạn chỉ có thể xóa schedule được phân công cho bạn" }, statusCode: 403);
                         }
                     }
 
-                    var success = await scheduleService.SoftDeleteScheduleAsync(id);
+                    // Soft delete
+                    var success = await scheduleService.SoftDeleteScheduleAsync(scheduleId);
                     if (!success)
                     {
-                        return Results.Json(new { message = "Không tìm thấy schedule hoặc không thể xóa" }, statusCode: 404);
+                        return Results.NotFound(new { message = "Không tìm thấy schedule" });
                     }
 
-                    return Results.Json(new { message = "Xóa schedule thành công" });
+                    return Results.Ok(new { message = "Xóa schedule thành công" });
                 }
                 catch (Exception ex)
                 {
@@ -395,6 +525,8 @@ namespace BE_OPENSKY.Endpoints
             .WithSummary("Soft delete schedule")
             .WithDescription("Xóa schedule (chuyển trạng thái thành Removed). Chỉ Admin, Supervisor và TourGuide mới được xóa schedule.")
             .Produces(200)
+            .Produces(400)
+            .Produces(401)
             .Produces(403)
             .Produces(404)
             .Produces(500)

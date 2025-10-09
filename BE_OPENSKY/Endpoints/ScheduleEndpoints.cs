@@ -454,14 +454,36 @@ namespace BE_OPENSKY.Endpoints
             .Produces(500)
             .RequireAuthorization("TourGuideOnly");
 
+            // PUT /schedules/delete - Soft delete schedule (no id)
+            group.MapPut("/delete", () =>
+            {
+                return Results.BadRequest(new { message = "không được để trống scheduleID" });
+            })
+            .WithName("SoftDeleteScheduleEmpty")
+            .WithSummary("Soft delete schedule - validation empty")
+            .WithDescription("Trả về lỗi khi không truyền scheduleID")
+            .Produces(400)
+            .RequireAuthorization("ManagementRoles");
+
             // PUT /schedules/delete/{id} - Soft delete schedule
-            group.MapPut("/delete/{id:guid}", async (
-                Guid id,
+            group.MapPut("/delete/{id}", async (
+                string id,
                 IScheduleService scheduleService,
                 HttpContext context) =>
             {
                 try
                 {
+                    // Validate scheduleID
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        return Results.BadRequest(new { message = "không được để trống scheduleID" });
+                    }
+
+                    if (!Guid.TryParse(id, out var scheduleId))
+                    {
+                        return Results.BadRequest(new { message = "schedule không hợp lệ" });
+                    }
+
                     // Lấy UserID từ token
                     var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
@@ -478,20 +500,21 @@ namespace BE_OPENSKY.Endpoints
                     // Nếu là TourGuide, kiểm tra schedule có được phân công cho họ không
                     if (context.User.IsInRole(RoleConstants.TourGuide))
                     {
-                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(id, userId);
+                        var isAssigned = await scheduleService.IsScheduleAssignedToTourGuideAsync(scheduleId, userId);
                         if (!isAssigned)
                         {
                             return Results.Json(new { message = "Bạn chỉ có thể xóa schedule được phân công cho bạn" }, statusCode: 403);
                         }
                     }
 
-                    var success = await scheduleService.SoftDeleteScheduleAsync(id);
+                    // Soft delete
+                    var success = await scheduleService.SoftDeleteScheduleAsync(scheduleId);
                     if (!success)
                     {
-                        return Results.Json(new { message = "Không tìm thấy schedule hoặc không thể xóa" }, statusCode: 404);
+                        return Results.NotFound(new { message = "Không tìm thấy schedule" });
                     }
 
-                    return Results.Json(new { message = "Xóa schedule thành công" });
+                    return Results.Ok(new { message = "Xóa schedule thành công" });
                 }
                 catch (Exception ex)
                 {
@@ -502,6 +525,8 @@ namespace BE_OPENSKY.Endpoints
             .WithSummary("Soft delete schedule")
             .WithDescription("Xóa schedule (chuyển trạng thái thành Removed). Chỉ Admin, Supervisor và TourGuide mới được xóa schedule.")
             .Produces(200)
+            .Produces(400)
+            .Produces(401)
             .Produces(403)
             .Produces(404)
             .Produces(500)

@@ -414,6 +414,10 @@ public static class UserEndpoints
                 
                 if (string.IsNullOrWhiteSpace(createUserDto.FullName))
                     return Results.BadRequest(new { message = "Họ tên không được để trống" });
+                
+                // Validate full name - chỉ cho phép chữ cái và khoảng trắng
+                if (!System.Text.RegularExpressions.Regex.IsMatch(createUserDto.FullName, @"^[\p{L}\s]+$"))
+                    return Results.BadRequest(new { message = "Họ tên chỉ được chứa chữ cái và khoảng trắng" });
 
                 if (string.IsNullOrWhiteSpace(createUserDto.Role))
                     return Results.BadRequest(new { message = "Role không được để trống" });
@@ -517,9 +521,9 @@ public static class UserEndpoints
                     {
                         avatarUrl = await cloudinaryService.UploadImageAsync(createUserDto.Avatar, "avatars");
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        return Results.BadRequest(new { message = $"Lỗi khi upload avatar: {ex.Message}" });
+                        return Results.BadRequest(new { message = "lỗi khi upload avatar" });
                     }
                 }
 

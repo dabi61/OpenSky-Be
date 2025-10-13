@@ -26,8 +26,8 @@ namespace BE_OPENSKY.Models
         public string Province { get; set; } = string.Empty;
         
         [Required]
-        [Range(1, 5)]
-        public int Star { get; set; } = 1; // Rating from 1-5
+        [Range(0, 5)]
+        public int Star { get; set; } = 0; // Rating from 0-5, 0 = chưa có đánh giá
         
         [Required]
         [Range(0.01, double.MaxValue)]

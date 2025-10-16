@@ -415,8 +415,8 @@ public static class UserEndpoints
                 if (string.IsNullOrWhiteSpace(createUserDto.FullName))
                     return Results.BadRequest(new { message = "Họ tên không được để trống" });
                 
-                // Validate full name - chỉ cho phép chữ cái và khoảng trắng
-                if (!System.Text.RegularExpressions.Regex.IsMatch(createUserDto.FullName, @"^[\p{L}\s]+$"))
+                // Validate full name - chỉ cho phép chữ cái và khoảng trắng (hỗ trợ tiếng Việt có dấu)
+                if (!System.Text.RegularExpressions.Regex.IsMatch(createUserDto.FullName, @"^[\p{L}\p{M}\s]+$"))
                     return Results.BadRequest(new { message = "Họ tên chỉ được chứa chữ cái và khoảng trắng" });
 
                 if (string.IsNullOrWhiteSpace(createUserDto.Role))

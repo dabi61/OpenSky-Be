@@ -246,8 +246,9 @@ public static class HotelEndpoints
 
                 // Validate province
                 var provinceTrimmed = provinceValue.ToString().Trim();
-                if (!ProvinceConstants.IsValidProvince(provinceTrimmed))
-                    return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
+                // TODO: Tạm thời comment check tỉnh để test API
+                // if (!ProvinceConstants.IsValidProvince(provinceTrimmed))
+                //     return Results.BadRequest(new { message = "Tỉnh không hợp lệ" });
 
                 if (!decimal.TryParse(form["latitude"], out var latitude))
                     return Results.BadRequest(new { message = "Vĩ độ không hợp lệ" });

@@ -40,10 +40,19 @@ namespace BE_OPENSKY.Services
 
         public async Task<bool> UpdateTourAsync(Guid tourId, Guid userId, UpdateTourDTO updateDto)
         {
+            // Tìm tour trước
             var tour = await _context.Tours
-                .FirstOrDefaultAsync(t => t.TourID == tourId && t.UserID == userId);
+                .FirstOrDefaultAsync(t => t.TourID == tourId);
 
             if (tour == null)
+                return false;
+
+            // Kiểm tra quyền: chủ sở hữu tour hoặc Admin/Supervisor
+            var user = await _context.Users.FindAsync(userId);
+            var isAdminOrSupervisor = user != null && 
+                (user.Role == RoleConstants.Admin || user.Role == RoleConstants.Supervisor);
+            
+            if (tour.UserID != userId && !isAdminOrSupervisor)
                 return false;
 
             // Cập nhật các trường nếu có giá trị

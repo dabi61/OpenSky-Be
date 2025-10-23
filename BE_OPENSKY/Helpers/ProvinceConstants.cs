@@ -81,7 +81,22 @@ public static class ProvinceConstants
         if (string.IsNullOrWhiteSpace(province))
             return false;
             
-        return PROVINCE_LIST.Contains(province.Trim());
+        var trimmedProvince = province.Trim();
+        
+        // Normalize Unicode to handle different encodings
+        var normalizedProvince = trimmedProvince.Normalize(System.Text.NormalizationForm.FormC);
+        
+        // Check against normalized list
+        foreach (var validProvince in PROVINCE_LIST)
+        {
+            var normalizedValidProvince = validProvince.Normalize(System.Text.NormalizationForm.FormC);
+            if (string.Equals(normalizedProvince, normalizedValidProvince, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }
 

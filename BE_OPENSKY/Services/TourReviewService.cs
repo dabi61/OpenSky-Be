@@ -55,6 +55,9 @@ namespace BE_OPENSKY.Services
             _context.FeedBacks.Add(feedback);
             await _context.SaveChangesAsync();
 
+            // Cập nhật sao tour sau khi tạo feedback
+            await UpdateTourRatingAsync(createTourReviewDto.TourId);
+
             return feedback.FeedBackID;
         }
 
@@ -125,6 +128,10 @@ namespace BE_OPENSKY.Services
             review.Description = updateTourReviewDto.Description;
 
             await _context.SaveChangesAsync();
+            
+            // Cập nhật sao tour sau khi cập nhật feedback
+            await UpdateTourRatingAsync(updateTourReviewDto.TourId);
+            
             return true;
         }
 
@@ -137,8 +144,13 @@ namespace BE_OPENSKY.Services
 
             if (review == null) return false;
 
+            var tourId = review.TableID; // Lưu tourId trước khi xóa
             _context.FeedBacks.Remove(review);
             await _context.SaveChangesAsync();
+            
+            // Cập nhật sao tour sau khi xóa feedback
+            await UpdateTourRatingAsync(tourId);
+            
             return true;
         }
 
@@ -165,6 +177,31 @@ namespace BE_OPENSKY.Services
             };
 
             return stats;
+        }
+
+        // Method để cập nhật sao tour dựa trên tất cả feedback
+        private async Task UpdateTourRatingAsync(Guid tourId)
+        {
+            var tour = await _context.Tours.FindAsync(tourId);
+            if (tour == null) return;
+
+            var reviews = await _context.FeedBacks
+                .Where(f => f.TableType == TableType.Tour && f.TableID == tourId)
+                .ToListAsync();
+
+            if (reviews.Any())
+            {
+                // Tính điểm trung bình và làm tròn
+                var averageRating = reviews.Average(r => r.Rate);
+                tour.Star = (int)Math.Round(averageRating);
+            }
+            else
+            {
+                // Nếu không có feedback nào, đặt sao về 0
+                tour.Star = 0;
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<TourReviewEligibilityDTO> CheckReviewEligibilityAsync(Guid tourId, Guid userId)

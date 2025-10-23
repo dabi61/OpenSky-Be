@@ -48,6 +48,9 @@ public class HotelReviewService : IHotelReviewService
         _context.FeedBacks.Add(feedback);
         await _context.SaveChangesAsync();
 
+        // Cập nhật sao hotel sau khi tạo feedback
+        await UpdateHotelRatingAsync(hotelId);
+
         return await GetHotelReviewByIdAsync(feedback.FeedBackID);
     }
 
@@ -62,6 +65,10 @@ public class HotelReviewService : IHotelReviewService
         feedback.Description = updateDto.Description;
 
         await _context.SaveChangesAsync();
+        
+        // Cập nhật sao hotel sau khi cập nhật feedback
+        await UpdateHotelRatingAsync(feedback.TableID);
+        
         return await GetHotelReviewByIdAsync(feedbackId);
     }
 
@@ -72,8 +79,13 @@ public class HotelReviewService : IHotelReviewService
         
         if (feedback == null) return false;
 
+        var hotelId = feedback.TableID; // Lưu hotelId trước khi xóa
         _context.FeedBacks.Remove(feedback);
         await _context.SaveChangesAsync();
+        
+        // Cập nhật sao hotel sau khi xóa feedback
+        await UpdateHotelRatingAsync(hotelId);
+        
         return true;
     }
 
@@ -201,6 +213,31 @@ public class HotelReviewService : IHotelReviewService
             Description = f.Description,
             CreatedAt = f.CreatedAt
         }).ToList();
+    }
+
+    // Method để cập nhật sao hotel dựa trên tất cả feedback
+    private async Task UpdateHotelRatingAsync(Guid hotelId)
+    {
+        var hotel = await _context.Hotels.FindAsync(hotelId);
+        if (hotel == null) return;
+
+        var reviews = await _context.FeedBacks
+            .Where(f => f.TableType == TableType.Hotel && f.TableID == hotelId)
+            .ToListAsync();
+
+        if (reviews.Any())
+        {
+            // Tính điểm trung bình và làm tròn
+            var averageRating = reviews.Average(r => r.Rate);
+            hotel.Star = (int)Math.Round(averageRating);
+        }
+        else
+        {
+            // Nếu không có feedback nào, đặt sao về 0
+            hotel.Star = 0;
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task<ReviewEligibilityDTO> CheckReviewEligibilityAsync(Guid hotelId, Guid userId)

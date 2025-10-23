@@ -58,8 +58,8 @@ public static class HotelRoomEndpoints
                 if (!form.TryGetValue("address", out var addressValue) || string.IsNullOrWhiteSpace(addressValue))
                     return Results.BadRequest(new { message = "Địa chỉ phòng không được để trống" });
 
-                // Validate address với regex (hỗ trợ tiếng Việt có dấu)
-                var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                // Validate address với regex (hỗ trợ tiếng Việt có dấu và các ký tự đặc biệt)
+                var addressRegex = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀ-ỹ0-9\s,./\-–—()&]{1,255}$");
                 if (!addressRegex.IsMatch(addressValue.ToString()))
                     return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
 

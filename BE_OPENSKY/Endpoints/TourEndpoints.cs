@@ -268,7 +268,7 @@ public static class TourEndpoints
                         {
                             var tourNameValue = form["tourName"].FirstOrDefault();
                             // Validate tourName với regex (hỗ trợ tiếng Việt có dấu)
-                            var tourNameRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            var tourNameRegex = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀ-ỹ0-9\s,./\-–—()&]{1,255}$");
                             if (!tourNameRegex.IsMatch(tourNameValue))
                                 return Results.BadRequest(new { message = "Tên tour chứa ký tự không hợp lệ" });
                             
@@ -279,7 +279,7 @@ public static class TourEndpoints
                         {
                             var descriptionValue = form["description"].FirstOrDefault();
                             // Validate description với regex (hỗ trợ tiếng Việt có dấu)
-                            var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,5000}$");
+                            var descriptionRegex = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀ-ỹ0-9\s,./\-–—()&]{1,5000}$");
                             if (!descriptionRegex.IsMatch(descriptionValue))
                                 return Results.BadRequest(new { message = "Mô tả chứa ký tự không hợp lệ" });
                             
@@ -290,7 +290,7 @@ public static class TourEndpoints
                         {
                             var addressValue = form["address"].FirstOrDefault();
                             // Validate address với regex (hỗ trợ tiếng Việt có dấu)
-                            var addressRegex = new System.Text.RegularExpressions.Regex(@"^[\p{L}0-9\s,./-]{1,255}$");
+                            var addressRegex = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀ-ỹ0-9\s,./\-–—()&]{1,255}$");
                             if (!addressRegex.IsMatch(addressValue))
                                 return Results.BadRequest(new { message = "Địa chỉ chứa ký tự không hợp lệ" });
                             

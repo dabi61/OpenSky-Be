@@ -539,14 +539,16 @@ namespace BE_OPENSKY.Services
             // Nếu là bill của tour, tăng CurrentBookings cho schedule tương ứng
             var tourDetail = bill.BillDetails
                 .FirstOrDefault(bd => bd.ItemType == TableType.Tour && bd.ScheduleID.HasValue);
+            
             if (tourDetail != null)
             {
                 var schedule = await _context.Schedules
+                    .Include(s => s.Tour)
                     .FirstOrDefaultAsync(s => s.ScheduleID == tourDetail.ScheduleID!.Value);
                 if (schedule != null)
                 {
                     // Bảo vệ không vượt capacity
-                    var remaining = schedule.NumberPeople - schedule.CurrentBookings;
+                    var remaining = schedule.Tour?.MaxPeople - schedule.CurrentBookings ?? 0;
                     var increment = Math.Min(remaining, tourDetail.Quantity);
                     if (increment > 0)
                     {
